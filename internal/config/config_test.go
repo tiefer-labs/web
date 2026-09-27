@@ -106,6 +106,7 @@ func TestInvalidValues(t *testing.T) {
 		{map[string]string{"CONTACT_EMAIL": "not an email"}, "CONTACT_EMAIL"},
 		{map[string]string{"CONTACT_EMAIL": "a@b.example\r\nBcc: c@d.example"}, "CONTACT_EMAIL"},
 		{map[string]string{"LINKEDIN_URL": "javascript:alert(1)"}, "LINKEDIN_URL"},
+		{map[string]string{"SECURITY_EMAIL": "security at tiefer"}, "SECURITY_EMAIL"},
 		{map[string]string{"REPO_URL": "ftp://example.org"}, "REPO_URL"},
 		{map[string]string{"CSRF_SECRET": "short"}, "CSRF_SECRET"},
 		{map[string]string{"LEGAL_REVIEWED": "yes please"}, "LEGAL_REVIEWED"},

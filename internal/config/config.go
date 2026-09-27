@@ -62,9 +62,12 @@ type Config struct {
 	Env          string
 	SiteURL      string // without trailing slash
 	ContactEmail string
-	LinkedInURL  string
-	RepoURL      string
-	TrustProxy   bool
+	// SecurityEmail receives vulnerability reports (security.txt).
+	// It defaults to ContactEmail.
+	SecurityEmail string
+	LinkedInURL   string
+	RepoURL       string
+	TrustProxy    bool
 
 	SMTP        SMTP
 	ContactTo   string
@@ -174,6 +177,12 @@ func FromLookup(lookup func(string) (string, bool)) (*Config, error) {
 	c.ContactEmail = orDefault("CONTACT_EMAIL", true)
 	if c.ContactEmail != "" && !validEmail(c.ContactEmail) {
 		errs = append(errs, fmt.Errorf("CONTACT_EMAIL is not a valid email address: %q", c.ContactEmail))
+	}
+	c.SecurityEmail = get("SECURITY_EMAIL")
+	if c.SecurityEmail == "" {
+		c.SecurityEmail = c.ContactEmail
+	} else if !validEmail(c.SecurityEmail) {
+		errs = append(errs, fmt.Errorf("SECURITY_EMAIL is not a valid email address: %q", c.SecurityEmail))
 	}
 	c.LinkedInURL = orDefault("LINKEDIN_URL", false)
 	if err := checkHTTPURL("LINKEDIN_URL", c.LinkedInURL); err != nil {

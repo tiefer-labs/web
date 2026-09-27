@@ -162,6 +162,7 @@ var routes = []struct {
 	{"/acceptable-use", 200},
 	{"/healthz", 200},
 	{"/robots.txt", 200},
+	{"/.well-known/security.txt", 200},
 	{"/sitemap.xml", 200},
 	{"/site.webmanifest", 200},
 	{"/favicon.ico", 200},
@@ -648,6 +649,32 @@ func TestHTMLIsCompressed(t *testing.T) {
 	r.Header.Set("Accept-Encoding", "gzip, deflate, br")
 	if w := h.do(t, r); w.Header().Get("Content-Encoding") != "gzip" {
 		t.Error("HTML not gzip-compressed")
+	}
+}
+
+func TestSecurityTxt(t *testing.T) {
+	h := newHarness(t, map[string]string{
+		"SITE_URL":       "https://tiefer.space",
+		"SECURITY_EMAIL": "security@tiefer.space",
+		"REPO_URL":       "https://github.com/tiefer-labs/web",
+	})
+	w := h.get(t, "/.well-known/security.txt")
+	body := w.Body.String()
+	for _, want := range []string{
+		"Contact: mailto:security@tiefer.space\n",
+		"Expires: 2027-",
+		"Canonical: https://tiefer.space/.well-known/security.txt\n",
+		"Policy: https://github.com/tiefer-labs/web/security/policy\n",
+	} {
+		if !strings.Contains(body, want) {
+			t.Errorf("security.txt lacks %q:\n%s", want, body)
+		}
+	}
+	if w.Header().Get("Content-Type") != "text/plain; charset=utf-8" {
+		t.Errorf("content type %q", w.Header().Get("Content-Type"))
+	}
+	if w := h.get(t, "/security.txt"); w.Code != http.StatusMovedPermanently || w.Header().Get("Location") != "/.well-known/security.txt" {
+		t.Errorf("/security.txt: %d %q", w.Code, w.Header().Get("Location"))
 	}
 }
 

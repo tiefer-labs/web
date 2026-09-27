@@ -68,6 +68,7 @@ type Server struct {
 	jsonLD      template.HTML
 	csp         string
 	hsts        string
+	started     time.Time
 	handler     http.Handler
 }
 
@@ -102,6 +103,7 @@ func New(o Options) (*Server, error) {
 		limiter:     newRateLimiter(5, time.Hour, o.Now),
 		sendLimiter: newRateLimiter(50, time.Hour, o.Now),
 		now:         o.Now,
+		started:     o.Now(),
 	}
 	if s.mailer == nil && o.Config.ContactEnabled() {
 		s.mailer = &contact.SMTPMailer{
@@ -131,6 +133,8 @@ func (s *Server) routes() http.Handler {
 		_, _ = w.Write([]byte("ok"))
 	})
 	mux.HandleFunc("GET /robots.txt", s.robots)
+	mux.HandleFunc("GET /.well-known/security.txt", s.securityTxt)
+	mux.Handle("GET /security.txt", http.RedirectHandler("/.well-known/security.txt", http.StatusMovedPermanently))
 	mux.HandleFunc("GET /sitemap.xml", s.sitemap)
 	mux.HandleFunc("GET /site.webmanifest", s.manifest)
 	mux.HandleFunc("GET /favicon.ico", s.rootAsset("favicon.ico"))
