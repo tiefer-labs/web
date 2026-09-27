@@ -6,7 +6,7 @@ BINARY      := bin/tiefer-web
 IMAGE       ?= tiefer-web
 STATICCHECK := $(shell command -v staticcheck 2>/dev/null || echo $(shell go env GOPATH)/bin/staticcheck)
 
-.PHONY: run build test lint check fmt docker clean
+.PHONY: run build test lint vuln check fmt docker clean
 
 ## run: start the server on PORT (default 8080), loading .env if present
 run:
@@ -26,6 +26,10 @@ lint:
 	go vet ./...
 	@if [ -x "$(STATICCHECK)" ]; then echo "$(STATICCHECK) ./..."; "$(STATICCHECK)" ./...; \
 	else echo "staticcheck not installed, skipped (go install honnef.co/go/tools/cmd/staticcheck@latest)"; fi
+
+## vuln: report known vulnerabilities in the code and the Go standard library
+vuln:
+	go run golang.org/x/vuln/cmd/govulncheck@v1.8.0 ./...
 
 ## check: the text check (dashes, emoji, banned words), with placeholder warnings
 check:
