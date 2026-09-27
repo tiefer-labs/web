@@ -90,8 +90,12 @@ an answer can end with a link (`Link`, a site path such as
 roadmap" for what is planned.
 
 **Legal pages.** Their text is in `Legal` in the same file. Words in curly
-braces such as `{legal_name}` are filled from `LEGAL_*` environment
-variables. Words in square brackets such as `[RETENTION_PERIOD]` are
+braces such as `{operator}` are filled from `LEGAL_*` environment
+variables. Tiefer is not yet registered as a company, so the pages name the
+founder (`LEGAL_FOUNDER`) as the operator of the site; sections marked
+`Stage: Founding` are shown until then. Once the company is registered, set
+`LEGAL_NAME` and the other company details: the sections marked
+`Stage: Company` replace them, with no code change. Words in square brackets such as `[RETENTION_PERIOD]` are
 placeholders for a lawyer to replace in the file; they are highlighted on the
 page and listed by `make check`.
 
@@ -357,13 +361,16 @@ Notes on decisions:
 Environment variables (the server logs a warning at start while any of these
 has its default):
 
-- `LINKEDIN_URL` (the company page address)
 - The site already uses `https://tiefer.space`, `hello@tiefer.space` (contact
-  and security reports), `website@tiefer.space` (sender of form messages)
-  and `https://github.com/tiefer-labs/web`; create these mailboxes, or set
+  and security reports), `website@tiefer.space` (sender of form messages),
+  `https://www.linkedin.com/company/tiefer` and
+  `https://github.com/tiefer-labs/web`; create these mailboxes, or set
   `CONTACT_EMAIL`, `SECURITY_EMAIL` and `CONTACT_FROM` to other addresses
-- `LEGAL_NAME`, `LEGAL_FORM`, `LEGAL_ADDRESS`, `LEGAL_TAX_ID` (VÖEN),
-  `LEGAL_REGISTRATION`, `LEGAL_DIRECTOR`
+- `LEGAL_FOUNDER`, the founder who operates the site until the company is
+  registered
+- After registration: `LEGAL_NAME`, `LEGAL_FORM`, `LEGAL_ADDRESS`,
+  `LEGAL_TAX_ID` (VÖEN), `LEGAL_REGISTRATION`, `LEGAL_DIRECTOR`, all
+  together
 - `LEGAL_HOSTING_PROVIDER`, `LEGAL_HOSTING_COUNTRY`, `LEGAL_SMTP_PROVIDER`,
   `LEGAL_SMTP_COUNTRY`
 - `LEGAL_REVIEWED=true`, only after the legal review
@@ -374,7 +381,8 @@ has its default):
 Placeholders in `internal/content/en.go` for a lawyer (`make check` lists
 them with the pages they appear on):
 
-- Legal notice: `[CONTENT_RESPONSIBILITY]`, `[LAST_UPDATED]`
+- Legal notice: `[POSTAL_ADDRESS]`, `[CONTENT_RESPONSIBILITY]`,
+  `[LAST_UPDATED]`
 - Privacy: `[EU_REPRESENTATIVE]`, `[HOSTING_PROVIDER_LOGS]`, `[LEGAL_BASIS]`,
   `[RECIPIENTS]`, `[INTERNATIONAL_TRANSFERS]`, `[RETENTION_PERIOD]`,
   `[LOG_RETENTION_PERIOD]`, `[DATA_SUBJECT_RIGHTS]`,

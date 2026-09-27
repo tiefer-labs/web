@@ -72,13 +72,17 @@ In `deploy/.env` set at least:
 
 - `CSRF_SECRET`: `openssl rand -hex 32`;
 - `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS` for the contact form;
-- `LINKEDIN_URL` and the `LEGAL_*` values.
+- `LEGAL_FOUNDER` (the site is operated by the founder until Tiefer is
+  registered as a company), and the `LEGAL_HOSTING_*` and `LEGAL_SMTP_*`
+  values. After registration, add `LEGAL_NAME` and the other company
+  details.
 
 The addresses default to tiefer.space: `hello@tiefer.space` for contact,
 security reports and Let's Encrypt notices (`CONTACT_EMAIL`,
 `SECURITY_EMAIL`, `ACME_EMAIL`), `website@tiefer.space` as the sender of
-form messages (`CONTACT_FROM`). Set those variables only to use other
-addresses.
+form messages (`CONTACT_FROM`). The LinkedIn link defaults to
+`https://www.linkedin.com/company/tiefer`. Set those variables only to use
+other addresses.
 
 `ENV=production`, `SITE_URL=https://tiefer.space` and `TRUST_PROXY=true`
 are set by `docker-compose.yml`. Keep `deploy/.env` readable only by the
