@@ -25,6 +25,10 @@
 }
 
 :root {
+  /* The site has one, light theme; form controls and scrollbars follow it
+   * even when the operating system uses a dark theme. */
+  color-scheme: light;
+
   --ink: #0C003D;
   --ink-80: #3D3364;
   --ink-60: #6D6690;
