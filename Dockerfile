@@ -16,7 +16,7 @@ RUN go build -trimpath -ldflags="-s -w -buildid=" -o /out/tiefer-web ./cmd/tiefe
 
 # Run stage: distroless static image (gcr.io/distroless/static-debian12:nonroot):
 # no shell, no package manager, non-root user 65532.
-FROM gcr.io/distroless/static-debian12@sha256:afa5c872c891853ca7fcf1f12c3edb23f7eeef36189728842dd51042ff57f7ab
+FROM gcr.io/distroless/static-debian12@sha256:d75cdd72874d4790092fcb1b058493ecf6bb5bf2b2b897045b00ff01d91843f2
 COPY --from=build /out/tiefer-web /tiefer-web
 ARG PORT=8080
 ENV PORT=${PORT} ENV=production
