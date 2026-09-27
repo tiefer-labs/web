@@ -100,6 +100,10 @@ var English = Site{
 			{Title: "Task", Text: "No recent image? It prepares an order for a commercial satellite, within your budget rules. Anything beyond them waits for your approval."},
 			{Title: "Brief", Text: "You get a map, the findings, a confidence level for each, the source images, and what could not be seen."},
 		},
+		Note: Item{
+			Title: "Under the hood",
+			Text:  "Two kinds of models share the work. A language model turns your question into a plan and explains the result. Specialised geospatial models analyse the images: they find change and detect objects such as vessels, tanks and new buildings. The language model does not make up findings.",
+		},
 	},
 
 	Demo: Demo{

@@ -1011,6 +1011,26 @@ main:focus {
   }
 }
 
+.how-note {
+  display: grid;
+  grid-template-columns: minmax(0, 12rem) minmax(0, 1fr);
+  gap: 0.5rem 2rem;
+  max-width: 52rem;
+  margin-top: clamp(3rem, 2rem + 3vw, 4.5rem);
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--line);
+}
+
+.how-note p:last-child {
+  color: var(--ink-80);
+}
+
+@media (max-width: 40rem) {
+  .how-note {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* Demo brief */
 
 .demo-grid {

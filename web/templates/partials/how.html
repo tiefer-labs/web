@@ -19,6 +19,12 @@
       </li>
       {{- end}}
     </ol>
+    {{- with .Note}}
+    <aside class="how-note" aria-label="{{.Title}}">
+      <p class="tech-label">{{.Title}}</p>
+      <p>{{.Text}}</p>
+    </aside>
+    {{- end}}
   </div>
 </section>
 {{- end}}

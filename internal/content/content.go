@@ -111,6 +111,7 @@ type Product struct {
 type How struct {
 	Title string
 	Steps []Item
+	Note  Item // how the work is split between models
 }
 
 // BriefRow is one row of the illustrative brief. Tag is "observed",
