@@ -40,6 +40,7 @@ type Site struct {
 	Demo       Demo
 	UseCases   UseCases
 	Principles Principles
+	Limits     Limits
 	Roadmap    Roadmap
 	Name       Name
 	Contact    Contact
@@ -171,6 +172,21 @@ type UseCases struct {
 type Principles struct {
 	Title string
 	Items []Item
+}
+
+// Limit is one hard limit of satellite data and how Tiefer handles it.
+type Limit struct {
+	Limit    string
+	Response string
+}
+
+// Limits states what satellites cannot see.
+type Limits struct {
+	Title         string
+	Intro         string
+	LimitLabel    string
+	ResponseLabel string
+	Items         []Limit
 }
 
 // Milestone is one node on the roadmap.

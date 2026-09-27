@@ -741,7 +741,8 @@ main:focus {
 
 .section--tint,
 .demo,
-.principles {
+.principles,
+.roadmap {
   background: var(--tint);
 }
 
@@ -1350,6 +1351,63 @@ main:focus {
 @media (max-width: 64rem) and (min-width: 52.01rem) {
   .principle-list.grid--3 {
     grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* Limits */
+
+.limits-head {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 2.5rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--ink);
+}
+
+.limit {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 0.5rem 2.5rem;
+  padding-block: 1.25rem;
+  border-bottom: 1px solid var(--line);
+}
+
+/* The column headings carry the labels on wide screens. */
+.limit-label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.limit-text {
+  color: var(--ink);
+}
+
+.limit-response {
+  padding-left: 1rem;
+  border-left: 2px solid var(--ink);
+}
+
+@media (max-width: 48rem) {
+  .limits-head {
+    display: none;
+  }
+
+  .limit {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  .limit-label {
+    position: static;
+    width: auto;
+    height: auto;
+    overflow: visible;
+    clip-path: none;
+    margin-bottom: 0.375rem;
   }
 }
 

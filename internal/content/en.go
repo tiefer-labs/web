@@ -198,6 +198,35 @@ var English = Site{
 		},
 	},
 
+	Limits: Limits{
+		Title:         "What satellites cannot see",
+		Intro:         "Space data has hard limits. We state them up front, and every brief says what could not be seen.",
+		LimitLabel:    "The limit",
+		ResponseLabel: "What Tiefer does",
+		Items: []Limit{
+			{
+				Limit:    "Optical satellites cannot see through cloud or in the dark. Filling the gap with generated imagery would be a guess, not an observation.",
+				Response: "Switches to radar, which sees through cloud and at night, and says in the brief which days had no optical view.",
+			},
+			{
+				Limit:    "Free night-light data has pixels of about 500 to 750 metres. A small or weak light often does not show.",
+				Response: "Uses free data for strong lights and open fires, and proposes commercial night or thermal imagery for small objects.",
+			},
+			{
+				Limit:    "What can be detected depends on the resolution of the sensor, on how often a satellite passes and on the weather.",
+				Response: "Lists the passes it used and the ones it rejected, and states what could not be seen.",
+			},
+			{
+				Limit:    "Commercial imagery costs money, comes with licence terms and can be restricted for some areas.",
+				Response: "Orders only within your budget rules, checks the licence, and asks a person to approve anything beyond the rules.",
+			},
+			{
+				Limit:    "General language models can misread satellite images and make things up.",
+				Response: "Leaves the image analysis to specialised geospatial models. The language model plans and explains; it does not invent findings.",
+			},
+		},
+	},
+
 	Roadmap: Roadmap{
 		Title:    "Where we are",
 		NowLabel: "Now",
