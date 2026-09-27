@@ -134,12 +134,14 @@ func (s *Server) routes() http.Handler {
 	mux.HandleFunc("GET /apple-touch-icon.png", s.rootAsset("apple-touch-icon.png"))
 	mux.HandleFunc("GET "+render.StaticPrefix+"{path...}", s.static)
 
+	csrf := http.NewCrossOriginProtection()
 	for _, site := range s.locales {
 		prefix := site.Locale.Prefix
 		mux.HandleFunc("GET "+prefix+"/{$}", s.index(site))
 		mux.HandleFunc("GET "+prefix+"/legal", s.legal(site, PageLegal, &site.Legal.Notice))
 		mux.HandleFunc("GET "+prefix+"/privacy", s.legal(site, PagePrivacy, &site.Legal.Privacy))
 		mux.HandleFunc("GET "+prefix+"/acceptable-use", s.legal(site, PageAcceptableUse, &site.Legal.AcceptableUse))
+		mux.Handle("POST "+prefix+"/contact", csrf.Handler(s.contact(site)))
 		if prefix != "" {
 			mux.Handle("GET "+prefix, http.RedirectHandler(prefix+"/", http.StatusMovedPermanently))
 		}
