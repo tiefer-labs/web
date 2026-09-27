@@ -1044,6 +1044,31 @@ main:focus {
   margin-top: 1.25rem;
 }
 
+.brief-contents-title {
+  margin: 2.25rem 0 1rem;
+  font-family: var(--font-text);
+}
+
+.brief-contents li {
+  position: relative;
+  padding: 0.625rem 0 0.625rem 1.75rem;
+  border-top: 1px solid var(--line);
+  font-size: var(--fs-small);
+}
+
+/* A small drawn tick, not a character. */
+.brief-contents li::before {
+  content: "";
+  position: absolute;
+  top: 1.05rem;
+  left: 0.2rem;
+  width: 0.7rem;
+  height: 0.38rem;
+  border-bottom: 1.5px solid var(--ink);
+  border-left: 1.5px solid var(--ink);
+  transform: rotate(-45deg);
+}
+
 @media (max-width: 60rem) {
   .demo-grid {
     grid-template-columns: 1fr;

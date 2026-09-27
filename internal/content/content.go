@@ -145,8 +145,11 @@ type Demo struct {
 	Title     string
 	Body      string
 	CardLabel string // caption of the brief table
-	Rows      []BriefRow
-	Strip     Strip
+	// ContentsTitle and Contents list what every brief contains.
+	ContentsTitle string
+	Contents      []string
+	Rows          []BriefRow
+	Strip         Strip
 }
 
 // UseCase is one customer group.

@@ -107,9 +107,17 @@ var English = Site{
 	},
 
 	Demo: Demo{
-		Title:     "Every finding shows its source.",
-		Body:      "An answer you cannot check is not intelligence. Tiefer labels what a satellite observed separately from what a model inferred, links every finding to its source image, and never presents generated pixels as evidence.",
-		CardLabel: "Illustrative example. Not real data.",
+		Title:         "Every finding shows its source.",
+		Body:          "An answer you cannot check is not intelligence. Tiefer labels what a satellite observed separately from what a model inferred, links every finding to its source image, and never presents generated pixels as evidence.",
+		CardLabel:     "Illustrative example. Not real data.",
+		ContentsTitle: "Every brief contains",
+		Contents: []string{
+			"A map of the area and the time window you asked about.",
+			"Each finding, labelled observed or inferred, with a confidence level.",
+			"For every finding: the sensor, the satellite, the date of the image, the processing steps and the model version.",
+			"What could not be seen, and why.",
+			"A proposed next step when the data is not enough, such as a radar pass or new imagery.",
+		},
 		Rows: []BriefRow{
 			{Label: "Question", Value: "Vessel activity at Port A, last 14 days"},
 			{Label: "Sensors", Value: "Radar (SAR), optical"},
