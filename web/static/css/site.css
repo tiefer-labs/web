@@ -1206,6 +1206,19 @@ main:focus {
   color: var(--ink-80);
 }
 
+/* Principles */
+
+.principle {
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--ink-60);
+}
+
+@media (max-width: 64rem) and (min-width: 52.01rem) {
+  .principle-list.grid--3 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
 /* Footer */
 
 .site-footer {
