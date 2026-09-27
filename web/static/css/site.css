@@ -872,6 +872,90 @@ main:focus {
   }
 }
 
+/* How it works */
+
+.steps {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 1.75rem;
+  counter-reset: none;
+}
+
+.step {
+  position: relative;
+}
+
+.step-num {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  width: 3rem;
+  height: 3rem;
+  margin-bottom: 1.5rem;
+  border: 1px solid var(--ink);
+  border-radius: 50%;
+  background: var(--paper);
+  color: var(--ink);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  font-variant-numeric: tabular-nums;
+}
+
+.step:first-child .step-num {
+  background: var(--ink);
+  color: var(--on-ink);
+}
+
+/* The connecting line runs from each circle to the next one. */
+.step:not(:last-child)::after {
+  content: "";
+  position: absolute;
+  top: 1.5rem;
+  left: 3rem;
+  width: calc(100% - 3rem + 1.75rem);
+  height: 1px;
+  background: var(--ink-60);
+}
+
+.step h3 {
+  margin-bottom: 0.625rem;
+}
+
+.step p {
+  font-size: var(--fs-small);
+}
+
+@media (max-width: 64rem) {
+  .steps {
+    grid-template-columns: 1fr;
+    gap: 2rem;
+    max-width: 36rem;
+  }
+
+  .step {
+    padding-left: 4.5rem;
+  }
+
+  .step-num {
+    position: absolute;
+    top: -0.25rem;
+    left: 0;
+  }
+
+  .step:not(:last-child)::after {
+    top: 2.75rem;
+    left: 1.5rem;
+    width: 1px;
+    height: calc(100% - 0.75rem);
+  }
+
+  .step p {
+    font-size: var(--fs-body);
+  }
+}
+
 /* Footer */
 
 .site-footer {
