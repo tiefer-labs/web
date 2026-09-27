@@ -1,0 +1,304 @@
+# Tiefer website
+
+The public website of **Tiefer**, a space technology startup from Baku that
+builds an AI analyst for satellite data. It is a business-card site: one main
+page, three legal pages and a contact form, served by one small Go program.
+
+- One language (Go), one self-contained binary, no Node toolchain, no CSS build step.
+- Server-rendered HTML from `html/template`; about 3 KB of optional JavaScript.
+- No cookies, no analytics, no third-party requests. Fonts are self-hosted.
+- All copy lives in [`internal/content/en.go`](internal/content/en.go).
+- Code under the Mozilla Public License 2.0; see [Licence](#licence).
+
+## Contents
+
+- [Run it](#run-it)
+- [Edit the copy](#edit-the-copy)
+- [Add another language](#add-another-language)
+- [Configure the contact form (SMTP)](#configure-the-contact-form-smtp)
+- [Deploy with Docker](#deploy-with-docker)
+- [Checks and tests](#checks-and-tests)
+- [How it is built](#how-it-is-built)
+- [Placeholders still to fill](#placeholders-still-to-fill)
+- [Licence](#licence)
+
+## Run it
+
+You need Go 1.27 or newer (`go.mod` pins the toolchain, and `go` fetches it
+automatically if yours is older).
+
+```sh
+cp .env.example .env   # optional; make run loads it
+make run               # http://localhost:8080
+```
+
+| Command | What it does |
+|---|---|
+| `make run` | Start the server (loads `.env` if present) |
+| `make build` | Build `bin/tiefer-web`, one binary with everything embedded |
+| `make test` | Run all tests, including the text check |
+| `make lint` | `gofmt` check, `go vet`, and `staticcheck` if installed |
+| `make check` | Run only the text check, with placeholder warnings |
+| `make docker` | Build the container image `tiefer-web` |
+
+The binary needs no files next to it: templates, CSS, JavaScript, fonts and
+images are embedded with `//go:embed`. Configuration comes only from
+environment variables, listed with comments in [`.env.example`](.env.example).
+
+To install staticcheck: `go install honnef.co/go/tools/cmd/staticcheck@latest`.
+
+## Edit the copy
+
+Every sentence on the site is in [`internal/content/en.go`](internal/content/en.go),
+as typed Go values (the types are in `content.go`). Change the text there,
+restart the server, and the site changes. The templates in `web/templates/`
+only decide where text appears.
+
+Rules the tests enforce (see [Checks and tests](#checks-and-tests)):
+
+- no em dash (U+2014), en dash (U+2013) or horizontal bar (U+2015): use a
+  comma, colon, full stop or parentheses; a plain hyphen is fine;
+- no emoji;
+- none of these words: revolutionary, cutting-edge, game-changing,
+  AI-powered, seamless, unlock, leverage, empower, magic.
+
+**Example questions.** The hero question is `Hero.Question`; the three use
+case questions are `UseCases.Cards[i].Question`. Keep them about places and
+activity, never about people, and never name real military sites or real
+facilities of real companies.
+
+**Demo brief.** The rows of the illustrative brief are `Demo.Rows`. The
+14-day strip under it is `Demo.Strip.Days` (one entry per day, with the
+number of radar, usable optical and rejected optical passes). If you change
+the rows, keep the strip consistent with them. `Port A` is fictional; keep it
+that way.
+
+**Roadmap.** `Roadmap.Items` is the list of milestones in order. Set
+`Now: true` on the milestone you are at (exactly one).
+
+**Legal pages.** Their text is in `Legal` in the same file. Words in curly
+braces such as `{legal_name}` are filled from `LEGAL_*` environment
+variables. Words in square brackets such as `[RETENTION_PERIOD]` are
+placeholders for a lawyer to replace in the file; they are highlighted on the
+page and listed by `make check`.
+
+## Add another language
+
+The site is built for more locales (likely Azerbaijani `/az/`, German `/de/`,
+Italian `/it/`). To add one:
+
+1. Copy `internal/content/en.go` to, for example, `internal/content/az.go`,
+   rename the variable to `Azerbaijani` and translate every string.
+2. Set its locale: `Locale{Code: "az", Prefix: "/az", Name: "Azərbaycanca", OGLocale: "az_AZ"}`.
+3. Add it to `Locales` in `internal/content/content.go`:
+   `var Locales = []*Site{&English, &Azerbaijani}` (the first entry is the
+   default and has no prefix).
+
+That is all the code needed: the routes (`/az/`, `/az/legal`, ...,
+`POST /az/contact`), the `lang` attribute, the `hreflang` links, the sitemap
+alternates and the localised 404 page follow from the list. Two things to do
+by hand:
+
+- **Fonts.** Mozilla Headline and Mozilla Text have no `Ə ə` (needed for
+  Azerbaijani) and no Cyrillic (needed for Russian). Add a self-hosted
+  fallback font with an `@font-face` rule and a `unicode-range` for those
+  characters in `web/static/css/site.css`, and ship its licence next to it.
+- **Language switcher.** There is none yet, because there is one language.
+  The page data already has `Alternates` (language code and URL of every
+  version), so a switcher in `web/templates/partials/header.html` is a short
+  `range` over it.
+
+## Configure the contact form (SMTP)
+
+The form is shown only when `SMTP_HOST`, `CONTACT_TO` and `CONTACT_FROM` are
+set; otherwise the contact section shows an "Email us" button instead.
+Messages are sent by email and never stored; their content is never logged.
+
+| Variable | Meaning |
+|---|---|
+| `SMTP_HOST`, `SMTP_PORT` | Mail server. TLS is required: port 465 uses implicit TLS, any other port must offer STARTTLS |
+| `SMTP_USER`, `SMTP_PASS` | Login (optional, but set both or neither) |
+| `CONTACT_TO` | Where messages go |
+| `CONTACT_FROM` | Sender address; `Reply-To` is set to the visitor |
+| `CSRF_SECRET` | Signing key for form tokens, 32+ characters, required in production (`openssl rand -hex 32`) |
+| `TRUST_PROXY` | `true` behind one reverse proxy, so rate limiting sees the real client |
+
+Spam protection without third parties: a hidden honeypot field, a signed
+form token with a minimum fill time of 3 seconds and a maximum age of 12
+hours, single use of each token, a check that rejects cross-origin posts
+(`Sec-Fetch-Site` and `Origin`), and an in-memory limit of 5 submissions per
+hour per client IP address. The IP address is kept in memory only.
+
+### Test it locally with Mailpit
+
+[Mailpit](https://mailpit.axllent.org/) catches mail locally. Start it with
+a self-signed certificate so STARTTLS works:
+
+```sh
+docker run -d --name mailpit -p 1025:1025 -p 8025:8025 \
+  -e MP_SMTP_TLS_CERT=sans:localhost -e MP_SMTP_TLS_KEY=sans:localhost \
+  -e MP_SMTP_REQUIRE_STARTTLS=true -e MP_SMTP_AUTH_ACCEPT_ANY=true \
+  axllent/mailpit
+```
+
+Then in `.env`:
+
+```sh
+SMTP_HOST=localhost
+SMTP_PORT=1025
+SMTP_USER=test
+SMTP_PASS=test
+SMTP_SKIP_VERIFY=true   # development only; refused in production
+CONTACT_TO=team@tiefer.test
+CONTACT_FROM=web@tiefer.test
+```
+
+Run `make run`, send the form at http://localhost:8080/#contact, and read the
+message at http://localhost:8025. Test both ways:
+
+- **With JavaScript**: the form is sent with `fetch` and the result appears
+  in place.
+- **Without JavaScript** (disable it in the browser's developer tools): the
+  browser posts the form, and on success is redirected to `/?sent=1#contact`
+  (Post/Redirect/Get). Errors are shown next to the fields, with the values
+  kept.
+
+## Deploy with Docker
+
+```sh
+make docker
+docker run -p 8080:8080 \
+  -e SITE_URL=https://tiefer.example \
+  -e CONTACT_EMAIL=hello@tiefer.example \
+  -e CSRF_SECRET="$(openssl rand -hex 32)" \
+  -e LINKEDIN_URL=https://www.linkedin.com/company/... \
+  tiefer-web
+```
+
+The image is built in two stages (the official Go image, then
+`gcr.io/distroless/static-debian12:nonroot`), is about 20 MB, runs as a
+non-root user, exposes `PORT` (default 8080) and has a health check
+(`/healthz`, also available as `tiefer-web healthcheck`). It sets
+`ENV=production`, so it refuses to start without `SITE_URL` (https),
+`CONTACT_EMAIL` and `CSRF_SECRET`, and it logs JSON to stderr. Log lines hold
+method, path, status, size and duration, never IP addresses.
+
+Put a TLS-terminating reverse proxy or the platform's load balancer in front.
+Keep the `Host` header intact (the cross-origin check compares it with
+`Origin`), and set `TRUST_PROXY=true` if the proxy sets `X-Forwarded-For`.
+The server sends `Strict-Transport-Security` with `includeSubDomains`; make
+sure every subdomain of the domain serves HTTPS.
+
+The code does not depend on any provider. Two neutral options:
+
+- **A host in Azerbaijan**: any provider that runs containers or a Linux
+  virtual machine with Docker.
+- **A host in the European Union**: any provider that runs containers, for
+  example a managed container service or a virtual machine with Docker.
+
+**Confirm the hosting choice with a local lawyer before launch.**
+Azerbaijan's Law on Personal Data has registration and cross-border transfer
+rules, and the contact form processes personal data (name, email,
+organisation, message). Whether that data may be processed abroad, by the
+host and by the mail provider, must be decided with counsel. Record the
+decision in `LEGAL_HOSTING_*` and `LEGAL_SMTP_*` and in the privacy notice.
+
+## Checks and tests
+
+`go test ./...` (or `make test`) runs:
+
+- **the text check** (`make check` runs only this part): fails, with file and
+  line or with page and section, on any em dash, en dash, horizontal bar or
+  emoji (Unicode Extended_Pictographic, U+FE0F, keycaps, flags) in the
+  content files, the templates, every text file of the repository and the
+  rendered HTML of every page; and on the banned words in visible copy. It
+  prints, as warnings that do not fail, every remaining `[PLACEHOLDER]` and
+  every configuration value that still has its default. The copyright,
+  registered and trade mark signs are allowed as text symbols.
+- config validation; contact form validation (valid, missing fields, header
+  injection, honeypot, too fast, expired, rate limit, cross-origin, replay,
+  delivery failure, JSON mode); token round trip and tampering; security
+  headers on every route; the 404 page; every page rendering with status 200;
+  the CSP hash of the JSON-LD block; hashed and compressed assets; sitemap,
+  robots.txt and web manifest.
+
+CI (`.github/workflows/ci.yml`) runs `gofmt`, `go vet`, `staticcheck`,
+`go test`, `make check`, `go build` and a Docker build on every push and pull
+request.
+
+## How it is built
+
+```
+cmd/tiefer-web/        main: config, logging, HTTP server, graceful shutdown
+internal/config/       environment variables, loaded and validated at start
+internal/content/      all copy: content.go (types), en.go (English)
+internal/server/       routes, handlers, middleware, security headers, rate limit, SEO files
+internal/contact/      form validation, signed tokens, email building, SMTP
+internal/render/       template loading, asset hashing, template functions
+internal/textcheck/    the dash, emoji and banned word checks
+web/templates/         layout.html, partials/*.html, pages/*.html
+web/static/            css/site.css, js/site.js, fonts/, brand/, icons, og-image.png
+web/embed.go           //go:embed of templates and static files
+docs/PROMPT.md         the original brief
+```
+
+Rules for changes (copy, colours, fonts, licence headers) are in
+[`CONTRIBUTING.md`](CONTRIBUTING.md).
+
+Notes on decisions:
+
+- **Assets** get a content hash in their URL at startup
+  (`{{asset "css/site.css"}}` gives `/static/css/site.0123456789.css`) and
+  are served with a one-year immutable cache, gzip-compressed where it helps.
+  `url(...)` references in the stylesheet are rewritten to hashed URLs too.
+- **Security headers** on every response: a strict CSP (`default-src 'self'`,
+  no inline scripts, no external origins; the JSON-LD block is allowed by its
+  SHA-256 hash), HSTS, `nosniff`, `Referrer-Policy`, `Permissions-Policy` and
+  `X-Frame-Options: DENY`.
+- **No cookies**, so the form token is not bound to a session. It is an
+  HMAC-signed token with a timestamp and a nonce, combined with the
+  cross-origin check in Go's `http.CrossOriginProtection`.
+- **JavaScript** only enhances: the mobile menu, the header colour over the
+  hero, and sending the form without a reload. Without JavaScript the
+  navigation shows as a row of links and the form posts normally.
+- **Motion**: the satellite in the hero moves a short way along its orbit
+  once, then rests. With `prefers-reduced-motion` there is no motion.
+- **Fonts**: both are variable fonts (weights 200 to 700; Mozilla Headline
+  also has a width axis 75 to 125). They have no tabular figures feature, so
+  `font-variant-numeric: tabular-nums` in the stylesheet has no effect with
+  them.
+- **No third-party Go modules.** Add one only when the standard library
+  cannot do the job, justify it here, and list it in `NOTICE.md` (MIT, BSD,
+  Apache 2.0 or MPL 2.0 only).
+
+## Placeholders still to fill
+
+Environment variables (the server logs a warning at start while any of these
+has its default):
+
+- `SITE_URL` (the domain), `CONTACT_EMAIL`, `LINKEDIN_URL`, `REPO_URL`
+- `LEGAL_NAME`, `LEGAL_FORM`, `LEGAL_ADDRESS`, `LEGAL_TAX_ID` (VÖEN),
+  `LEGAL_REGISTRATION`, `LEGAL_DIRECTOR`
+- `LEGAL_HOSTING_PROVIDER`, `LEGAL_HOSTING_COUNTRY`, `LEGAL_SMTP_PROVIDER`,
+  `LEGAL_SMTP_COUNTRY`
+- `LEGAL_REVIEWED=true`, only after the legal review
+- SMTP settings, `CONTACT_TO`, `CONTACT_FROM` and `CSRF_SECRET` for production
+
+Placeholders in `internal/content/en.go` for a lawyer (`make check` lists
+them with the pages they appear on):
+
+- Legal notice: `[CONTENT_RESPONSIBILITY]`, `[LAST_UPDATED]`
+- Privacy: `[EU_REPRESENTATIVE]`, `[HOSTING_PROVIDER_LOGS]`, `[LEGAL_BASIS]`,
+  `[RECIPIENTS]`, `[INTERNATIONAL_TRANSFERS]`, `[RETENTION_PERIOD]`,
+  `[LOG_RETENTION_PERIOD]`, `[DATA_SUBJECT_RIGHTS]`,
+  `[SUPERVISORY_AUTHORITY_AZ]`, `[LAST_UPDATED]`
+- Acceptable use: `[AUP_SCOPE]`, `[SANCTIONS_REGIMES]`, `[SCREENING_PROCESS]`,
+  `[ENFORCEMENT_TERMS]`, `[LAST_UPDATED]`
+
+## Licence
+
+The code is licensed under the [Mozilla Public License 2.0](LICENSE)
+(`MPL-2.0`). The Tiefer name, logos, icons and social image are **not**
+covered and may not be used to suggest endorsement or to brand a fork. The
+fonts are under the SIL Open Font License 1.1. Details, including the status
+of the website copy, are in [`NOTICE.md`](NOTICE.md).
