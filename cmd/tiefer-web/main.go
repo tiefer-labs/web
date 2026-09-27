@@ -77,8 +77,11 @@ func run() error {
 		ReadTimeout:       15 * time.Second,
 		WriteTimeout:      45 * time.Second, // covers SMTP delivery of the contact form
 		IdleTimeout:       120 * time.Second,
-		MaxHeaderBytes:    64 << 10,
-		ErrorLog:          slog.NewLogLogger(handler, slog.LevelWarn),
+		MaxHeaderBytes:    16 << 10, // the site needs no large headers
+		// Answer "OPTIONS *" through the handler (404) instead of Go's
+		// built-in reply.
+		DisableGeneralOptionsHandler: true,
+		ErrorLog:                     slog.NewLogLogger(handler, slog.LevelWarn),
 	}
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
