@@ -1,0 +1,27 @@
+{{- /*
+  This Source Code Form is subject to the terms of the Mozilla Public
+  License, v. 2.0. If a copy of the MPL was not distributed with this
+  file, You can obtain one at https://mozilla.org/MPL/2.0/.
+*/ -}}
+{{define "use-cases" -}}
+{{with .Site.UseCases -}}
+<section class="section use-cases" id="use-cases" aria-labelledby="use-cases-title">
+  <div class="wrap">
+    <div class="section-head">
+      <h2 id="use-cases-title">{{.Title}}</h2>
+    </div>
+    <ul class="grid grid--3 cases" role="list">
+      {{- $label := .QuestionLabel}}
+      {{- range .Cards}}
+      <li class="case">
+        <h3>{{.Title}}</h3>
+        <p>{{.Text}}</p>
+        <p class="case-question"><span class="tech-label">{{$label}}</span> <span class="case-question-text">{{.Question}}</span></p>
+      </li>
+      {{- end}}
+    </ul>
+    <p class="cases-note">{{.Note}}</p>
+  </div>
+</section>
+{{- end}}
+{{- end}}
