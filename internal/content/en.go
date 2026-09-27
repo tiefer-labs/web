@@ -358,11 +358,30 @@ var English = Site{
 
 		Notice: LegalPage{
 			Title:       "Legal notice",
-			Description: "Company information for Tiefer, a space technology company in Baku, Azerbaijan.",
-			Intro:       "Information about the company that operates this website.",
+			Description: "Who operates the Tiefer website: a space technology startup in Baku, Azerbaijan.",
+			Intro:       "Information about who operates this website.",
 			Sections: []LegalSection{
 				{
+					Heading: "Status",
+					Stage:   Founding,
+					Paras: []string{
+						"Tiefer is a startup in its founding stage and is not yet registered as a company. Registration as a limited liability company (MMC) in Azerbaijan is planned. Until then, this website is operated by the founder of Tiefer as a private individual.",
+					},
+				},
+				{
+					Heading: "Operator",
+					Stage:   Founding,
+					Facts: []Fact{
+						{Label: "Name", Value: "{founder}"},
+						{Label: "Role", Value: "Founder of Tiefer"},
+						{Label: "Location", Value: "Baku, Azerbaijan [POSTAL_ADDRESS: confirm with counsel whether a full postal address must be stated here.]"},
+						{Label: "Email", Value: "{contact_email}"},
+						{Label: "Website", Value: "{site_url}"},
+					},
+				},
+				{
 					Heading: "Company",
+					Stage:   Company,
 					Facts: []Fact{
 						{Label: "Legal name", Value: "{legal_name}"},
 						{Label: "Legal form", Value: "{legal_form}"},
@@ -377,7 +396,7 @@ var English = Site{
 				{
 					Heading: "Responsibility for content",
 					Paras: []string{
-						"{legal_name} is responsible for the content of this website. [CONTENT_RESPONSIBILITY: confirm with counsel whether a named person must be stated here.]",
+						"{operator} is responsible for the content of this website. [CONTENT_RESPONSIBILITY: confirm with counsel whether a named person must be stated here.]",
 					},
 				},
 				{
@@ -404,6 +423,20 @@ var English = Site{
 			Sections: []LegalSection{
 				{
 					Heading: "Who is responsible",
+					Stage:   Founding,
+					Paras: []string{
+						"Tiefer is not yet registered as a company. Until it is, the founder is responsible for the personal data this website processes. Once the company is registered, it takes over this role and this notice will be updated.",
+					},
+					Facts: []Fact{
+						{Label: "Controller", Value: "{founder}, founder of Tiefer"},
+						{Label: "Location", Value: "Baku, Azerbaijan"},
+						{Label: "Email", Value: "{contact_email}"},
+						{Label: "EU representative (Article 27 GDPR)", Value: "[EU_REPRESENTATIVE: name and address, or state that none is required]"},
+					},
+				},
+				{
+					Heading: "Who is responsible",
+					Stage:   Company,
 					Facts: []Fact{
 						{Label: "Controller", Value: "{legal_name}"},
 						{Label: "Legal form", Value: "{legal_form}"},
@@ -434,7 +467,7 @@ var English = Site{
 					Paras: []string{
 						"If you use the contact form, we receive your name, your work email address, your organisation and role if you give them, your question, and your confirmation that we may reply.",
 						"We use these details only to reply to you and to discuss access to Tiefer.",
-						"The website does not store your message in a database. It sends it by email, through our email provider {smtp_provider} ({smtp_country}), to our team mailbox, and keeps no copy on the web server. The content of your message is not written to the server logs.",
+						"The website does not store your message in a database. It sends it by email, through our email provider {smtp_provider} ({smtp_country}), to the Tiefer mailbox, and keeps no copy on the web server. The content of your message is not written to the server logs.",
 						"If you email us directly, we receive your email address and what you write.",
 					},
 				},

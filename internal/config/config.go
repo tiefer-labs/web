@@ -40,10 +40,14 @@ const (
 	DefaultLinkedInURL = "https://www.linkedin.com/company/tiefer"
 )
 
-// Legal holds the company details shown on the legal pages. Every value
-// defaults to a clearly marked placeholder, never to invented data.
+// Legal holds the details shown on the legal pages. Tiefer is not yet
+// registered as a company, so the site is operated by its founder: Founder
+// is used until the company details, starting with LEGAL_NAME, are set.
+// Unknown values default to clearly marked placeholders, never to invented
+// data.
 type Legal struct {
-	Name            string // LEGAL_NAME
+	Founder         string // LEGAL_FOUNDER
+	Name            string // LEGAL_NAME, empty until the company is registered
 	Form            string // LEGAL_FORM
 	Address         string // LEGAL_ADDRESS
 	TaxID           string // LEGAL_TAX_ID (VÖEN)
@@ -99,12 +103,7 @@ type Var struct {
 // (SMTP, REPO_URL) are optional and therefore not listed here.
 var Defaults = []Var{
 	{"SITE_URL", "http://localhost:8080"},
-	{"LEGAL_NAME", "[COMPANY_LEGAL_NAME]"},
-	{"LEGAL_FORM", "[LEGAL_FORM]"},
-	{"LEGAL_ADDRESS", "[REGISTERED_ADDRESS_BAKU]"},
-	{"LEGAL_TAX_ID", "[VOEN]"},
-	{"LEGAL_REGISTRATION", "[STATE_REGISTRATION_DETAILS]"},
-	{"LEGAL_DIRECTOR", "[MANAGING_DIRECTOR]"},
+	{"LEGAL_FOUNDER", "[FOUNDER_NAME]"},
 	{"LEGAL_HOSTING_PROVIDER", "[HOSTING_PROVIDER]"},
 	{"LEGAL_HOSTING_COUNTRY", "[HOSTING_COUNTRY]"},
 	{"LEGAL_SMTP_PROVIDER", "[SMTP_PROVIDER]"},
@@ -279,12 +278,13 @@ func FromLookup(lookup func(string) (string, bool)) (*Config, error) {
 	}
 
 	c.Legal = Legal{
-		Name:            orDefault("LEGAL_NAME", false),
-		Form:            orDefault("LEGAL_FORM", false),
-		Address:         orDefault("LEGAL_ADDRESS", false),
-		TaxID:           orDefault("LEGAL_TAX_ID", false),
-		Registration:    orDefault("LEGAL_REGISTRATION", false),
-		Director:        orDefault("LEGAL_DIRECTOR", false),
+		Founder:         orDefault("LEGAL_FOUNDER", false),
+		Name:            get("LEGAL_NAME"),
+		Form:            get("LEGAL_FORM"),
+		Address:         get("LEGAL_ADDRESS"),
+		TaxID:           get("LEGAL_TAX_ID"),
+		Registration:    get("LEGAL_REGISTRATION"),
+		Director:        get("LEGAL_DIRECTOR"),
 		HostingProvider: orDefault("LEGAL_HOSTING_PROVIDER", false),
 		HostingCountry:  orDefault("LEGAL_HOSTING_COUNTRY", false),
 		SMTPProvider:    orDefault("LEGAL_SMTP_PROVIDER", false),
@@ -293,11 +293,41 @@ func FromLookup(lookup func(string) (string, bool)) (*Config, error) {
 	if c.Legal.Reviewed, err = parseBool("LEGAL_REVIEWED", get("LEGAL_REVIEWED")); err != nil {
 		errs = append(errs, err)
 	}
+	// Once the company is registered, the legal notice must show all of
+	// its details, not a mix of company and founder.
+	company := []struct{ name, value string }{
+		{"LEGAL_FORM", c.Legal.Form},
+		{"LEGAL_ADDRESS", c.Legal.Address},
+		{"LEGAL_TAX_ID", c.Legal.TaxID},
+		{"LEGAL_REGISTRATION", c.Legal.Registration},
+		{"LEGAL_DIRECTOR", c.Legal.Director},
+	}
+	for _, v := range company {
+		switch {
+		case c.Legal.Registered() && v.value == "":
+			errs = append(errs, fmt.Errorf("%s is required when LEGAL_NAME is set", v.name))
+		case !c.Legal.Registered() && v.value != "":
+			errs = append(errs, fmt.Errorf("%s is set but LEGAL_NAME is not: set LEGAL_NAME once the company is registered", v.name))
+		}
+	}
 
 	if len(errs) > 0 {
 		return nil, fmt.Errorf("invalid configuration:\n  %w", joinLines(errs))
 	}
 	return c, nil
+}
+
+// Registered reports whether the company details are set, that is,
+// whether Tiefer is registered as a company.
+func (l Legal) Registered() bool { return l.Name != "" }
+
+// Operator returns who operates the website: the company once it is
+// registered, the founder until then.
+func (l Legal) Operator() string {
+	if l.Registered() {
+		return l.Name
+	}
+	return l.Founder
 }
 
 // SiteHost returns the host name of SITE_URL, including a port if it has
@@ -323,12 +353,7 @@ func (c *Config) Production() bool { return c.Env == Production }
 func (c *Config) DefaultsInUse() []string {
 	values := map[string]string{
 		"SITE_URL":               c.SiteURL,
-		"LEGAL_NAME":             c.Legal.Name,
-		"LEGAL_FORM":             c.Legal.Form,
-		"LEGAL_ADDRESS":          c.Legal.Address,
-		"LEGAL_TAX_ID":           c.Legal.TaxID,
-		"LEGAL_REGISTRATION":     c.Legal.Registration,
-		"LEGAL_DIRECTOR":         c.Legal.Director,
+		"LEGAL_FOUNDER":          c.Legal.Founder,
 		"LEGAL_HOSTING_PROVIDER": c.Legal.HostingProvider,
 		"LEGAL_HOSTING_COUNTRY":  c.Legal.HostingCountry,
 		"LEGAL_SMTP_PROVIDER":    c.Legal.SMTPProvider,
@@ -338,6 +363,9 @@ func (c *Config) DefaultsInUse() []string {
 	for _, v := range Defaults {
 		if v.Name == "SITE_URL" && c.Production() {
 			continue // the production default is the real domain
+		}
+		if v.Name == "LEGAL_FOUNDER" && c.Legal.Registered() {
+			continue // the company operates the site
 		}
 		if values[v.Name] == v.Default {
 			out = append(out, v.Name)

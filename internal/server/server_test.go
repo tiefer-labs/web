@@ -346,17 +346,68 @@ func TestLegalPlaceholderNote(t *testing.T) {
 			t.Errorf("%s: want exactly one h1", p)
 		}
 	}
-	if !strings.Contains(h.get(t, "/legal").Body.String(), `<mark class="placeholder">[VOEN]</mark>`) {
-		t.Error("tax ID placeholder not rendered")
+	if !strings.Contains(h.get(t, "/legal").Body.String(), `<mark class="placeholder">[FOUNDER_NAME]</mark>`) {
+		t.Error("founder placeholder not rendered")
 	}
 
-	h = newHarness(t, map[string]string{"LEGAL_REVIEWED": "true", "LEGAL_TAX_ID": "1234567890"})
+	h = newHarness(t, map[string]string{"LEGAL_REVIEWED": "true", "LEGAL_FOUNDER": "Aysel Example"})
 	body := h.get(t, "/legal").Body.String()
 	if strings.Contains(body, note) {
 		t.Error("placeholder note shown although LEGAL_REVIEWED=true")
 	}
-	if !strings.Contains(body, "1234567890") {
-		t.Error("LEGAL_TAX_ID not rendered")
+	if !strings.Contains(body, "Aysel Example") {
+		t.Error("LEGAL_FOUNDER not rendered")
+	}
+}
+
+// TestLegalStages checks that the legal pages describe the founder as the
+// operator until the company details are set, and the company after.
+func TestLegalStages(t *testing.T) {
+	h := newHarness(t, map[string]string{"LEGAL_FOUNDER": "Aysel Example"})
+	notice := h.get(t, "/legal").Body.String()
+	privacy := h.get(t, "/privacy").Body.String()
+	for _, want := range []string{
+		"is not yet registered as a company",
+		`<dt>Name</dt><dd>Aysel Example</dd>`,
+		"Aysel Example is responsible for the content of this website.",
+	} {
+		if !strings.Contains(notice, want) {
+			t.Errorf("founding stage: legal notice lacks %q", want)
+		}
+	}
+	if !strings.Contains(privacy, `<dd>Aysel Example, founder of Tiefer</dd>`) {
+		t.Error("founding stage: the founder is not named as controller")
+	}
+	for _, unwanted := range []string{"VÖEN", "Legal form", `id="company"`} {
+		if strings.Contains(notice+privacy, unwanted) {
+			t.Errorf("founding stage: company detail %q shown", unwanted)
+		}
+	}
+
+	h = newHarness(t, map[string]string{
+		"LEGAL_FOUNDER":      "Aysel Example",
+		"LEGAL_NAME":         "Tiefer MMC",
+		"LEGAL_FORM":         "Limited liability company",
+		"LEGAL_ADDRESS":      "Baku",
+		"LEGAL_TAX_ID":       "1234567890",
+		"LEGAL_REGISTRATION": "Registered in Baku",
+		"LEGAL_DIRECTOR":     "Aysel Example",
+	})
+	notice = h.get(t, "/legal").Body.String()
+	privacy = h.get(t, "/privacy").Body.String()
+	for _, want := range []string{"1234567890", "Tiefer MMC is responsible for the content of this website."} {
+		if !strings.Contains(notice, want) {
+			t.Errorf("company stage: legal notice lacks %q", want)
+		}
+	}
+	if !strings.Contains(privacy, `<dd>Tiefer MMC</dd>`) {
+		t.Error("company stage: the company is not named as controller")
+	}
+	if strings.Contains(notice+privacy, "not yet registered") {
+		t.Error("company stage: founding text shown")
+	}
+	if strings.Count(privacy, `id="who-is-responsible"`) != 1 {
+		t.Error("company stage: controller section must appear once")
 	}
 }
 

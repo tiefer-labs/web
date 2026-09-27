@@ -298,13 +298,25 @@ type Fact struct {
 	Value string
 }
 
+// Stages of the business that a legal section can apply to.
+const (
+	// Founding is the stage before Tiefer is registered as a company: the
+	// founder operates the website as a private individual.
+	Founding = "founding"
+	// Company is the stage after registration (LEGAL_NAME is set).
+	Company = "company"
+)
+
 // LegalSection is one titled block of a legal page. Paragraphs, list
 // items and fact values may contain {tokens}.
 type LegalSection struct {
 	Heading string
-	Paras   []string
-	List    []string
-	Facts   []Fact
+	// Stage limits the section to Founding or Company; empty means it
+	// applies to both.
+	Stage string
+	Paras []string
+	List  []string
+	Facts []Fact
 }
 
 // LegalPage is the complete text of one legal page.
@@ -319,9 +331,10 @@ type LegalPage struct {
 // Legal holds the three legal pages and their shared strings.
 //
 // Tokens in curly braces are replaced with configuration values:
-// {legal_name}, {legal_form}, {address}, {tax_id}, {registration},
-// {director}, {contact_email}, {site_url}, {hosting_provider},
-// {hosting_country}, {smtp_provider}, {smtp_country}.
+// {operator} (the company once registered, the founder until then),
+// {founder}, {legal_name}, {legal_form}, {address}, {tax_id},
+// {registration}, {director}, {contact_email}, {site_url},
+// {hosting_provider}, {hosting_country}, {smtp_provider}, {smtp_country}.
 // Tokens in square brackets, such as [RETENTION_PERIOD], are placeholders
 // that a lawyer must replace in this file before launch.
 type Legal struct {

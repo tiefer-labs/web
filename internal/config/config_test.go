@@ -30,13 +30,13 @@ func TestDevelopmentDefaults(t *testing.T) {
 	if c.ContactEnabled() {
 		t.Error("contact form must be off without SMTP")
 	}
-	if c.Legal.Name != "[COMPANY_LEGAL_NAME]" || c.Legal.Reviewed {
+	if c.Legal.Founder != "[FOUNDER_NAME]" || c.Legal.Registered() || c.Legal.Operator() != "[FOUNDER_NAME]" || c.Legal.Reviewed {
 		t.Errorf("legal defaults: %+v", c.Legal)
 	}
 	if c.LinkedInURL != "https://www.linkedin.com/company/tiefer" {
 		t.Errorf("LinkedInURL = %q", c.LinkedInURL)
 	}
-	if got := strings.Join(c.DefaultsInUse(), ","); !strings.Contains(got, "LEGAL_TAX_ID") || !strings.Contains(got, "LEGAL_REVIEWED") || strings.Contains(got, "LINKEDIN_URL") {
+	if got := strings.Join(c.DefaultsInUse(), ","); !strings.Contains(got, "LEGAL_FOUNDER") || !strings.Contains(got, "LEGAL_REVIEWED") || strings.Contains(got, "LINKEDIN_URL") {
 		t.Errorf("DefaultsInUse = %s", got)
 	}
 }
@@ -138,6 +138,8 @@ func TestInvalidValues(t *testing.T) {
 		{map[string]string{"REPO_URL": "ftp://example.org"}, "REPO_URL"},
 		{map[string]string{"CSRF_SECRET": "short"}, "CSRF_SECRET"},
 		{map[string]string{"LEGAL_REVIEWED": "yes please"}, "LEGAL_REVIEWED"},
+		{map[string]string{"LEGAL_NAME": "Tiefer MMC"}, "LEGAL_TAX_ID is required when LEGAL_NAME is set"},
+		{map[string]string{"LEGAL_TAX_ID": "1234567890"}, "LEGAL_NAME is not"},
 		{map[string]string{"CONTACT_TO": "team@example.org"}, "SMTP_HOST"},
 		{map[string]string{"SMTP_HOST": "smtp.example.org", "CONTACT_TO": "a@b.example", "CONTACT_FROM": "c@d.example", "SMTP_USER": "u"}, "SMTP_PASS"},
 		{map[string]string{"SMTP_HOST": "smtp.example.org", "CONTACT_TO": "a@b.example", "CONTACT_FROM": "c@d.example", "SMTP_PORT": "x"}, "SMTP_PORT"},
@@ -147,6 +149,28 @@ func TestInvalidValues(t *testing.T) {
 		_, err := load(c.env)
 		if err == nil || !strings.Contains(err.Error(), c.want) {
 			t.Errorf("%v: got %v, want an error about %s", c.env, err, c.want)
+		}
+	}
+}
+
+func TestRegisteredCompany(t *testing.T) {
+	c, err := load(map[string]string{
+		"LEGAL_NAME":         "Tiefer MMC",
+		"LEGAL_FORM":         "Limited liability company",
+		"LEGAL_ADDRESS":      "Baku",
+		"LEGAL_TAX_ID":       "1234567890",
+		"LEGAL_REGISTRATION": "Registered in Baku",
+		"LEGAL_DIRECTOR":     "A. Director",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !c.Legal.Registered() || c.Legal.Operator() != "Tiefer MMC" {
+		t.Errorf("registered = %v, operator = %q", c.Legal.Registered(), c.Legal.Operator())
+	}
+	for _, name := range c.DefaultsInUse() {
+		if name == "LEGAL_FOUNDER" {
+			t.Error("LEGAL_FOUNDER is not needed once the company is registered")
 		}
 	}
 }
