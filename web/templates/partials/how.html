@@ -1,0 +1,25 @@
+{{- /*
+  This Source Code Form is subject to the terms of the Mozilla Public
+  License, v. 2.0. If a copy of the MPL was not distributed with this
+  file, You can obtain one at https://mozilla.org/MPL/2.0/.
+*/ -}}
+{{define "how" -}}
+{{with .Site.How -}}
+<section class="section how" id="how" aria-labelledby="how-title">
+  <div class="wrap">
+    <div class="section-head">
+      <h2 id="how-title">{{.Title}}</h2>
+    </div>
+    <ol class="steps" role="list">
+      {{- range $i, $s := .Steps}}
+      <li class="step">
+        <span class="step-num" aria-hidden="true">{{pad2 (inc $i)}}</span>
+        <h3>{{$s.Title}}</h3>
+        <p>{{$s.Text}}</p>
+      </li>
+      {{- end}}
+    </ol>
+  </div>
+</section>
+{{- end}}
+{{- end}}

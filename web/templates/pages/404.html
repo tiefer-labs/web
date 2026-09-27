@@ -1,0 +1,15 @@
+{{- /*
+  This Source Code Form is subject to the terms of the Mozilla Public
+  License, v. 2.0. If a copy of the MPL was not distributed with this
+  file, You can obtain one at https://mozilla.org/MPL/2.0/.
+*/ -}}
+{{define "content" -}}
+{{with .Site.NotFound -}}
+<section class="not-found wrap" aria-labelledby="nf-title">
+  <p class="tech-label">{{.Label}}</p>
+  <h1 id="nf-title">{{.Title}}</h1>
+  <p>{{.Body}}</p>
+  <p><a class="btn btn--primary" href="{{$.Href "/"}}">{{.Home}}</a></p>
+</section>
+{{- end}}
+{{- end}}

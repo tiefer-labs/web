@@ -1,0 +1,38 @@
+{{- /*
+  This Source Code Form is subject to the terms of the Mozilla Public
+  License, v. 2.0. If a copy of the MPL was not distributed with this
+  file, You can obtain one at https://mozilla.org/MPL/2.0/.
+*/ -}}
+{{define "legal-body" -}}
+{{- $p := .Legal -}}
+<article class="legal wrap" aria-labelledby="legal-title">
+  {{- if not .Cfg.LegalReviewed}}
+  <p class="legal-note" role="note">{{.Site.Legal.ReviewNote}}</p>
+  {{- end}}
+  <h1 id="legal-title">{{$p.Title}}</h1>
+  <p class="legal-intro">{{.Fill $p.Intro}}</p>
+  {{- range $p.Sections}}
+  <section class="legal-section">
+    <h2>{{.Heading}}</h2>
+    {{- with .Facts}}
+    <dl class="facts">
+      {{- range .}}
+      <div class="fact"><dt>{{.Label}}</dt><dd>{{$.Fill .Value}}</dd></div>
+      {{- end}}
+    </dl>
+    {{- end}}
+    {{- range .Paras}}
+    <p>{{$.Fill .}}</p>
+    {{- end}}
+    {{- with .List}}
+    <ul>
+      {{- range .}}
+      <li>{{$.Fill .}}</li>
+      {{- end}}
+    </ul>
+    {{- end}}
+  </section>
+  {{- end}}
+  <p class="legal-updated">{{.Fill $p.Updated}}</p>
+</article>
+{{- end}}
