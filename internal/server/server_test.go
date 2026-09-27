@@ -16,6 +16,7 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"regexp"
+	"strconv"
 	"strings"
 	"sync"
 	"testing"
@@ -524,6 +525,35 @@ func TestContactRateLimit(t *testing.T) {
 	h.advance(10 * time.Second)
 	if w := h.do(t, post("/contact", validValues(tok), "198.51.100.7:4000")); w.Code != http.StatusSeeOther {
 		t.Errorf("after an hour: %d", w.Code)
+	}
+}
+
+func TestContactRateLimitIPv6Prefix(t *testing.T) {
+	h := newHarness(t, smtpEnv)
+	for i := 1; i <= 6; i++ {
+		tok := h.formToken(t)
+		h.advance(10 * time.Second)
+		// A different address in the same /64 each time.
+		w := h.do(t, post("/contact", validValues(tok), "[2001:db8:0:1::"+strconv.Itoa(i)+"]:4000"))
+		if i == 6 && w.Code != http.StatusTooManyRequests {
+			t.Fatalf("sixth address in the same /64: status %d, want 429", w.Code)
+		}
+	}
+}
+
+func TestContactGlobalSendLimit(t *testing.T) {
+	h := newHarness(t, smtpEnv)
+	h.srv.sendLimiter.limit = 2
+	for i := 1; i <= 3; i++ {
+		tok := h.formToken(t)
+		h.advance(10 * time.Second)
+		w := h.do(t, post("/contact", validValues(tok), "198.51.100."+strconv.Itoa(i)+":1"))
+		if i == 3 && w.Code != http.StatusServiceUnavailable {
+			t.Fatalf("third message: status %d, want 503", w.Code)
+		}
+	}
+	if h.mailer.count() != 2 {
+		t.Errorf("%d mails sent, want 2", h.mailer.count())
 	}
 }
 

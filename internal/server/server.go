@@ -55,19 +55,20 @@ type Options struct {
 
 // Server serves the website.
 type Server struct {
-	cfg       *config.Config
-	log       *slog.Logger
-	assets    *render.Assets
-	templates *render.Templates
-	locales   []*content.Site
-	mailer    contact.Mailer
-	tokens    *contact.Tokens
-	limiter   *rateLimiter
-	now       func() time.Time
-	jsonLD    template.HTML
-	csp       string
-	hsts      string
-	handler   http.Handler
+	cfg         *config.Config
+	log         *slog.Logger
+	assets      *render.Assets
+	templates   *render.Templates
+	locales     []*content.Site
+	mailer      contact.Mailer
+	tokens      *contact.Tokens
+	limiter     *rateLimiter // per client
+	sendLimiter *rateLimiter // all delivered messages together
+	now         func() time.Time
+	jsonLD      template.HTML
+	csp         string
+	hsts        string
+	handler     http.Handler
 }
 
 // New builds the server: it loads assets and templates, prepares the
@@ -91,15 +92,16 @@ func New(o Options) (*Server, error) {
 		return nil, err
 	}
 	s := &Server{
-		cfg:       o.Config,
-		log:       o.Logger,
-		assets:    assets,
-		templates: templates,
-		locales:   o.Locales,
-		mailer:    o.Mailer,
-		tokens:    contact.NewTokens(o.Config.CSRFSecret, o.Now),
-		limiter:   newRateLimiter(5, time.Hour, o.Now),
-		now:       o.Now,
+		cfg:         o.Config,
+		log:         o.Logger,
+		assets:      assets,
+		templates:   templates,
+		locales:     o.Locales,
+		mailer:      o.Mailer,
+		tokens:      contact.NewTokens(o.Config.CSRFSecret, o.Now),
+		limiter:     newRateLimiter(5, time.Hour, o.Now),
+		sendLimiter: newRateLimiter(50, time.Hour, o.Now),
+		now:         o.Now,
 	}
 	if s.mailer == nil && o.Config.ContactEnabled() {
 		s.mailer = &contact.SMTPMailer{

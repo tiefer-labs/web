@@ -69,7 +69,7 @@ func (s *Server) contact(site *content.Site) http.HandlerFunc {
 			s.renderPage(w, r, status, p)
 		}
 
-		if !s.limiter.Allow(s.clientIP(r)) {
+		if !s.limiter.Allow(clientKey(s.clientIP(r))) {
 			s.log.Warn("contact: rate limited")
 			reply(http.StatusTooManyRequests, &formState{Status: "error"})
 			return
@@ -119,6 +119,15 @@ func (s *Server) contact(site *content.Site) http.HandlerFunc {
 		// JavaScript, or the back button) is answered but not sent again.
 		if !s.tokens.Consume(nonce) {
 			reply(http.StatusOK, &formState{Status: "sent"})
+			return
+		}
+
+		// A global cap on delivered messages protects the mailbox and the
+		// sender reputation from spam spread over many addresses.
+		if !s.sendLimiter.Allow("all") {
+			s.log.Warn("contact: global send limit reached, message not sent")
+			st.Status, st.Token = "error", ""
+			reply(http.StatusServiceUnavailable, st)
 			return
 		}
 
