@@ -557,6 +557,12 @@ main:focus {
   pointer-events: none;
 }
 
+/* Lines keep their width however the scene is scaled. The attribute is
+ * not allowed on groups, so it is set here for every shape. */
+.hero-art :is(path, circle, rect) {
+  vector-effect: non-scaling-stroke;
+}
+
 .art-labels {
   font-family: var(--font-text);
   font-size: 11px;
