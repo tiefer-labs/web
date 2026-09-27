@@ -149,6 +149,7 @@ func (s *Server) routes() http.Handler {
 	mux.HandleFunc("/", s.notFound)
 
 	var h http.Handler = mux
+	h = s.canonicalHost(h)
 	h = s.securityHeaders(h)
 	h = s.logRequests(h)
 	h = s.recoverPanics(h)
