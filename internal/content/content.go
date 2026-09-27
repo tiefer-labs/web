@@ -286,6 +286,7 @@ type Footer struct {
 	LegalNotice   string
 	Privacy       string
 	AcceptableUse string
+	AIPolicy      string
 	LinkedIn      string
 	SourceCode    string
 	Tagline       string
@@ -328,7 +329,7 @@ type LegalPage struct {
 	Updated     string
 }
 
-// Legal holds the three legal pages and their shared strings.
+// Legal holds the four legal pages and their shared strings.
 //
 // Tokens in curly braces are replaced with configuration values:
 // {operator} (the company once registered, the founder until then),
@@ -343,6 +344,7 @@ type Legal struct {
 	Notice        LegalPage
 	Privacy       LegalPage
 	AcceptableUse LegalPage
+	AI            LegalPage
 }
 
 // NotFound is the 404 page.

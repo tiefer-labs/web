@@ -160,6 +160,7 @@ var routes = []struct {
 	{"/legal", 200},
 	{"/privacy", 200},
 	{"/acceptable-use", 200},
+	{"/ai-policy", 200},
 	{"/healthz", 200},
 	{"/robots.txt", 200},
 	{"/.well-known/security.txt", 200},
@@ -337,7 +338,7 @@ func TestContactDisabledShowsEmailButton(t *testing.T) {
 func TestLegalPlaceholderNote(t *testing.T) {
 	note := "Placeholder text. To be reviewed before launch."
 	h := newHarness(t, nil)
-	for _, p := range []string{"/legal", "/privacy", "/acceptable-use"} {
+	for _, p := range []string{"/legal", "/privacy", "/acceptable-use", "/ai-policy"} {
 		body := h.get(t, p).Body.String()
 		if !strings.Contains(body, note) {
 			t.Errorf("%s: placeholder note missing", p)
@@ -427,6 +428,27 @@ func TestPrivacyLaws(t *testing.T) {
 		if !strings.Contains(privacy, want) {
 			t.Errorf("privacy notice lacks %q", want)
 		}
+	}
+}
+
+// TestAIPolicy checks that the AI policy names the AI rules of both the
+// EU and Azerbaijan and is linked from the footer and the FAQ.
+func TestAIPolicy(t *testing.T) {
+	h := newHarness(t, nil)
+	ai := h.get(t, "/ai-policy").Body.String()
+	for _, want := range []string{
+		"Regulation (EU) 2024/1689",
+		"Article 50(2) of the AI Act",
+		"Annex III",
+		"Artificial Intelligence Strategy for 2025 to 2028",
+		`<a href="/ai-policy" aria-current="page">AI policy</a>`,
+	} {
+		if !strings.Contains(ai, want) {
+			t.Errorf("AI policy lacks %q", want)
+		}
+	}
+	if !strings.Contains(h.get(t, "/").Body.String(), `<a class="text-link" href="/ai-policy">`) {
+		t.Error("the FAQ does not link to the AI policy")
 	}
 }
 
@@ -784,7 +806,7 @@ func TestSecurityTxt(t *testing.T) {
 func TestSEOFiles(t *testing.T) {
 	h := newHarness(t, map[string]string{"SITE_URL": "https://tiefer.example"})
 	sitemap := h.get(t, "/sitemap.xml").Body.String()
-	for _, p := range []string{"https://tiefer.example/", "https://tiefer.example/legal", "https://tiefer.example/privacy", "https://tiefer.example/acceptable-use"} {
+	for _, p := range []string{"https://tiefer.example/", "https://tiefer.example/legal", "https://tiefer.example/privacy", "https://tiefer.example/acceptable-use", "https://tiefer.example/ai-policy"} {
 		if !strings.Contains(sitemap, "<loc>"+p+"</loc>") {
 			t.Errorf("sitemap lacks %s", p)
 		}
