@@ -1298,6 +1298,40 @@ main:focus {
   line-height: 1.45;
 }
 
+/* Title, text and questions line up across the cards. */
+@supports (grid-template-rows: subgrid) {
+  .cases.grid--3 {
+    row-gap: 0;
+  }
+
+  .case {
+    display: grid;
+    grid-row: span 3;
+    grid-template-rows: subgrid;
+    row-gap: 0;
+  }
+
+  .case-question {
+    margin-top: 0;
+  }
+
+  @media (max-width: 52rem) {
+    .case + .case {
+      margin-top: 1.5rem;
+    }
+  }
+}
+
+.case-question ul {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.case-question li + li {
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--line);
+}
+
 .cases-note {
   max-width: var(--measure);
   margin-top: clamp(2rem, 1.5rem + 1.5vw, 3rem);

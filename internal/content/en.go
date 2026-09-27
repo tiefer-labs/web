@@ -155,22 +155,32 @@ var English = Site{
 
 	UseCases: UseCases{
 		Title:         "Built for people who decide on what happens on the ground",
-		QuestionLabel: "Example question",
+		QuestionLabel: "Example questions",
 		Cards: []UseCase{
 			{
-				Title:    "Commodity traders",
-				Text:     "Ports, terminals, storage and crops: see supply move before the statistics do.",
-				Question: "How full are the tanks at this terminal compared with last month?",
+				Title: "Commodity traders",
+				Text:  "Ports, terminals, storage and crops: see supply move before the statistics do.",
+				Questions: []string{
+					"How full are the tanks at this terminal compared with last month?",
+					"How has the number of vessels at this port changed over the last two weeks?",
+					"How are the grain fields in this region developing this season?",
+				},
 			},
 			{
-				Title:    "Insurers",
-				Text:     "Floods, fires and damage mapped in hours, with the images to back each claim.",
-				Question: "Which insured sites in this district were under water on Tuesday?",
+				Title: "Insurers",
+				Text:  "Floods, fires and damage mapped in hours, with the images to back each claim.",
+				Questions: []string{
+					"Which insured sites in this district were under water on Tuesday?",
+					"Which properties lie inside the area burned by this fire?",
+				},
 			},
 			{
-				Title:    "Governments",
-				Text:     "Sovereign deployments that keep sensitive questions and data inside the country.",
-				Question: "What changed at this infrastructure site since January?",
+				Title: "Governments",
+				Text:  "Sovereign deployments that keep sensitive questions and data inside the country.",
+				Questions: []string{
+					"What changed at this infrastructure site since January?",
+					"Where has new construction appeared in this area since last year?",
+				},
 			},
 		},
 		Note: "We start in the Caspian, Caucasus, Black Sea and Central Asia region. Tiefer answers in English, Azerbaijani, Turkish and Russian.",

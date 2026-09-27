@@ -154,15 +154,15 @@ type Demo struct {
 
 // UseCase is one customer group.
 type UseCase struct {
-	Title    string
-	Text     string
-	Question string
+	Title     string
+	Text      string
+	Questions []string // example questions, the first one is shown first
 }
 
 // UseCases lists who Tiefer is for.
 type UseCases struct {
 	Title         string
-	QuestionLabel string
+	QuestionLabel string // label above the example questions
 	Cards         []UseCase
 	Note          string
 }

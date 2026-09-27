@@ -16,7 +16,14 @@
       <li class="case">
         <h3>{{.Title}}</h3>
         <p>{{.Text}}</p>
-        <p class="case-question"><span class="tech-label">{{$label}}</span> <span class="case-question-text">{{.Question}}</span></p>
+        <div class="case-question">
+          <p class="tech-label">{{$label}}</p>
+          <ul role="list">
+            {{- range .Questions}}
+            <li class="case-question-text">{{.}}</li>
+            {{- end}}
+          </ul>
+        </div>
       </li>
       {{- end}}
     </ul>
