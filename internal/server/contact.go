@@ -7,6 +7,7 @@ package server
 import (
 	"encoding/json"
 	"errors"
+	"mime"
 	"net"
 	"net/http"
 	"strings"
@@ -75,6 +76,12 @@ func (s *Server) contact(site *content.Site) http.HandlerFunc {
 			return
 		}
 
+		// Browsers send this form URL-encoded, with and without JavaScript.
+		// Refusing other encodings keeps multipart parsing out of reach.
+		if mt, _, err := mime.ParseMediaType(r.Header.Get("Content-Type")); err != nil || mt != "application/x-www-form-urlencoded" {
+			reply(http.StatusUnsupportedMediaType, &formState{Status: "error"})
+			return
+		}
 		r.Body = http.MaxBytesReader(w, r.Body, maxFormBytes)
 		if err := r.ParseForm(); err != nil {
 			reply(http.StatusBadRequest, &formState{Status: "error"})

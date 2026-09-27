@@ -460,6 +460,24 @@ func flip(s string, i int) string {
 	return string(b)
 }
 
+func TestContactRejectsOtherEncodings(t *testing.T) {
+	h := newHarness(t, smtpEnv)
+	tok := h.formToken(t)
+	h.advance(10 * time.Second)
+	for _, ct := range []string{"multipart/form-data; boundary=x", "application/json", "text/plain", ""} {
+		r := post("/contact", validValues(tok), "")
+		r.Header.Set("Content-Type", ct)
+		if w := h.do(t, r); w.Code != http.StatusUnsupportedMediaType {
+			t.Errorf("Content-Type %q: status %d, want 415", ct, w.Code)
+		}
+	}
+	r := post("/contact", validValues(tok), "")
+	r.Header.Set("Content-Type", "application/x-www-form-urlencoded;charset=UTF-8")
+	if w := h.do(t, r); w.Code != http.StatusSeeOther || h.mailer.count() != 1 {
+		t.Errorf("URL-encoded with charset: status %d, %d mails", w.Code, h.mailer.count())
+	}
+}
+
 func TestContactHoneypot(t *testing.T) {
 	h := newHarness(t, smtpEnv)
 	tok := h.formToken(t)
