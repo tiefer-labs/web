@@ -63,6 +63,18 @@ Development tools that are not part of the binary:
 | Tool | Used for | Licence |
 |---|---|---|
 | staticcheck (`honnef.co/go/tools`) | `make lint` and CI | MIT |
+| govulncheck (`golang.org/x/vuln`) | `make vuln` and CI | BSD 3-Clause |
+
+## Deployment components
+
+These are downloaded when the site is built or deployed; they are not part
+of this repository and keep their own licences:
+
+| Component | Used for | Licence |
+|---|---|---|
+| `golang` Docker image | building the binary (build stage only) | BSD 3-Clause (Go); Debian packages under their own licences |
+| `gcr.io/distroless/static-debian12` | runtime base image | Apache 2.0 (distroless); Debian packages such as `ca-certificates` and `tzdata` under their own licences |
+| Caddy (`caddy` Docker image) | TLS and reverse proxy in `deploy/` | Apache 2.0 |
 
 ## Unicode data
 
