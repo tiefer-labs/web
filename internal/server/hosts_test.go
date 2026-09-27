@@ -67,3 +67,32 @@ func TestProductionCanonicalLinks(t *testing.T) {
 		}
 	}
 }
+
+func TestFetchMetadataIsolation(t *testing.T) {
+	h := newHarness(t, smtpEnv)
+	cases := []struct {
+		method, target, site, mode, dest string
+		status                           int
+	}{
+		{"GET", "/", "", "", "", 200},                            // no metadata: crawler, old browser
+		{"GET", "/", "none", "navigate", "document", 200},        // typed address or bookmark
+		{"GET", "/", "cross-site", "navigate", "document", 200},  // link from another site
+		{"GET", "/privacy", "same-origin", "cors", "empty", 200}, // our own fetch
+		{"GET", "/", "cross-site", "no-cors", "script", 403},     // <script src> on another site
+		{"GET", "/static/og-image.png", "cross-site", "no-cors", "image", 403},
+		{"GET", "/", "cross-site", "cors", "empty", 403},                // fetch() from another site
+		{"GET", "/", "cross-site", "navigate", "iframe", 403},           // framing
+		{"POST", "/contact", "cross-site", "navigate", "document", 403}, // cross-site form post
+	}
+	for _, c := range cases {
+		r := httptest.NewRequest(c.method, c.target, nil)
+		if c.site != "" {
+			r.Header.Set("Sec-Fetch-Site", c.site)
+			r.Header.Set("Sec-Fetch-Mode", c.mode)
+			r.Header.Set("Sec-Fetch-Dest", c.dest)
+		}
+		if w := h.do(t, r); w.Code != c.status {
+			t.Errorf("%s %s (%s, %s, %s): %d, want %d", c.method, c.target, c.site, c.mode, c.dest, w.Code, c.status)
+		}
+	}
+}

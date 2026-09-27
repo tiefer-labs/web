@@ -76,3 +76,28 @@ func forwardedProto(r *http.Request) string {
 	parts := strings.Split(v[len(v)-1], ",")
 	return strings.TrimSpace(parts[len(parts)-1])
 }
+
+// fetchMetadata applies a resource isolation policy based on the
+// Sec-Fetch-* headers that browsers send: requests from other sites are
+// allowed only as top-level navigations (following a link). A page on
+// another site can therefore not load our pages or files with fetch,
+// scripts, images or frames. Requests without these headers (older
+// browsers, crawlers, link preview services) are allowed.
+func fetchMetadata(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		site := r.Header.Get("Sec-Fetch-Site")
+		if site == "" || site == "same-origin" || site == "same-site" || site == "none" {
+			next.ServeHTTP(w, r)
+			return
+		}
+		mode, dest := r.Header.Get("Sec-Fetch-Mode"), r.Header.Get("Sec-Fetch-Dest")
+		navigation := mode == "navigate" && (r.Method == http.MethodGet || r.Method == http.MethodHead) &&
+			dest != "object" && dest != "embed" && dest != "iframe" && dest != "frame"
+		if !navigation {
+			w.Header().Set("Cache-Control", "no-store")
+			http.Error(w, "Forbidden", http.StatusForbidden)
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
+}
