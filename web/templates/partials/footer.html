@@ -16,9 +16,9 @@
         <li><a href="{{.Href "/legal"}}"{{if eq .Name "legal"}} aria-current="page"{{end}}>{{$f.LegalNotice}}</a></li>
         <li><a href="{{.Href "/privacy"}}"{{if eq .Name "privacy"}} aria-current="page"{{end}}>{{$f.Privacy}}</a></li>
         <li><a href="{{.Href "/acceptable-use"}}"{{if eq .Name "acceptable-use"}} aria-current="page"{{end}}>{{$f.AcceptableUse}}</a></li>
-        <li><a href="{{.Cfg.LinkedInURL}}" rel="noopener">{{$f.LinkedIn}}</a></li>
+        <li><a href="{{.Cfg.LinkedInURL}}" rel="noopener noreferrer">{{$f.LinkedIn}}</a></li>
         {{- if .Cfg.RepoURL}}
-        <li><a href="{{.Cfg.RepoURL}}" rel="noopener">{{$f.SourceCode}}</a></li>
+        <li><a href="{{.Cfg.RepoURL}}" rel="noopener noreferrer">{{$f.SourceCode}}</a></li>
         {{- end}}
       </ul>
     </nav>
