@@ -812,6 +812,66 @@ main:focus {
   margin-bottom: 0.625rem;
 }
 
+/* Product: the four layers */
+
+.product {
+  position: relative;
+  overflow: hidden;
+}
+
+.section-orbit {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: min(100%, 90rem);
+  height: 25rem;
+  max-width: none;
+  pointer-events: none;
+}
+
+.product .wrap {
+  position: relative;
+}
+
+.product .section-intro {
+  color: var(--on-ink-muted);
+}
+
+.layer {
+  padding-top: 1.5rem;
+  border-top: 1px solid rgb(185 180 209 / 0.35);
+}
+
+.layer-icon {
+  margin-bottom: 1.5rem;
+  color: var(--on-ink);
+}
+
+.layer-label {
+  margin-bottom: 0.625rem;
+  color: var(--on-ink);
+  font-family: var(--font-text);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+}
+
+.layer p {
+  color: var(--on-ink-muted);
+}
+
+@media (max-width: 36rem) {
+  /* Two by two on phones. */
+  .layers.grid--4 {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 2rem 1.25rem;
+  }
+
+  .layer p {
+    font-size: var(--fs-small);
+  }
+}
+
 /* Footer */
 
 .site-footer {
