@@ -75,8 +75,19 @@ number of radar, usable optical and rejected optical passes). If you change
 the rows, keep the strip consistent with them. `Port A` is fictional; keep it
 that way.
 
-**Roadmap.** `Roadmap.Items` is the list of milestones in order. Set
-`Now: true` on the milestone you are at (exactly one).
+**Roadmap.** `Roadmap.Items` is the list of milestones in order, each with
+its planned period in `When`. Set `Now: true` on the milestone you are at
+(exactly one).
+
+**Data layers.** Each entry of `Product.Layers` has `Specs`: its open data
+sources with their resolution, what can be ordered on demand, and its limit.
+Keep the figures to what the missions publish.
+
+**Limits and questions.** `Limits.Items` pairs each limit of satellite data
+with what Tiefer does about it. `FAQ.Items` holds the questions and answers;
+an answer can end with a link (`Link`, a site path such as
+`/acceptable-use`). Keep answers to what is true today, and say "on our
+roadmap" for what is planned.
 
 **Legal pages.** Their text is in `Legal` in the same file. Words in curly
 braces such as `{legal_name}` are filled from `LEGAL_*` environment
