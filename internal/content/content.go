@@ -192,6 +192,7 @@ type Limits struct {
 // Milestone is one node on the roadmap.
 type Milestone struct {
 	Title string
+	When  string // planned period
 	Text  string
 	Now   bool
 }

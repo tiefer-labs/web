@@ -1464,7 +1464,12 @@ main:focus {
 }
 
 .milestone h3 {
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.25rem;
+}
+
+.milestone-when {
+  margin-bottom: 0.625rem;
+  letter-spacing: 0.08em;
 }
 
 .milestone p {

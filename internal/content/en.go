@@ -231,11 +231,11 @@ var English = Site{
 		Title:    "Where we are",
 		NowLabel: "Now",
 		Items: []Milestone{
-			{Title: "Demo", Text: "Three question types on free satellite data: port activity, flood mapping, land change.", Now: true},
-			{Title: "Pilots", Text: "First paying teams, watchlists and weekly briefs."},
-			{Title: "Tasking", Text: "Commercial imagery ordered by Tiefer, with human approval first."},
-			{Title: "Sovereign", Text: "On-premise deployments for governments and large companies."},
-			{Title: "More regions", Text: "The same analyst, new places and new sensors."},
+			{Title: "Demo", When: "Oct to Dec 2026", Text: "Three question types on free satellite data: port activity, flood mapping, land change.", Now: true},
+			{Title: "Pilots", When: "First half of 2027", Text: "First paying teams, watchlists and weekly briefs."},
+			{Title: "Tasking", When: "Second half of 2027", Text: "Commercial imagery ordered by Tiefer, with human approval first."},
+			{Title: "Sovereign", When: "2028", Text: "On-premise deployments for governments and large companies."},
+			{Title: "More regions", When: "From 2028", Text: "The same analyst, new places and new sensors."},
 		},
 	},
 
