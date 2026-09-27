@@ -8,14 +8,17 @@ import (
 	"compress/gzip"
 	"context"
 	"crypto/sha256"
+	"crypto/sha512"
 	"encoding/base64"
 	"encoding/json"
+	"html"
 	"io"
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
 	"regexp"
+	"strconv"
 	"strings"
 	"sync"
 	"testing"
@@ -159,6 +162,7 @@ var routes = []struct {
 	{"/acceptable-use", 200},
 	{"/healthz", 200},
 	{"/robots.txt", 200},
+	{"/.well-known/security.txt", 200},
 	{"/sitemap.xml", 200},
 	{"/site.webmanifest", 200},
 	{"/favicon.ico", 200},
@@ -182,9 +186,14 @@ func TestRoutesStatus(t *testing.T) {
 func TestSecurityHeadersOnEveryRoute(t *testing.T) {
 	h := newHarness(t, smtpEnv)
 	want := map[string]string{
-		"X-Content-Type-Options": "nosniff",
-		"Referrer-Policy":        "strict-origin-when-cross-origin",
-		"X-Frame-Options":        "DENY",
+		"X-Content-Type-Options":            "nosniff",
+		"Referrer-Policy":                   "strict-origin-when-cross-origin",
+		"X-Frame-Options":                   "DENY",
+		"Cross-Origin-Opener-Policy":        "same-origin",
+		"Cross-Origin-Resource-Policy":      "same-origin",
+		"Cross-Origin-Embedder-Policy":      "require-corp",
+		"X-Permitted-Cross-Domain-Policies": "none",
+		"Origin-Agent-Cluster":              "?1",
 	}
 	check := func(name string, w *httptest.ResponseRecorder) {
 		for k, v := range want {
@@ -193,7 +202,9 @@ func TestSecurityHeadersOnEveryRoute(t *testing.T) {
 			}
 		}
 		csp := w.Header().Get("Content-Security-Policy")
-		for _, part := range []string{"default-src 'self'", "script-src 'self' 'sha256-", "frame-ancestors 'none'"} {
+		for _, part := range []string{"default-src 'none'", "script-src 'self' 'sha256-", "script-src-attr 'none'",
+			"style-src-attr 'none'", "frame-ancestors 'none'", "base-uri 'none'", "object-src 'none'",
+			"form-action 'self'", "require-trusted-types-for 'script'", "trusted-types 'none'"} {
 			if !strings.Contains(csp, part) {
 				t.Errorf("%s: CSP %q lacks %q", name, csp, part)
 			}
@@ -214,6 +225,19 @@ func TestSecurityHeadersOnEveryRoute(t *testing.T) {
 	check("POST /contact", h.do(t, post("/contact", url.Values{}, "")))
 }
 
+func TestProductionHSTSPreload(t *testing.T) {
+	h := newHarness(t, prodEnv)
+	r := httptest.NewRequest(http.MethodGet, "/", nil)
+	r.Host = "tiefer.space"
+	w := h.do(t, r)
+	if got := w.Header().Get("Strict-Transport-Security"); got != "max-age=63072000; includeSubDomains; preload" {
+		t.Errorf("HSTS = %q", got)
+	}
+	if !strings.Contains(w.Header().Get("Content-Security-Policy"), "upgrade-insecure-requests") {
+		t.Error("production CSP lacks upgrade-insecure-requests")
+	}
+}
+
 func TestCSPHashMatchesJSONLD(t *testing.T) {
 	h := newHarness(t, smtpEnv)
 	w := h.get(t, "/")
@@ -229,6 +253,23 @@ func TestCSPHashMatchesJSONLD(t *testing.T) {
 	hash := "'sha256-" + base64.StdEncoding.EncodeToString(sum[:]) + "'"
 	if !strings.Contains(w.Header().Get("Content-Security-Policy"), hash) {
 		t.Errorf("CSP does not allow the JSON-LD block (want %s)", hash)
+	}
+}
+
+func TestCacheControl(t *testing.T) {
+	h := newHarness(t, smtpEnv)
+	if got := h.get(t, "/").Header().Get("Cache-Control"); got != "private, no-cache" {
+		t.Errorf("index Cache-Control = %q, want private, no-cache", got)
+	}
+	tok := h.formToken(t)
+	h.advance(10 * time.Second)
+	v := validValues(tok)
+	v.Del("name")
+	if got := h.do(t, post("/contact", v, "")).Header().Get("Cache-Control"); got != "no-store" {
+		t.Errorf("form error page Cache-Control = %q, want no-store", got)
+	}
+	if got := h.do(t, post("/contact", validValues(tok), "")).Header().Get("Cache-Control"); got != "no-store" {
+		t.Errorf("form redirect Cache-Control = %q, want no-store", got)
 	}
 }
 
@@ -422,6 +463,24 @@ func flip(s string, i int) string {
 	return string(b)
 }
 
+func TestContactRejectsOtherEncodings(t *testing.T) {
+	h := newHarness(t, smtpEnv)
+	tok := h.formToken(t)
+	h.advance(10 * time.Second)
+	for _, ct := range []string{"multipart/form-data; boundary=x", "application/json", "text/plain", ""} {
+		r := post("/contact", validValues(tok), "")
+		r.Header.Set("Content-Type", ct)
+		if w := h.do(t, r); w.Code != http.StatusUnsupportedMediaType {
+			t.Errorf("Content-Type %q: status %d, want 415", ct, w.Code)
+		}
+	}
+	r := post("/contact", validValues(tok), "")
+	r.Header.Set("Content-Type", "application/x-www-form-urlencoded;charset=UTF-8")
+	if w := h.do(t, r); w.Code != http.StatusSeeOther || h.mailer.count() != 1 {
+		t.Errorf("URL-encoded with charset: status %d, %d mails", w.Code, h.mailer.count())
+	}
+}
+
 func TestContactHoneypot(t *testing.T) {
 	h := newHarness(t, smtpEnv)
 	tok := h.formToken(t)
@@ -490,6 +549,35 @@ func TestContactRateLimit(t *testing.T) {
 	}
 }
 
+func TestContactRateLimitIPv6Prefix(t *testing.T) {
+	h := newHarness(t, smtpEnv)
+	for i := 1; i <= 6; i++ {
+		tok := h.formToken(t)
+		h.advance(10 * time.Second)
+		// A different address in the same /64 each time.
+		w := h.do(t, post("/contact", validValues(tok), "[2001:db8:0:1::"+strconv.Itoa(i)+"]:4000"))
+		if i == 6 && w.Code != http.StatusTooManyRequests {
+			t.Fatalf("sixth address in the same /64: status %d, want 429", w.Code)
+		}
+	}
+}
+
+func TestContactGlobalSendLimit(t *testing.T) {
+	h := newHarness(t, smtpEnv)
+	h.srv.sendLimiter.limit = 2
+	for i := 1; i <= 3; i++ {
+		tok := h.formToken(t)
+		h.advance(10 * time.Second)
+		w := h.do(t, post("/contact", validValues(tok), "198.51.100."+strconv.Itoa(i)+":1"))
+		if i == 3 && w.Code != http.StatusServiceUnavailable {
+			t.Fatalf("third message: status %d, want 503", w.Code)
+		}
+	}
+	if h.mailer.count() != 2 {
+		t.Errorf("%d mails sent, want 2", h.mailer.count())
+	}
+}
+
 func TestContactCrossOrigin(t *testing.T) {
 	h := newHarness(t, smtpEnv)
 	tok := h.formToken(t)
@@ -542,12 +630,51 @@ func TestStaticAssets(t *testing.T) {
 	}
 }
 
+func TestSubresourceIntegrity(t *testing.T) {
+	h := newHarness(t, nil)
+	body := html.UnescapeString(h.get(t, "/").Body.String())
+	for _, p := range []string{"css/site.css", "js/site.js"} {
+		served := h.get(t, h.srv.assetURL(p)).Body.Bytes()
+		sum := sha512.Sum384(served)
+		want := `integrity="sha384-` + base64.StdEncoding.EncodeToString(sum[:]) + `"`
+		if !strings.Contains(body, want) {
+			t.Errorf("%s: page lacks %s", p, want)
+		}
+	}
+}
+
 func TestHTMLIsCompressed(t *testing.T) {
 	h := newHarness(t, nil)
 	r := httptest.NewRequest(http.MethodGet, "/", nil)
 	r.Header.Set("Accept-Encoding", "gzip, deflate, br")
 	if w := h.do(t, r); w.Header().Get("Content-Encoding") != "gzip" {
 		t.Error("HTML not gzip-compressed")
+	}
+}
+
+func TestSecurityTxt(t *testing.T) {
+	h := newHarness(t, map[string]string{
+		"SITE_URL":       "https://tiefer.space",
+		"SECURITY_EMAIL": "security@tiefer.space",
+		"REPO_URL":       "https://github.com/tiefer-labs/web",
+	})
+	w := h.get(t, "/.well-known/security.txt")
+	body := w.Body.String()
+	for _, want := range []string{
+		"Contact: mailto:security@tiefer.space\n",
+		"Expires: 2027-",
+		"Canonical: https://tiefer.space/.well-known/security.txt\n",
+		"Policy: https://github.com/tiefer-labs/web/security/policy\n",
+	} {
+		if !strings.Contains(body, want) {
+			t.Errorf("security.txt lacks %q:\n%s", want, body)
+		}
+	}
+	if w.Header().Get("Content-Type") != "text/plain; charset=utf-8" {
+		t.Errorf("content type %q", w.Header().Get("Content-Type"))
+	}
+	if w := h.get(t, "/security.txt"); w.Code != http.StatusMovedPermanently || w.Header().Get("Location") != "/.well-known/security.txt" {
+		t.Errorf("/security.txt: %d %q", w.Code, w.Header().Get("Location"))
 	}
 }
 

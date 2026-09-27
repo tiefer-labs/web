@@ -41,11 +41,30 @@ func TestDevelopmentDefaults(t *testing.T) {
 func TestProductionRequiresValues(t *testing.T) {
 	_, err := load(map[string]string{"ENV": "production"})
 	if err == nil {
-		t.Fatal("production without SITE_URL, CONTACT_EMAIL and CSRF_SECRET must fail")
+		t.Fatal("production without CONTACT_EMAIL and CSRF_SECRET must fail")
 	}
-	for _, name := range []string{"SITE_URL", "CONTACT_EMAIL", "CSRF_SECRET"} {
+	for _, name := range []string{"CONTACT_EMAIL", "CSRF_SECRET"} {
 		if !strings.Contains(err.Error(), name) {
 			t.Errorf("error does not mention %s: %v", name, err)
+		}
+	}
+}
+
+func TestProductionDefaultsToTheRealDomain(t *testing.T) {
+	c, err := load(map[string]string{
+		"ENV":           "production",
+		"CONTACT_EMAIL": "hello@tiefer.space",
+		"CSRF_SECRET":   strings.Repeat("s", 64),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if c.SiteURL != "https://tiefer.space" || c.SiteHost() != "tiefer.space" {
+		t.Errorf("SiteURL = %q, SiteHost = %q", c.SiteURL, c.SiteHost())
+	}
+	for _, name := range c.DefaultsInUse() {
+		if name == "SITE_URL" {
+			t.Error("the production domain must not be reported as a placeholder")
 		}
 	}
 }
@@ -87,6 +106,7 @@ func TestInvalidValues(t *testing.T) {
 		{map[string]string{"CONTACT_EMAIL": "not an email"}, "CONTACT_EMAIL"},
 		{map[string]string{"CONTACT_EMAIL": "a@b.example\r\nBcc: c@d.example"}, "CONTACT_EMAIL"},
 		{map[string]string{"LINKEDIN_URL": "javascript:alert(1)"}, "LINKEDIN_URL"},
+		{map[string]string{"SECURITY_EMAIL": "security at tiefer"}, "SECURITY_EMAIL"},
 		{map[string]string{"REPO_URL": "ftp://example.org"}, "REPO_URL"},
 		{map[string]string{"CSRF_SECRET": "short"}, "CSRF_SECRET"},
 		{map[string]string{"LEGAL_REVIEWED": "yes please"}, "LEGAL_REVIEWED"},

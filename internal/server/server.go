@@ -55,18 +55,21 @@ type Options struct {
 
 // Server serves the website.
 type Server struct {
-	cfg       *config.Config
-	log       *slog.Logger
-	assets    *render.Assets
-	templates *render.Templates
-	locales   []*content.Site
-	mailer    contact.Mailer
-	tokens    *contact.Tokens
-	limiter   *rateLimiter
-	now       func() time.Time
-	jsonLD    template.HTML
-	csp       string
-	handler   http.Handler
+	cfg         *config.Config
+	log         *slog.Logger
+	assets      *render.Assets
+	templates   *render.Templates
+	locales     []*content.Site
+	mailer      contact.Mailer
+	tokens      *contact.Tokens
+	limiter     *rateLimiter // per client
+	sendLimiter *rateLimiter // all delivered messages together
+	now         func() time.Time
+	jsonLD      template.HTML
+	csp         string
+	hsts        string
+	started     time.Time
+	handler     http.Handler
 }
 
 // New builds the server: it loads assets and templates, prepares the
@@ -90,15 +93,17 @@ func New(o Options) (*Server, error) {
 		return nil, err
 	}
 	s := &Server{
-		cfg:       o.Config,
-		log:       o.Logger,
-		assets:    assets,
-		templates: templates,
-		locales:   o.Locales,
-		mailer:    o.Mailer,
-		tokens:    contact.NewTokens(o.Config.CSRFSecret, o.Now),
-		limiter:   newRateLimiter(5, time.Hour, o.Now),
-		now:       o.Now,
+		cfg:         o.Config,
+		log:         o.Logger,
+		assets:      assets,
+		templates:   templates,
+		locales:     o.Locales,
+		mailer:      o.Mailer,
+		tokens:      contact.NewTokens(o.Config.CSRFSecret, o.Now),
+		limiter:     newRateLimiter(5, time.Hour, o.Now),
+		sendLimiter: newRateLimiter(50, time.Hour, o.Now),
+		now:         o.Now,
+		started:     o.Now(),
 	}
 	if s.mailer == nil && o.Config.ContactEnabled() {
 		s.mailer = &contact.SMTPMailer{
@@ -128,6 +133,8 @@ func (s *Server) routes() http.Handler {
 		_, _ = w.Write([]byte("ok"))
 	})
 	mux.HandleFunc("GET /robots.txt", s.robots)
+	mux.HandleFunc("GET /.well-known/security.txt", s.securityTxt)
+	mux.Handle("GET /security.txt", http.RedirectHandler("/.well-known/security.txt", http.StatusMovedPermanently))
 	mux.HandleFunc("GET /sitemap.xml", s.sitemap)
 	mux.HandleFunc("GET /site.webmanifest", s.manifest)
 	mux.HandleFunc("GET /favicon.ico", s.rootAsset("favicon.ico"))
@@ -149,6 +156,8 @@ func (s *Server) routes() http.Handler {
 	mux.HandleFunc("/", s.notFound)
 
 	var h http.Handler = mux
+	h = fetchMetadata(h)
+	h = s.canonicalHost(h)
 	h = s.securityHeaders(h)
 	h = s.logRequests(h)
 	h = s.recoverPanics(h)
@@ -174,10 +183,15 @@ func (s *Server) buildJSONLD() error {
 	hash := "'sha256-" + base64.StdEncoding.EncodeToString(sum[:]) + "'"
 	s.jsonLD = template.HTML(`<script type="application/ld+json">` + string(b) + `</script>`)
 
+	// Everything is same-origin. Inline event handlers and style
+	// attributes are not used, and the script only assigns text, so
+	// Trusted Types can be enforced with no policy at all.
 	csp := []string{
-		"default-src 'self'",
+		"default-src 'none'",
 		"script-src 'self' " + hash,
+		"script-src-attr 'none'",
 		"style-src 'self'",
+		"style-src-attr 'none'",
 		"img-src 'self'",
 		"font-src 'self'",
 		"connect-src 'self'",
@@ -186,9 +200,15 @@ func (s *Server) buildJSONLD() error {
 		"frame-ancestors 'none'",
 		"base-uri 'none'",
 		"object-src 'none'",
+		"require-trusted-types-for 'script'",
+		"trusted-types 'none'",
 	}
+	s.hsts = "max-age=63072000; includeSubDomains"
 	if s.cfg.Production() {
 		csp = append(csp, "upgrade-insecure-requests")
+		// tiefer.space and all its subdomains are HTTPS only, so the
+		// domain can be submitted to the browsers' HSTS preload list.
+		s.hsts += "; preload"
 	}
 	s.csp = strings.Join(csp, "; ")
 	return nil

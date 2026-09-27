@@ -7,7 +7,11 @@ name: CI
 on:
   push:
   pull_request:
+  schedule:
+    # Weekly, so newly published vulnerabilities are found without a push.
+    - cron: "17 5 * * 1"
 
+# Least privilege: the jobs only read the repository.
 permissions:
   contents: read
 
@@ -15,9 +19,12 @@ jobs:
   go:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      # Actions are pinned to full commit SHAs; Dependabot updates them.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
-      - uses: actions/setup-go@v5
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version-file: go.mod
 
@@ -34,12 +41,13 @@ jobs:
         run: go vet ./...
 
       - name: staticcheck
-        run: |
-          go install honnef.co/go/tools/cmd/staticcheck@latest
-          "$(go env GOPATH)/bin/staticcheck" ./...
+        run: go run honnef.co/go/tools/cmd/staticcheck@v0.8.1 ./...
 
-      - name: go test
-        run: go test ./...
+      - name: govulncheck (known vulnerabilities in Go and the standard library)
+        run: go run golang.org/x/vuln/cmd/govulncheck@v1.8.0 ./...
+
+      - name: go test (with the race detector)
+        run: go test -race ./...
 
       - name: Text check (dashes, emoji, banned words, placeholder warnings)
         run: make check
@@ -50,6 +58,19 @@ jobs:
   docker:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
       - name: Build image
         run: docker build -t tiefer-web .
+      - name: Smoke test the image
+        run: |
+          docker run -d --name web -p 8080:8080 \
+            -e CONTACT_EMAIL=hello@tiefer.space \
+            -e CSRF_SECRET="$(openssl rand -hex 32)" \
+            tiefer-web
+          sleep 3
+          docker exec web /tiefer-web healthcheck
+          # Production refuses hosts other than tiefer.space.
+          test "$(curl -s -o /dev/null -w '%{http_code}' http://localhost:8080/)" = 421
+          test "$(curl -s -o /dev/null -w '%{http_code}' -H 'Host: tiefer.space' http://localhost:8080/)" = 200

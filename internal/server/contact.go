@@ -7,6 +7,7 @@ package server
 import (
 	"encoding/json"
 	"errors"
+	"mime"
 	"net"
 	"net/http"
 	"strings"
@@ -49,6 +50,8 @@ func (s *Server) contact(site *content.Site) http.HandlerFunc {
 		}
 
 		reply := func(status int, st *formState) {
+			// Answers to a post may hold what the visitor typed: never cache them.
+			w.Header().Set("Cache-Control", "no-store")
 			if st.Status == "sent" && !wantsJSON {
 				http.Redirect(w, r, home+"?sent=1#contact", http.StatusSeeOther)
 				return
@@ -58,7 +61,6 @@ func (s *Server) contact(site *content.Site) http.HandlerFunc {
 			}
 			if wantsJSON {
 				b, _ := json.Marshal(contactReply{Status: st.Status, Errors: st.Errors, Token: st.Token})
-				w.Header().Set("Cache-Control", "no-store")
 				writeBody(w, r, status, "application/json", b)
 				return
 			}
@@ -68,12 +70,18 @@ func (s *Server) contact(site *content.Site) http.HandlerFunc {
 			s.renderPage(w, r, status, p)
 		}
 
-		if !s.limiter.Allow(s.clientIP(r)) {
+		if !s.limiter.Allow(clientKey(s.clientIP(r))) {
 			s.log.Warn("contact: rate limited")
 			reply(http.StatusTooManyRequests, &formState{Status: "error"})
 			return
 		}
 
+		// Browsers send this form URL-encoded, with and without JavaScript.
+		// Refusing other encodings keeps multipart parsing out of reach.
+		if mt, _, err := mime.ParseMediaType(r.Header.Get("Content-Type")); err != nil || mt != "application/x-www-form-urlencoded" {
+			reply(http.StatusUnsupportedMediaType, &formState{Status: "error"})
+			return
+		}
 		r.Body = http.MaxBytesReader(w, r.Body, maxFormBytes)
 		if err := r.ParseForm(); err != nil {
 			reply(http.StatusBadRequest, &formState{Status: "error"})
@@ -118,6 +126,15 @@ func (s *Server) contact(site *content.Site) http.HandlerFunc {
 		// JavaScript, or the back button) is answered but not sent again.
 		if !s.tokens.Consume(nonce) {
 			reply(http.StatusOK, &formState{Status: "sent"})
+			return
+		}
+
+		// A global cap on delivered messages protects the mailbox and the
+		// sender reputation from spam spread over many addresses.
+		if !s.sendLimiter.Allow("all") {
+			s.log.Warn("contact: global send limit reached, message not sent")
+			st.Status, st.Token = "error", ""
+			reply(http.StatusServiceUnavailable, st)
 			return
 		}
 

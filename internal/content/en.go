@@ -306,7 +306,7 @@ var English = Site{
 					Heading: "Server logs",
 					Paras: []string{
 						"To run the website and fix errors, our server records each request: the time, the page requested, the response status, the response size and how long the response took. It does not write IP addresses to its logs.",
-						"To protect the contact form from abuse, the server keeps the IP address of each sender in memory for up to one hour, to limit the number of messages per connection. It is never written to disk or to the logs, and it is gone when the server restarts.",
+						"To protect the contact form from abuse, the server keeps the IP address of each sender (for IPv6, only its network part) in memory for up to one hour, to limit the number of messages per connection. It is never written to disk or to the logs, and it is gone when the server restarts.",
 						"Our hosting provider, {hosting_provider} ({hosting_country}), may process connection data such as IP addresses to operate its network. [HOSTING_PROVIDER_LOGS: describe what the provider records and for how long.]",
 					},
 				},

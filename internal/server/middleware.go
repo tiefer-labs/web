@@ -27,13 +27,17 @@ func (s *Server) securityHeaders(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		h := w.Header()
 		h.Set("Content-Security-Policy", s.csp)
-		h.Set("Strict-Transport-Security", "max-age=63072000; includeSubDomains")
+		h.Set("Strict-Transport-Security", s.hsts)
 		h.Set("X-Content-Type-Options", "nosniff")
 		h.Set("Referrer-Policy", "strict-origin-when-cross-origin")
 		h.Set("Permissions-Policy", permissionsPolicy)
 		h.Set("X-Frame-Options", "DENY")
 		h.Set("Cross-Origin-Opener-Policy", "same-origin")
 		h.Set("Cross-Origin-Resource-Policy", "same-origin")
+		h.Set("Cross-Origin-Embedder-Policy", "require-corp")
+		h.Set("Origin-Agent-Cluster", "?1")
+		h.Set("X-Permitted-Cross-Domain-Policies", "none")
+		h.Set("X-DNS-Prefetch-Control", "off")
 		next.ServeHTTP(w, r)
 	})
 }

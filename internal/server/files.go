@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/tiefer-labs/web/internal/render"
 )
@@ -60,6 +61,23 @@ func (s *Server) serveAsset(w http.ResponseWriter, r *http.Request, a *render.As
 	} else {
 		w.WriteHeader(http.StatusOK)
 	}
+}
+
+// securityTxt serves /.well-known/security.txt (RFC 9116), so that people
+// who find a vulnerability know where to report it. Expires is kept about
+// six months ahead of the time the server started, as the RFC asks for a
+// date less than a year away.
+func (s *Server) securityTxt(w http.ResponseWriter, r *http.Request) {
+	var b strings.Builder
+	b.WriteString("Contact: mailto:" + s.cfg.SecurityEmail + "\n")
+	b.WriteString("Expires: " + s.started.AddDate(0, 6, 0).UTC().Format(time.RFC3339) + "\n")
+	b.WriteString("Preferred-Languages: en, az, tr, ru\n")
+	b.WriteString("Canonical: " + s.abs("/.well-known/security.txt") + "\n")
+	if s.cfg.RepoURL != "" && strings.HasPrefix(s.cfg.RepoURL, "https://github.com/") {
+		b.WriteString("Policy: " + strings.TrimSuffix(s.cfg.RepoURL, "/") + "/security/policy\n")
+	}
+	w.Header().Set("Cache-Control", "public, max-age=86400")
+	writeBody(w, r, http.StatusOK, "text/plain; charset=utf-8", []byte(b.String()))
 }
 
 func (s *Server) robots(w http.ResponseWriter, r *http.Request) {

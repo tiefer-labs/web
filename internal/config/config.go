@@ -25,6 +25,10 @@ const (
 	Production  = "production"
 )
 
+// ProductionSiteURL is the canonical address of the public site. It is the
+// default for SITE_URL in production.
+const ProductionSiteURL = "https://tiefer.space"
+
 // Legal holds the company details shown on the legal pages. Every value
 // defaults to a clearly marked placeholder, never to invented data.
 type Legal struct {
@@ -58,9 +62,12 @@ type Config struct {
 	Env          string
 	SiteURL      string // without trailing slash
 	ContactEmail string
-	LinkedInURL  string
-	RepoURL      string
-	TrustProxy   bool
+	// SecurityEmail receives vulnerability reports (security.txt).
+	// It defaults to ContactEmail.
+	SecurityEmail string
+	LinkedInURL   string
+	RepoURL       string
+	TrustProxy    bool
 
 	SMTP        SMTP
 	ContactTo   string
@@ -148,7 +155,13 @@ func FromLookup(lookup func(string) (string, bool)) (*Config, error) {
 		errs = append(errs, fmt.Errorf("PORT must be a number between 1 and 65535, got %q", c.Port))
 	}
 
-	c.SiteURL = strings.TrimRight(orDefault("SITE_URL", true), "/")
+	c.SiteURL = strings.TrimRight(get("SITE_URL"), "/")
+	if c.SiteURL == "" {
+		c.SiteURL = defaultOf("SITE_URL")
+		if prod {
+			c.SiteURL = ProductionSiteURL
+		}
+	}
 	if c.SiteURL != "" {
 		u, err := url.Parse(c.SiteURL)
 		switch {
@@ -164,6 +177,12 @@ func FromLookup(lookup func(string) (string, bool)) (*Config, error) {
 	c.ContactEmail = orDefault("CONTACT_EMAIL", true)
 	if c.ContactEmail != "" && !validEmail(c.ContactEmail) {
 		errs = append(errs, fmt.Errorf("CONTACT_EMAIL is not a valid email address: %q", c.ContactEmail))
+	}
+	c.SecurityEmail = get("SECURITY_EMAIL")
+	if c.SecurityEmail == "" {
+		c.SecurityEmail = c.ContactEmail
+	} else if !validEmail(c.SecurityEmail) {
+		errs = append(errs, fmt.Errorf("SECURITY_EMAIL is not a valid email address: %q", c.SecurityEmail))
 	}
 	c.LinkedInURL = orDefault("LINKEDIN_URL", false)
 	if err := checkHTTPURL("LINKEDIN_URL", c.LinkedInURL); err != nil {
@@ -250,6 +269,16 @@ func FromLookup(lookup func(string) (string, bool)) (*Config, error) {
 	return c, nil
 }
 
+// SiteHost returns the host name of SITE_URL, including a port if it has
+// one, for example tiefer.space or localhost:8080.
+func (c *Config) SiteHost() string {
+	u, err := url.Parse(c.SiteURL)
+	if err != nil {
+		return ""
+	}
+	return u.Host
+}
+
 // ContactEnabled reports whether the contact form can deliver mail.
 func (c *Config) ContactEnabled() bool {
 	return c.SMTP.Host != "" && c.ContactTo != "" && c.ContactFrom != ""
@@ -278,6 +307,9 @@ func (c *Config) DefaultsInUse() []string {
 	}
 	var out []string
 	for _, v := range Defaults {
+		if v.Name == "SITE_URL" && c.Production() {
+			continue // the production default is the real domain
+		}
 		if values[v.Name] == v.Default {
 			out = append(out, v.Name)
 		}
