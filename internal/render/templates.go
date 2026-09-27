@@ -23,9 +23,10 @@ type Templates struct {
 // pages/*.html once, at startup.
 func LoadTemplates(fsys fs.FS, assets *Assets) (*Templates, error) {
 	funcs := template.FuncMap{
-		"asset": assets.URL,
-		"inc":   func(i int) int { return i + 1 },
-		"pad2":  func(i int) string { return fmt.Sprintf("%02d", i) },
+		"asset":     assets.URL,
+		"integrity": assets.Integrity,
+		"inc":       func(i int) int { return i + 1 },
+		"pad2":      func(i int) string { return fmt.Sprintf("%02d", i) },
 	}
 	base, err := template.New("layout.html").Funcs(funcs).ParseFS(fsys, "layout.html", "partials/*.html")
 	if err != nil {

@@ -8,8 +8,10 @@ import (
 	"compress/gzip"
 	"context"
 	"crypto/sha256"
+	"crypto/sha512"
 	"encoding/base64"
 	"encoding/json"
+	"html"
 	"io"
 	"log/slog"
 	"net/http"
@@ -624,6 +626,19 @@ func TestStaticAssets(t *testing.T) {
 	r.Header.Set("Accept-Encoding", "gzip")
 	if w := h.do(t, r); w.Code != http.StatusNotModified {
 		t.Errorf("conditional request: %d, want 304", w.Code)
+	}
+}
+
+func TestSubresourceIntegrity(t *testing.T) {
+	h := newHarness(t, nil)
+	body := html.UnescapeString(h.get(t, "/").Body.String())
+	for _, p := range []string{"css/site.css", "js/site.js"} {
+		served := h.get(t, h.srv.assetURL(p)).Body.Bytes()
+		sum := sha512.Sum384(served)
+		want := `integrity="sha384-` + base64.StdEncoding.EncodeToString(sum[:]) + `"`
+		if !strings.Contains(body, want) {
+			t.Errorf("%s: page lacks %s", p, want)
+		}
 	}
 }
 

@@ -10,6 +10,8 @@ import (
 	"bytes"
 	"compress/gzip"
 	"crypto/sha256"
+	"crypto/sha512"
+	"encoding/base64"
 	"encoding/hex"
 	"fmt"
 	"io/fs"
@@ -30,6 +32,7 @@ type Asset struct {
 	Body        []byte
 	Gzip        []byte // gzip-compressed body, nil when compression does not help
 	ETag        string
+	Integrity   string // Subresource Integrity value, sha384-...
 }
 
 // Assets is the set of static files.
@@ -114,6 +117,7 @@ func (a *Assets) add(p string, body []byte) error {
 	if !ok {
 		return fmt.Errorf("render: no content type for %s", p)
 	}
+	sri := sha512.Sum384(body)
 	sum := sha256.Sum256(body)
 	hash := hex.EncodeToString(sum[:])[:10]
 	asset := &Asset{
@@ -122,6 +126,7 @@ func (a *Assets) add(p string, body []byte) error {
 		ContentType: ct,
 		Body:        body,
 		ETag:        `"` + hash + `"`,
+		Integrity:   "sha384-" + base64.StdEncoding.EncodeToString(sri[:]),
 	}
 	if compressible[ext] {
 		var buf bytes.Buffer
@@ -146,6 +151,15 @@ func (a *Assets) URL(p string) (string, error) {
 		return "", fmt.Errorf("render: unknown asset %q", p)
 	}
 	return asset.URL, nil
+}
+
+// Integrity returns the Subresource Integrity value of the asset at p.
+func (a *Assets) Integrity(p string) (string, error) {
+	asset, ok := a.byPath[strings.TrimPrefix(p, "/")]
+	if !ok {
+		return "", fmt.Errorf("render: unknown asset %q", p)
+	}
+	return asset.Integrity, nil
 }
 
 // Get returns the asset at path p (relative to web/static), or nil.
