@@ -36,6 +36,8 @@ const (
 	DefaultContactFrom = "website@tiefer.space"
 	// DefaultRepoURL is the public source repository, linked in the footer.
 	DefaultRepoURL = "https://github.com/tiefer-labs/web"
+	// DefaultLinkedInURL is the Tiefer company page on LinkedIn.
+	DefaultLinkedInURL = "https://www.linkedin.com/company/tiefer"
 )
 
 // Legal holds the company details shown on the legal pages. Every value
@@ -97,7 +99,6 @@ type Var struct {
 // (SMTP, REPO_URL) are optional and therefore not listed here.
 var Defaults = []Var{
 	{"SITE_URL", "http://localhost:8080"},
-	{"LINKEDIN_URL", "https://www.linkedin.com/company/tiefer"},
 	{"LEGAL_NAME", "[COMPANY_LEGAL_NAME]"},
 	{"LEGAL_FORM", "[LEGAL_FORM]"},
 	{"LEGAL_ADDRESS", "[REGISTERED_ADDRESS_BAKU]"},
@@ -195,7 +196,10 @@ func FromLookup(lookup func(string) (string, bool)) (*Config, error) {
 	} else if !validEmail(c.SecurityEmail) {
 		errs = append(errs, fmt.Errorf("SECURITY_EMAIL is not a valid email address: %q", c.SecurityEmail))
 	}
-	c.LinkedInURL = orDefault("LINKEDIN_URL", false)
+	c.LinkedInURL = get("LINKEDIN_URL")
+	if c.LinkedInURL == "" {
+		c.LinkedInURL = DefaultLinkedInURL
+	}
 	if err := checkHTTPURL("LINKEDIN_URL", c.LinkedInURL); err != nil {
 		errs = append(errs, err)
 	}
@@ -319,7 +323,6 @@ func (c *Config) Production() bool { return c.Env == Production }
 func (c *Config) DefaultsInUse() []string {
 	values := map[string]string{
 		"SITE_URL":               c.SiteURL,
-		"LINKEDIN_URL":           c.LinkedInURL,
 		"LEGAL_NAME":             c.Legal.Name,
 		"LEGAL_FORM":             c.Legal.Form,
 		"LEGAL_ADDRESS":          c.Legal.Address,

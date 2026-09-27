@@ -33,7 +33,10 @@ func TestDevelopmentDefaults(t *testing.T) {
 	if c.Legal.Name != "[COMPANY_LEGAL_NAME]" || c.Legal.Reviewed {
 		t.Errorf("legal defaults: %+v", c.Legal)
 	}
-	if got := strings.Join(c.DefaultsInUse(), ","); !strings.Contains(got, "LEGAL_TAX_ID") || !strings.Contains(got, "LEGAL_REVIEWED") {
+	if c.LinkedInURL != "https://www.linkedin.com/company/tiefer" {
+		t.Errorf("LinkedInURL = %q", c.LinkedInURL)
+	}
+	if got := strings.Join(c.DefaultsInUse(), ","); !strings.Contains(got, "LEGAL_TAX_ID") || !strings.Contains(got, "LEGAL_REVIEWED") || strings.Contains(got, "LINKEDIN_URL") {
 		t.Errorf("DefaultsInUse = %s", got)
 	}
 }
