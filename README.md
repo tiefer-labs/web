@@ -2,7 +2,7 @@
 
 The public website of **Tiefer**, a space technology startup from Baku that
 builds an AI analyst for satellite data, at **<https://tiefer.space>**. It is
-a business-card site: one main page, three legal pages and a contact form,
+a business-card site: one main page, four legal pages and a contact form,
 served by one small Go program.
 
 - One language (Go), one self-contained binary, no Node toolchain, no CSS build step.
@@ -383,12 +383,22 @@ them with the pages they appear on):
 
 - Legal notice: `[POSTAL_ADDRESS]`, `[CONTENT_RESPONSIBILITY]`,
   `[LAST_UPDATED]`
-- Privacy: `[EU_REPRESENTATIVE]`, `[HOSTING_PROVIDER_LOGS]`, `[LEGAL_BASIS]`,
+- Privacy: `[APPLICABLE_LAW]`, `[EU_REPRESENTATIVE]`,
+  `[HOSTING_PROVIDER_LOGS]`, `[AZ_LEGAL_BASIS]`, `[LEGAL_BASIS]`,
   `[RECIPIENTS]`, `[INTERNATIONAL_TRANSFERS]`, `[RETENTION_PERIOD]`,
-  `[LOG_RETENTION_PERIOD]`, `[DATA_SUBJECT_RIGHTS]`,
-  `[SUPERVISORY_AUTHORITY_AZ]`, `[LAST_UPDATED]`
+  `[LOG_RETENTION_PERIOD]`, `[MAILBOX_SECURITY]`, `[AI_IN_MAILBOX]`,
+  `[DATA_SUBJECT_RIGHTS]`, `[SUPERVISORY_AUTHORITY_AZ]`, `[LAST_UPDATED]`
 - Acceptable use: `[AUP_SCOPE]`, `[SANCTIONS_REGIMES]`, `[SCREENING_PROCESS]`,
   `[ENFORCEMENT_TERMS]`, `[LAST_UPDATED]`
+- AI policy: `[AI_LAW_REVIEW]`, `[AI_ACT_ROLE]`, `[AI_ACT_CLASSIFICATION]`,
+  `[CUSTOMER_DATA]`, `[AI_TESTING]`, `[LAST_UPDATED]`
+
+The privacy notice follows the Azerbaijani Law on Personal Data, Convention
+108, the GDPR and the ePrivacy Directive; the AI policy follows the EU AI
+Act (Regulation (EU) 2024/1689) and the Azerbaijani framework. Both name the
+laws they rely on in their first section. Laws change: have counsel in
+Azerbaijan and in the EU confirm both pages before `LEGAL_REVIEWED=true`,
+and review them again when a law or its application dates change.
 
 ## Licence
 
