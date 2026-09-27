@@ -540,6 +540,188 @@ main:focus {
   }
 }
 
+/* Hero */
+
+.hero {
+  position: relative;
+  overflow: hidden;
+  padding-block: clamp(3rem, 1.5rem + 5vw, 6.5rem) clamp(9rem, 4rem + 12vw, 13rem);
+}
+
+.hero-art {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  pointer-events: none;
+}
+
+.art-labels {
+  font-family: var(--font-text);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .orbiter {
+    transform-box: view-box;
+    transform-origin: 1240px 1900px;
+    animation: orbit-in 3.2s cubic-bezier(0.22, 0.61, 0.36, 1) 0.3s both;
+  }
+}
+
+@keyframes orbit-in {
+  from {
+    transform: rotate(-4.5deg);
+  }
+
+  to {
+    transform: rotate(0deg);
+  }
+}
+
+.hero-coords {
+  position: absolute;
+  top: 1.75rem;
+  right: max(var(--gutter), calc((100% - var(--max)) / 2));
+  margin: 0;
+}
+
+.hero-inner {
+  position: relative;
+}
+
+.hero-inner > * {
+  max-width: 37rem;
+}
+
+.eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+  color: var(--on-ink-muted);
+  font-size: var(--fs-small);
+  font-weight: 500;
+  letter-spacing: 0.02em;
+}
+
+.eyebrow::before {
+  content: "";
+  width: 1.75rem;
+  height: 1px;
+  background: currentColor;
+}
+
+.hero-title {
+  margin-bottom: 1.5rem;
+}
+
+.lead {
+  color: var(--on-ink);
+  font-size: var(--fs-lead);
+  line-height: 1.5;
+  opacity: 0.92;
+}
+
+.hero .actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1rem 1.75rem;
+  margin-top: 2.25rem;
+}
+
+@media (max-width: 68.75rem) {
+  /* Below 1100px the orbital scene becomes a band along the bottom. */
+  .hero-art {
+    inset: auto 0 0;
+    height: auto;
+    aspect-ratio: 1440 / 800;
+  }
+
+  .hero {
+    padding-bottom: calc(34vw + 1.5rem);
+  }
+
+  .hero-coords,
+  .art-labels {
+    display: none;
+  }
+}
+
+@media (max-width: 40rem) {
+  /* On phones, show the right half of the scene, larger. */
+  .hero-art {
+    left: auto;
+    width: 190%;
+  }
+
+  .hero {
+    padding-bottom: calc(66vw + 1rem);
+  }
+
+  .section-orbit {
+    display: none;
+  }
+}
+
+/* Question box: looks like a prompt field, but is an illustration. */
+
+.prompt {
+  margin: 2.25rem 0 0;
+}
+
+.prompt-box {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.875rem;
+  padding: 1rem 1rem 1rem 1.125rem;
+  border: 1px solid rgb(185 180 209 / 0.4);
+  border-radius: 12px;
+  background: rgb(255 255 255 / 0.05);
+}
+
+.prompt-icon {
+  flex: none;
+  margin-top: 0.2rem;
+  color: var(--on-ink-muted);
+}
+
+.prompt-text {
+  flex: 1;
+  color: var(--on-ink);
+  font-size: 1.0625rem;
+  line-height: 1.5;
+}
+
+.prompt-caret {
+  display: inline-block;
+  width: 2px;
+  height: 1.15em;
+  margin-left: 3px;
+  background: var(--on-ink);
+  vertical-align: -0.2em;
+}
+
+.prompt-send {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  background: var(--on-ink);
+  color: var(--ink);
+}
+
+.prompt-caption {
+  margin-top: 0.625rem;
+  padding-left: 1.125rem;
+}
+
 /* Footer */
 
 .site-footer {
