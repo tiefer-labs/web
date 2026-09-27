@@ -1319,6 +1319,53 @@ main:focus {
   }
 }
 
+/* Name */
+
+.name {
+  position: relative;
+  overflow: hidden;
+  padding-block: clamp(5rem, 3rem + 7vw, 9rem) clamp(7rem, 4rem + 9vw, 11rem);
+}
+
+.name-mark {
+  position: absolute;
+  top: 50%;
+  right: max(var(--gutter), calc((100% - var(--max)) / 2));
+  width: clamp(14rem, 8rem + 20vw, 27rem);
+  height: auto;
+  opacity: 0.07;
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+
+.name-inner {
+  position: relative;
+}
+
+.name-line {
+  max-width: 18ch;
+  font-size: clamp(2.25rem, 1.5rem + 3.4vw, 4.25rem);
+  line-height: 1.05;
+  letter-spacing: -0.025em;
+}
+
+.name-body {
+  max-width: 36rem;
+  margin-top: 1.5rem;
+  font-size: var(--fs-lead);
+  line-height: 1.5;
+}
+
+.name-limb {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: clamp(3rem, 2rem + 4vw, 6rem);
+  max-width: none;
+}
+
 /* Footer */
 
 .site-footer {
