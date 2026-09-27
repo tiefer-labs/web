@@ -68,10 +68,26 @@ var English = Site{
 		Title: "Four layers. One answer.",
 		Body:  "The four lines in our logo are the four layers Tiefer fuses. Each keeps its own source. Together they answer the question.",
 		Layers: []Layer{
-			{Icon: "optical", Label: "OPTICAL", Text: "What the surface looks like. Sentinel-2, Landsat and commercial imagery."},
-			{Icon: "radar", Label: "RADAR", Text: "Sees through cloud and at night. Sentinel-1 and commercial SAR."},
-			{Icon: "thermal", Label: "THERMAL", Text: "Heat: fires, industrial activity, surface temperature."},
-			{Icon: "night", Label: "NIGHT LIGHTS", Text: "Where light appears or disappears after dark."},
+			{Icon: "optical", Label: "OPTICAL", Text: "What the surface looks like. Sentinel-2, Landsat and commercial imagery.", Specs: []Fact{
+				{Label: "Open data", Value: "Sentinel-2 (10 m), Landsat 8 and 9 (30 m)"},
+				{Label: "On demand", Value: "Commercial optical imagery with finer detail"},
+				{Label: "Limit", Value: "Cannot see through cloud or in the dark"},
+			}},
+			{Icon: "radar", Label: "RADAR", Text: "Sees through cloud and at night. Sentinel-1 and commercial SAR.", Specs: []Fact{
+				{Label: "Open data", Value: "Sentinel-1 (about 10 m), day and night"},
+				{Label: "On demand", Value: "Commercial SAR"},
+				{Label: "Limit", Value: "Shows structure and texture, not colour"},
+			}},
+			{Icon: "thermal", Label: "THERMAL", Text: "Heat: fires, industrial activity, surface temperature.", Specs: []Fact{
+				{Label: "Open data", Value: "Landsat thermal bands (100 m), ECOSTRESS (about 70 m)"},
+				{Label: "On demand", Value: "Commercial thermal imagery"},
+				{Label: "Limit", Value: "Coarse pixels: small heat sources can be missed"},
+			}},
+			{Icon: "night", Label: "NIGHT LIGHTS", Text: "Where light appears or disappears after dark.", Specs: []Fact{
+				{Label: "Open data", Value: "VIIRS night lights (about 500 to 750 m), VIIRS active fires (375 m)"},
+				{Label: "On demand", Value: "Commercial night imagery"},
+				{Label: "Limit", Value: "Small or weak lights often do not show"},
+			}},
 		},
 	},
 

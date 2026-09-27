@@ -97,6 +97,7 @@ type Layer struct {
 	Icon  string // optical, radar, thermal or night
 	Label string
 	Text  string
+	Specs []Fact // data sources and limits, shown under the text
 }
 
 // Product explains the four layers.

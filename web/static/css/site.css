@@ -871,6 +871,50 @@ main:focus {
   color: var(--on-ink-muted);
 }
 
+/* Line up icon, label, text and specs across the columns. */
+@supports (grid-template-rows: subgrid) {
+  .layers.grid--4 {
+    row-gap: 0;
+  }
+
+  .layer {
+    display: grid;
+    grid-row: span 4;
+    grid-template-rows: subgrid;
+    row-gap: 0;
+    align-content: start;
+  }
+
+  @media (max-width: 64rem) {
+    /* Space between the two rows of layers. */
+    .layer {
+      padding-bottom: 2.5rem;
+    }
+  }
+}
+
+.layer-specs {
+  align-self: start;
+  margin: 1.5rem 0 0;
+  font-size: 0.875rem;
+  line-height: 1.45;
+}
+
+.layer-specs div {
+  padding-block: 0.625rem;
+  border-top: 1px dashed rgb(185 180 209 / 0.3);
+}
+
+.layer-specs dt {
+  margin-bottom: 0.125rem;
+  font-size: 0.6875rem;
+}
+
+.layer-specs dd {
+  margin: 0;
+  color: var(--on-ink);
+}
+
 @media (max-width: 36rem) {
   /* Two by two on phones. */
   .layers.grid--4 {
