@@ -66,6 +66,7 @@ type Server struct {
 	now       func() time.Time
 	jsonLD    template.HTML
 	csp       string
+	hsts      string
 	handler   http.Handler
 }
 
@@ -175,10 +176,15 @@ func (s *Server) buildJSONLD() error {
 	hash := "'sha256-" + base64.StdEncoding.EncodeToString(sum[:]) + "'"
 	s.jsonLD = template.HTML(`<script type="application/ld+json">` + string(b) + `</script>`)
 
+	// Everything is same-origin. Inline event handlers and style
+	// attributes are not used, and the script only assigns text, so
+	// Trusted Types can be enforced with no policy at all.
 	csp := []string{
-		"default-src 'self'",
+		"default-src 'none'",
 		"script-src 'self' " + hash,
+		"script-src-attr 'none'",
 		"style-src 'self'",
+		"style-src-attr 'none'",
 		"img-src 'self'",
 		"font-src 'self'",
 		"connect-src 'self'",
@@ -187,9 +193,15 @@ func (s *Server) buildJSONLD() error {
 		"frame-ancestors 'none'",
 		"base-uri 'none'",
 		"object-src 'none'",
+		"require-trusted-types-for 'script'",
+		"trusted-types 'none'",
 	}
+	s.hsts = "max-age=63072000; includeSubDomains"
 	if s.cfg.Production() {
 		csp = append(csp, "upgrade-insecure-requests")
+		// tiefer.space and all its subdomains are HTTPS only, so the
+		// domain can be submitted to the browsers' HSTS preload list.
+		s.hsts += "; preload"
 	}
 	s.csp = strings.Join(csp, "; ")
 	return nil

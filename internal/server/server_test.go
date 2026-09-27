@@ -182,9 +182,14 @@ func TestRoutesStatus(t *testing.T) {
 func TestSecurityHeadersOnEveryRoute(t *testing.T) {
 	h := newHarness(t, smtpEnv)
 	want := map[string]string{
-		"X-Content-Type-Options": "nosniff",
-		"Referrer-Policy":        "strict-origin-when-cross-origin",
-		"X-Frame-Options":        "DENY",
+		"X-Content-Type-Options":            "nosniff",
+		"Referrer-Policy":                   "strict-origin-when-cross-origin",
+		"X-Frame-Options":                   "DENY",
+		"Cross-Origin-Opener-Policy":        "same-origin",
+		"Cross-Origin-Resource-Policy":      "same-origin",
+		"Cross-Origin-Embedder-Policy":      "require-corp",
+		"X-Permitted-Cross-Domain-Policies": "none",
+		"Origin-Agent-Cluster":              "?1",
 	}
 	check := func(name string, w *httptest.ResponseRecorder) {
 		for k, v := range want {
@@ -193,7 +198,9 @@ func TestSecurityHeadersOnEveryRoute(t *testing.T) {
 			}
 		}
 		csp := w.Header().Get("Content-Security-Policy")
-		for _, part := range []string{"default-src 'self'", "script-src 'self' 'sha256-", "frame-ancestors 'none'"} {
+		for _, part := range []string{"default-src 'none'", "script-src 'self' 'sha256-", "script-src-attr 'none'",
+			"style-src-attr 'none'", "frame-ancestors 'none'", "base-uri 'none'", "object-src 'none'",
+			"form-action 'self'", "require-trusted-types-for 'script'", "trusted-types 'none'"} {
 			if !strings.Contains(csp, part) {
 				t.Errorf("%s: CSP %q lacks %q", name, csp, part)
 			}
@@ -212,6 +219,19 @@ func TestSecurityHeadersOnEveryRoute(t *testing.T) {
 		check("GET "+rt.path, h.get(t, rt.path))
 	}
 	check("POST /contact", h.do(t, post("/contact", url.Values{}, "")))
+}
+
+func TestProductionHSTSPreload(t *testing.T) {
+	h := newHarness(t, prodEnv)
+	r := httptest.NewRequest(http.MethodGet, "/", nil)
+	r.Host = "tiefer.space"
+	w := h.do(t, r)
+	if got := w.Header().Get("Strict-Transport-Security"); got != "max-age=63072000; includeSubDomains; preload" {
+		t.Errorf("HSTS = %q", got)
+	}
+	if !strings.Contains(w.Header().Get("Content-Security-Policy"), "upgrade-insecure-requests") {
+		t.Error("production CSP lacks upgrade-insecure-requests")
+	}
 }
 
 func TestCSPHashMatchesJSONLD(t *testing.T) {
