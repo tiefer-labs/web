@@ -1883,6 +1883,153 @@ main:focus {
   }
 }
 
+.print-only {
+  display: none;
+}
+
+/* Print: legal pages and the site are printed or saved as PDF for
+ * records. Black on white, no navigation, decoration or form, and link
+ * targets written out. */
+
+@media print {
+  @page {
+    margin: 16mm 15mm;
+  }
+
+  body {
+    display: block;
+    background: #FFFFFF;
+    color: #000000;
+    font-size: 10.5pt;
+  }
+
+  .skip-link,
+  .menu-toggle,
+  .site-nav,
+  .hero-art,
+  .hero-coords,
+  .section-orbit,
+  .name-mark,
+  .name-limb,
+  .contact-waves,
+  .actions,
+  .prompt-icon,
+  .prompt-send,
+  .prompt-caret,
+  .form-status,
+  .contact-form,
+  .legal-toc,
+  .footer-nav,
+  .btn {
+    display: none !important;
+  }
+
+  .site-header,
+  .site-header.is-dark {
+    position: static;
+    background: #FFFFFF;
+    border-bottom: 1px solid #000000;
+  }
+
+  .site-header .brand-logo--ink,
+  .site-header.is-dark .brand-logo--ink {
+    display: block;
+  }
+
+  .site-header .brand-logo--white,
+  .site-header.is-dark .brand-logo--white {
+    display: none;
+  }
+
+  .is-dark,
+  .demo,
+  .principles,
+  .site-footer {
+    background: #FFFFFF;
+    color: #000000;
+  }
+
+  .is-dark h1,
+  .is-dark h2,
+  .is-dark h3,
+  .is-dark a,
+  .is-dark .lead,
+  .is-dark .tech-label,
+  .is-dark .layer p,
+  .is-dark .layer-label,
+  .is-dark .layer-icon,
+  .is-dark .eyebrow,
+  .is-dark .name-body,
+  .is-dark .section-intro {
+    color: #000000;
+    opacity: 1;
+  }
+
+  .hero,
+  .name,
+  .section {
+    padding-block: 14pt;
+  }
+
+  .prompt-box {
+    border-color: #000000;
+    background: none;
+  }
+
+  .prompt-text {
+    color: #000000;
+  }
+
+  .brief-card,
+  .contact-panel {
+    box-shadow: none;
+  }
+
+  .pill--observed,
+  .mark--radar {
+    print-color-adjust: exact;
+  }
+
+  h1,
+  h2,
+  h3 {
+    break-after: avoid;
+  }
+
+  .problem-item,
+  .layer,
+  .step,
+  .brief-card,
+  .case,
+  .principle,
+  .milestone,
+  .fact,
+  .legal-section li {
+    break-inside: avoid;
+  }
+
+  .print-only {
+    display: block;
+  }
+
+  .contact-panel {
+    padding: 0;
+    border: 0;
+  }
+
+  .legal a[href^="http"]::after,
+  .contact-panel a[href^="http"]::after {
+    content: " (" attr(href) ")";
+    font-size: 0.9em;
+    overflow-wrap: anywhere;
+  }
+
+  .placeholder {
+    border: 1px solid #000000;
+    background: none;
+  }
+}
+
 /* Motion */
 
 @media (prefers-reduced-motion: no-preference) {
