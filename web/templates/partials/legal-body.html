@@ -11,8 +11,18 @@
   {{- end}}
   <h1 id="legal-title">{{$p.Title}}</h1>
   <p class="legal-intro">{{.Fill $p.Intro}}</p>
+  {{- if gt (len $p.Sections) 3}}
+  <nav class="legal-toc" aria-labelledby="legal-toc-title">
+    <h2 class="tech-label" id="legal-toc-title">{{.Site.Legal.Contents}}</h2>
+    <ol role="list">
+      {{- range $p.Sections}}
+      <li><a href="#{{slug .Heading}}">{{.Heading}}</a></li>
+      {{- end}}
+    </ol>
+  </nav>
+  {{- end}}
   {{- range $p.Sections}}
-  <section class="legal-section">
+  <section class="legal-section" id="{{slug .Heading}}">
     <h2>{{.Heading}}</h2>
     {{- with .Facts}}
     <dl class="facts">

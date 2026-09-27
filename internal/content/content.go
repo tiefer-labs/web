@@ -286,6 +286,7 @@ type LegalPage struct {
 // that a lawyer must replace in this file before launch.
 type Legal struct {
 	ReviewNote    string
+	Contents      string // heading of the list of sections
 	Notice        LegalPage
 	Privacy       LegalPage
 	AcceptableUse LegalPage

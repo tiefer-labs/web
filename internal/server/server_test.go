@@ -357,6 +357,21 @@ func TestLegalPlaceholderNote(t *testing.T) {
 	}
 }
 
+func TestLegalContents(t *testing.T) {
+	h := newHarness(t, nil)
+	body := h.get(t, "/privacy").Body.String()
+	for _, want := range []string{
+		`<nav class="legal-toc" aria-labelledby="legal-toc-title">`,
+		`<a href="#who-is-responsible">Who is responsible</a>`,
+		`<section class="legal-section" id="who-is-responsible">`,
+		`<a href="#complaints">Complaints</a>`,
+	} {
+		if !strings.Contains(body, want) {
+			t.Errorf("privacy page lacks %q", want)
+		}
+	}
+}
+
 func TestContactValidSubmission(t *testing.T) {
 	h := newHarness(t, smtpEnv)
 	tok := h.formToken(t)

@@ -27,6 +27,7 @@ func LoadTemplates(fsys fs.FS, assets *Assets) (*Templates, error) {
 		"integrity": assets.Integrity,
 		"inc":       func(i int) int { return i + 1 },
 		"pad2":      func(i int) string { return fmt.Sprintf("%02d", i) },
+		"slug":      Slug,
 	}
 	base, err := template.New("layout.html").Funcs(funcs).ParseFS(fsys, "layout.html", "partials/*.html")
 	if err != nil {
@@ -58,4 +59,23 @@ func (t *Templates) Render(w io.Writer, page string, data any) error {
 		return fmt.Errorf("render: unknown page %q", page)
 	}
 	return set.ExecuteTemplate(w, "layout", data)
+}
+
+// Slug turns a heading into a fragment identifier: lowercase ASCII letters
+// and digits, other characters collapsed into single hyphens.
+func Slug(s string) string {
+	var b strings.Builder
+	dash := false
+	for _, r := range strings.ToLower(s) {
+		if (r >= 'a' && r <= 'z') || (r >= '0' && r <= '9') {
+			if dash && b.Len() > 0 {
+				b.WriteByte('-')
+			}
+			b.WriteRune(r)
+			dash = false
+		} else {
+			dash = true
+		}
+	}
+	return b.String()
 }

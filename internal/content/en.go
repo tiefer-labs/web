@@ -236,6 +236,7 @@ var English = Site{
 
 	Legal: Legal{
 		ReviewNote: "Placeholder text. To be reviewed before launch.",
+		Contents:   "On this page",
 
 		Notice: LegalPage{
 			Title:       "Legal notice",
