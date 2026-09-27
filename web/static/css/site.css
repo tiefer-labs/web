@@ -1758,6 +1758,104 @@ main:focus {
   margin-top: 2rem;
 }
 
+/* High contrast (forced colors) */
+
+.footer-brand .logo-white {
+  display: none;
+}
+
+@media (forced-colors: active) {
+  /* Logos are images, so the browser does not recolour them: pick the
+   * provided version that stays visible on the user's background. */
+  .site-header .brand-logo--ink,
+  .site-header.is-dark .brand-logo--ink,
+  .footer-brand .logo-ink {
+    display: block;
+  }
+
+  .site-header .brand-logo--white,
+  .site-header.is-dark .brand-logo--white,
+  .footer-brand .logo-white {
+    display: none;
+  }
+
+  /* Shapes drawn with background colours would disappear. */
+  .menu-icon,
+  .menu-icon::before,
+  .menu-icon::after,
+  .mark,
+  .mark::before,
+  .mark::after,
+  .pill,
+  .milestone-node {
+    forced-color-adjust: none;
+  }
+
+  .menu-icon,
+  .menu-icon::before,
+  .menu-icon::after {
+    background: ButtonText;
+  }
+
+  .site-header.is-open .menu-icon {
+    background: transparent;
+  }
+
+  .mark {
+    border-color: CanvasText;
+  }
+
+  .mark--radar {
+    background: CanvasText;
+  }
+
+  .mark--rejected::before,
+  .mark--rejected::after {
+    background: CanvasText;
+  }
+
+  /* Observed stays filled and inferred outlined, as in the normal view. */
+  .pill {
+    border-color: CanvasText;
+    background: Canvas;
+    color: CanvasText;
+  }
+
+  .pill--observed {
+    background: CanvasText;
+    color: Canvas;
+  }
+
+  .milestone-node {
+    border-color: CanvasText;
+    background: Canvas;
+  }
+
+  .milestone.is-now .milestone-node {
+    border-color: Canvas;
+    background: CanvasText;
+    box-shadow: 0 0 0 1px CanvasText;
+  }
+
+  .now-tag {
+    border: 1px solid CanvasText;
+  }
+}
+
+@media (forced-colors: active) and (prefers-color-scheme: dark) {
+  .site-header .brand-logo--ink,
+  .site-header.is-dark .brand-logo--ink,
+  .footer-brand .logo-ink {
+    display: none;
+  }
+
+  .site-header .brand-logo--white,
+  .site-header.is-dark .brand-logo--white,
+  .footer-brand .logo-white {
+    display: block;
+  }
+}
+
 /* Motion */
 
 @media (prefers-reduced-motion: no-preference) {

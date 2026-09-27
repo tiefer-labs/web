@@ -8,7 +8,11 @@
 <footer class="site-footer">
   <div class="wrap footer-inner">
     <div class="footer-brand">
-      <a href="{{.Anchor "top"}}"><img src="{{asset "brand/tiefer-logo.svg"}}" alt="{{.Site.UI.LogoAlt}}" width="3669" height="700" loading="lazy"></a>
+      <a href="{{.Anchor "top"}}">
+        <img class="logo-ink" src="{{asset "brand/tiefer-logo.svg"}}" alt="{{.Site.UI.LogoAlt}}" width="3669" height="700" loading="lazy">
+        {{- /* Only shown in high contrast mode with a dark background. */}}
+        <img class="logo-white" src="{{asset "brand/tiefer-logo-white.svg"}}" alt="{{.Site.UI.LogoAlt}}" width="3669" height="700" loading="lazy">
+      </a>
       <p class="footer-tagline">{{$f.Tagline}}</p>
     </div>
     <nav class="footer-nav" aria-label="{{.Site.UI.FooterNav}}">
