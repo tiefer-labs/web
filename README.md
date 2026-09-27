@@ -123,16 +123,16 @@ by hand:
 
 ## Configure the contact form (SMTP)
 
-The form is shown only when `SMTP_HOST`, `CONTACT_TO` and `CONTACT_FROM` are
-set; otherwise the contact section shows an "Email us" button instead.
+The form is shown when `SMTP_HOST` is set; otherwise the contact section
+shows an "Email us" button for `hello@tiefer.space` instead.
 Messages are sent by email and never stored; their content is never logged.
 
 | Variable | Meaning |
 |---|---|
 | `SMTP_HOST`, `SMTP_PORT` | Mail server. TLS is required: port 465 uses implicit TLS, any other port must offer STARTTLS |
 | `SMTP_USER`, `SMTP_PASS` | Login (optional, but set both or neither) |
-| `CONTACT_TO` | Where messages go |
-| `CONTACT_FROM` | Sender address; `Reply-To` is set to the visitor |
+| `CONTACT_TO` | Where messages go; default `CONTACT_EMAIL` (`hello@tiefer.space`) |
+| `CONTACT_FROM` | Sender address, default `website@tiefer.space`; `Reply-To` is set to the visitor |
 | `CSRF_SECRET` | Signing key for form tokens, 32+ characters, required in production (`openssl rand -hex 32`) |
 | `TRUST_PROXY` | `true` behind one reverse proxy, so rate limiting sees the real client |
 
@@ -193,7 +193,6 @@ The image on its own:
 ```sh
 make docker
 docker run -p 8080:8080 \
-  -e CONTACT_EMAIL=hello@tiefer.space \
   -e CSRF_SECRET="$(openssl rand -hex 32)" \
   tiefer-web
 ```
@@ -202,9 +201,10 @@ The image is built in two stages (the official Go image, then
 `gcr.io/distroless/static-debian12:nonroot`, both pinned by digest), is about
 20 MB, runs as user 65532, exposes `PORT` (default 8080) and has a health
 check (`/healthz`, also available as `tiefer-web healthcheck`). It sets
-`ENV=production`: `SITE_URL` defaults to `https://tiefer.space`, it refuses
-to start without `CONTACT_EMAIL` and `CSRF_SECRET`, answers only for the
-host `tiefer.space`, and logs JSON to stderr. Log lines hold method, path,
+`ENV=production`: `SITE_URL` defaults to `https://tiefer.space` and
+`CONTACT_EMAIL` to `hello@tiefer.space`, it refuses to start without
+`CSRF_SECRET`, answers only for the host `tiefer.space`, and logs JSON to
+stderr. Log lines hold method, path,
 status, size and duration, never IP addresses.
 
 The Go server speaks plain HTTP and must sit behind a TLS-terminating proxy
@@ -357,15 +357,19 @@ Notes on decisions:
 Environment variables (the server logs a warning at start while any of these
 has its default):
 
-- `CONTACT_EMAIL`, `SECURITY_EMAIL` (optional), `LINKEDIN_URL`, `REPO_URL`
-  (`SITE_URL` is `https://tiefer.space` in production)
+- `LINKEDIN_URL` (the company page address)
+- The site already uses `https://tiefer.space`, `hello@tiefer.space` (contact
+  and security reports), `website@tiefer.space` (sender of form messages)
+  and `https://github.com/tiefer-labs/web`; create these mailboxes, or set
+  `CONTACT_EMAIL`, `SECURITY_EMAIL` and `CONTACT_FROM` to other addresses
 - `LEGAL_NAME`, `LEGAL_FORM`, `LEGAL_ADDRESS`, `LEGAL_TAX_ID` (VÖEN),
   `LEGAL_REGISTRATION`, `LEGAL_DIRECTOR`
 - `LEGAL_HOSTING_PROVIDER`, `LEGAL_HOSTING_COUNTRY`, `LEGAL_SMTP_PROVIDER`,
   `LEGAL_SMTP_COUNTRY`
 - `LEGAL_REVIEWED=true`, only after the legal review
-- SMTP settings, `CONTACT_TO`, `CONTACT_FROM` and `CSRF_SECRET` for production
-- `ACME_EMAIL` in `deploy/.env`, and the DNS records in `deploy/README.md`
+- SMTP settings (`SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`) and
+  `CSRF_SECRET` for production
+- the DNS records in `deploy/README.md`
 
 Placeholders in `internal/content/en.go` for a lawyer (`make check` lists
 them with the pages they appear on):
