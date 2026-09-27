@@ -686,8 +686,9 @@ main:focus {
 
 .prompt-icon {
   flex: none;
-  margin-top: 0.2rem;
-  color: var(--on-ink-muted);
+  width: 1.25rem;
+  height: 1.25rem;
+  margin-top: 0.1rem;
 }
 
 .prompt-text {
@@ -1127,9 +1128,9 @@ main:focus {
   content: "";
   position: absolute;
   top: 50%;
-  left: -2px;
-  width: calc(100% + 4px);
-  height: 1.5px;
+  left: 12%;
+  width: 76%;
+  height: 1.25px;
   background: var(--ink-60);
   transform: translateY(-50%) rotate(45deg);
 }
@@ -1524,18 +1525,12 @@ main:focus {
 }
 
 .field-error::before {
-  content: "!";
-  display: grid;
+  content: "";
   flex: none;
-  place-items: center;
   width: 1.125rem;
   height: 1.125rem;
   margin-top: 0.1rem;
-  border-radius: 50%;
-  background: var(--ink);
-  color: var(--on-ink);
-  font-size: 0.75rem;
-  line-height: 1;
+  background: url("../icons/alert.svg") center / contain no-repeat;
 }
 
 .has-error input[type="text"],
