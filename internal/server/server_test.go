@@ -706,7 +706,7 @@ func TestSEOFiles(t *testing.T) {
 	}
 	var m map[string]any
 	w := h.get(t, "/site.webmanifest")
-	if err := json.Unmarshal(w.Body.Bytes(), &m); err != nil || m["theme_color"] != "#0C003D" {
+	if err := json.Unmarshal(w.Body.Bytes(), &m); err != nil || m["theme_color"] != "#0C003D" || m["id"] != "/" || m["scope"] != "/" {
 		t.Errorf("manifest: %v %v", err, m)
 	}
 	if w.Header().Get("Content-Type") != "application/manifest+json" {

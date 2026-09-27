@@ -137,11 +137,13 @@ func (s *Server) manifest(w http.ResponseWriter, r *http.Request) {
 		Type  string `json:"type"`
 	}
 	m := struct {
+		ID              string `json:"id"`
 		Name            string `json:"name"`
 		ShortName       string `json:"short_name"`
 		Description     string `json:"description"`
 		Lang            string `json:"lang"`
 		StartURL        string `json:"start_url"`
+		Scope           string `json:"scope"`
 		Display         string `json:"display"`
 		ThemeColor      string `json:"theme_color"`
 		BackgroundColor string `json:"background_color"`
@@ -151,7 +153,9 @@ func (s *Server) manifest(w http.ResponseWriter, r *http.Request) {
 		ShortName:       site.Meta.SiteName,
 		Description:     site.Meta.Description,
 		Lang:            site.Locale.Code,
+		ID:              "/",
 		StartURL:        "/",
+		Scope:           "/",
 		Display:         "browser",
 		ThemeColor:      "#0C003D",
 		BackgroundColor: "#FFFFFF",
