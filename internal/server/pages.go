@@ -184,6 +184,10 @@ func (s *Server) renderPage(w http.ResponseWriter, r *http.Request, status int, 
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
-	w.Header().Set("Cache-Control", "no-cache")
+	// Pages carry a single-use form token: a shared cache (CDN or proxy)
+	// must not hand the same page to several visitors.
+	if w.Header().Get("Cache-Control") == "" {
+		w.Header().Set("Cache-Control", "private, no-cache")
+	}
 	writeBody(w, r, status, "text/html; charset=utf-8", buf.Bytes())
 }

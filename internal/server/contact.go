@@ -49,6 +49,8 @@ func (s *Server) contact(site *content.Site) http.HandlerFunc {
 		}
 
 		reply := func(status int, st *formState) {
+			// Answers to a post may hold what the visitor typed: never cache them.
+			w.Header().Set("Cache-Control", "no-store")
 			if st.Status == "sent" && !wantsJSON {
 				http.Redirect(w, r, home+"?sent=1#contact", http.StatusSeeOther)
 				return
@@ -58,7 +60,6 @@ func (s *Server) contact(site *content.Site) http.HandlerFunc {
 			}
 			if wantsJSON {
 				b, _ := json.Marshal(contactReply{Status: st.Status, Errors: st.Errors, Token: st.Token})
-				w.Header().Set("Cache-Control", "no-store")
 				writeBody(w, r, status, "application/json", b)
 				return
 			}

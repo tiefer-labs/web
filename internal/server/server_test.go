@@ -252,6 +252,23 @@ func TestCSPHashMatchesJSONLD(t *testing.T) {
 	}
 }
 
+func TestCacheControl(t *testing.T) {
+	h := newHarness(t, smtpEnv)
+	if got := h.get(t, "/").Header().Get("Cache-Control"); got != "private, no-cache" {
+		t.Errorf("index Cache-Control = %q, want private, no-cache", got)
+	}
+	tok := h.formToken(t)
+	h.advance(10 * time.Second)
+	v := validValues(tok)
+	v.Del("name")
+	if got := h.do(t, post("/contact", v, "")).Header().Get("Cache-Control"); got != "no-store" {
+		t.Errorf("form error page Cache-Control = %q, want no-store", got)
+	}
+	if got := h.do(t, post("/contact", validValues(tok), "")).Header().Get("Cache-Control"); got != "no-store" {
+		t.Errorf("form redirect Cache-Control = %q, want no-store", got)
+	}
+}
+
 func TestNotFoundPage(t *testing.T) {
 	h := newHarness(t, nil)
 	w := h.get(t, "/no/such/page")
