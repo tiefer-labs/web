@@ -302,7 +302,7 @@ var English = Site{
 		RoleLabel:     "Your role",
 		RoleEmpty:     "Choose one",
 		QuestionLabel: "The first question you would ask Tiefer",
-		QuestionHint:  "Up to 2,000 characters.",
+		QuestionHint:  "Name the place, the time window and what you want to know. Up to 2,000 characters.",
 		OptionalLabel: "optional",
 		Roles: []Option{
 			{Value: "trader-analyst", Label: "Trader or analyst"},
