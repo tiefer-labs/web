@@ -61,6 +61,8 @@ func TestProductionCanonicalLinks(t *testing.T) {
 		`<link rel="canonical" href="https://tiefer.space/">`,
 		`property="og:image" content="https://tiefer.space/static/og-image.`,
 		`"url":"https://tiefer.space/"`,
+		`"email":"hello@tiefer.space"`,
+		`href="mailto:hello@tiefer.space"`,
 	} {
 		if !strings.Contains(body, want) {
 			t.Errorf("production page lacks %q", want)

@@ -173,6 +173,7 @@ func (s *Server) buildJSONLD() error {
 		"name":     content.Default().Meta.SiteName,
 		"url":      s.cfg.SiteURL + "/",
 		"logo":     s.cfg.SiteURL + render.StaticPrefix + "icon-512.png",
+		"email":    s.cfg.ContactEmail,
 		"sameAs":   []string{s.cfg.LinkedInURL},
 	}
 	b, err := json.Marshal(org) // escapes <, > and & for safe embedding
