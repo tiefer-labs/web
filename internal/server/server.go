@@ -31,6 +31,7 @@ const (
 	PageLegal         = "legal"
 	PagePrivacy       = "privacy"
 	PageAcceptableUse = "acceptable-use"
+	PageAI            = "ai-policy"
 	PageNotFound      = "404"
 )
 
@@ -40,6 +41,7 @@ var Pages = []struct{ Name, Path string }{
 	{PageLegal, "/legal"},
 	{PagePrivacy, "/privacy"},
 	{PageAcceptableUse, "/acceptable-use"},
+	{PageAI, "/ai-policy"},
 }
 
 // Options holds the dependencies of the server.
@@ -148,6 +150,7 @@ func (s *Server) routes() http.Handler {
 		mux.HandleFunc("GET "+prefix+"/legal", s.legal(site, PageLegal, &site.Legal.Notice))
 		mux.HandleFunc("GET "+prefix+"/privacy", s.legal(site, PagePrivacy, &site.Legal.Privacy))
 		mux.HandleFunc("GET "+prefix+"/acceptable-use", s.legal(site, PageAcceptableUse, &site.Legal.AcceptableUse))
+		mux.HandleFunc("GET "+prefix+"/ai-policy", s.legal(site, PageAI, &site.Legal.AI))
 		mux.Handle("POST "+prefix+"/contact", csrf.Handler(s.contact(site)))
 		if prefix != "" {
 			mux.Handle("GET "+prefix, http.RedirectHandler(prefix+"/", http.StatusMovedPermanently))
@@ -173,6 +176,7 @@ func (s *Server) buildJSONLD() error {
 		"name":     content.Default().Meta.SiteName,
 		"url":      s.cfg.SiteURL + "/",
 		"logo":     s.cfg.SiteURL + render.StaticPrefix + "icon-512.png",
+		"email":    s.cfg.ContactEmail,
 		"sameAs":   []string{s.cfg.LinkedInURL},
 	}
 	b, err := json.Marshal(org) // escapes <, > and & for safe embedding

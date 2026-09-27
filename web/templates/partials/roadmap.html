@@ -17,6 +17,9 @@
         <span class="milestone-node" aria-hidden="true"></span>
         {{- if .Now}}<span class="now-tag tech-label">{{$now}}</span>{{end}}
         <h3>{{.Title}}</h3>
+        {{- with .When}}
+        <p class="milestone-when tech-label">{{.}}</p>
+        {{- end}}
         <p>{{.Text}}</p>
       </li>
       {{- end}}

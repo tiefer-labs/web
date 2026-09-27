@@ -61,6 +61,7 @@ func TestTextCheckRendered(t *testing.T) {
 		{"/legal", get("/legal")},
 		{"/privacy", get("/privacy")},
 		{"/acceptable-use", get("/acceptable-use")},
+		{"/ai-policy", get("/ai-policy")},
 		{"404", get("/missing")},
 		{"/ (form with errors)", func(h *harness) *http.Request {
 			tok := h.formToken(t)

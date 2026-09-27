@@ -25,6 +25,10 @@
 }
 
 :root {
+  /* The site has one, light theme; form controls and scrollbars follow it
+   * even when the operating system uses a dark theme. */
+  color-scheme: light;
+
   --ink: #0C003D;
   --ink-80: #3D3364;
   --ink-60: #6D6690;
@@ -557,6 +561,12 @@ main:focus {
   pointer-events: none;
 }
 
+/* Lines keep their width however the scene is scaled. The attribute is
+ * not allowed on groups, so it is set here for every shape. */
+.hero-art :is(path, circle, rect) {
+  vector-effect: non-scaling-stroke;
+}
+
 .art-labels {
   font-family: var(--font-text);
   font-size: 11px;
@@ -731,7 +741,9 @@ main:focus {
 
 .section--tint,
 .demo,
-.principles {
+.principles,
+.roadmap,
+.faq {
   background: var(--tint);
 }
 
@@ -861,6 +873,50 @@ main:focus {
   color: var(--on-ink-muted);
 }
 
+/* Line up icon, label, text and specs across the columns. */
+@supports (grid-template-rows: subgrid) {
+  .layers.grid--4 {
+    row-gap: 0;
+  }
+
+  .layer {
+    display: grid;
+    grid-row: span 4;
+    grid-template-rows: subgrid;
+    row-gap: 0;
+    align-content: start;
+  }
+
+  @media (max-width: 64rem) {
+    /* Space between the two rows of layers. */
+    .layer {
+      padding-bottom: 2.5rem;
+    }
+  }
+}
+
+.layer-specs {
+  align-self: start;
+  margin: 1.5rem 0 0;
+  font-size: 0.875rem;
+  line-height: 1.45;
+}
+
+.layer-specs div {
+  padding-block: 0.625rem;
+  border-top: 1px dashed rgb(185 180 209 / 0.3);
+}
+
+.layer-specs dt {
+  margin-bottom: 0.125rem;
+  font-size: 0.6875rem;
+}
+
+.layer-specs dd {
+  margin: 0;
+  color: var(--on-ink);
+}
+
 @media (max-width: 36rem) {
   /* Two by two on phones. */
   .layers.grid--4 {
@@ -957,6 +1013,26 @@ main:focus {
   }
 }
 
+.how-note {
+  display: grid;
+  grid-template-columns: minmax(0, 12rem) minmax(0, 1fr);
+  gap: 0.5rem 2rem;
+  max-width: 52rem;
+  margin-top: clamp(3rem, 2rem + 3vw, 4.5rem);
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--line);
+}
+
+.how-note p:last-child {
+  color: var(--ink-80);
+}
+
+@media (max-width: 40rem) {
+  .how-note {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* Demo brief */
 
 .demo-grid {
@@ -968,6 +1044,31 @@ main:focus {
 
 .demo-text .section-intro {
   margin-top: 1.25rem;
+}
+
+.brief-contents-title {
+  margin: 2.25rem 0 1rem;
+  font-family: var(--font-text);
+}
+
+.brief-contents li {
+  position: relative;
+  padding: 0.625rem 0 0.625rem 1.75rem;
+  border-top: 1px solid var(--line);
+  font-size: var(--fs-small);
+}
+
+/* A small drawn tick, not a character. */
+.brief-contents li::before {
+  content: "";
+  position: absolute;
+  top: 1.05rem;
+  left: 0.2rem;
+  width: 0.7rem;
+  height: 0.38rem;
+  border-bottom: 1.5px solid var(--ink);
+  border-left: 1.5px solid var(--ink);
+  transform: rotate(-45deg);
 }
 
 @media (max-width: 60rem) {
@@ -1199,6 +1300,40 @@ main:focus {
   line-height: 1.45;
 }
 
+/* Title, text and questions line up across the cards. */
+@supports (grid-template-rows: subgrid) {
+  .cases.grid--3 {
+    row-gap: 0;
+  }
+
+  .case {
+    display: grid;
+    grid-row: span 3;
+    grid-template-rows: subgrid;
+    row-gap: 0;
+  }
+
+  .case-question {
+    margin-top: 0;
+  }
+
+  @media (max-width: 52rem) {
+    .case + .case {
+      margin-top: 1.5rem;
+    }
+  }
+}
+
+.case-question ul {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.case-question li + li {
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--line);
+}
+
 .cases-note {
   max-width: var(--measure);
   margin-top: clamp(2rem, 1.5rem + 1.5vw, 3rem);
@@ -1217,6 +1352,63 @@ main:focus {
 @media (max-width: 64rem) and (min-width: 52.01rem) {
   .principle-list.grid--3 {
     grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* Limits */
+
+.limits-head {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 2.5rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--ink);
+}
+
+.limit {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 0.5rem 2.5rem;
+  padding-block: 1.25rem;
+  border-bottom: 1px solid var(--line);
+}
+
+/* The column headings carry the labels on wide screens. */
+.limit-label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.limit-text {
+  color: var(--ink);
+}
+
+.limit-response {
+  padding-left: 1rem;
+  border-left: 2px solid var(--ink);
+}
+
+@media (max-width: 48rem) {
+  .limits-head {
+    display: none;
+  }
+
+  .limit {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  .limit-label {
+    position: static;
+    width: auto;
+    height: auto;
+    overflow: visible;
+    clip-path: none;
+    margin-bottom: 0.375rem;
   }
 }
 
@@ -1273,7 +1465,12 @@ main:focus {
 }
 
 .milestone h3 {
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.25rem;
+}
+
+.milestone-when {
+  margin-bottom: 0.625rem;
+  letter-spacing: 0.08em;
 }
 
 .milestone p {
@@ -1365,6 +1562,111 @@ main:focus {
   width: 100%;
   height: clamp(3rem, 2rem + 4vw, 6rem);
   max-width: none;
+}
+
+/* Questions and answers */
+
+.faq-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 4fr) minmax(0, 7fr);
+  gap: 1rem clamp(2.5rem, 1rem + 5vw, 6rem);
+  align-items: start;
+}
+
+@media (max-width: 60rem) {
+  .faq-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.faq-list {
+  border-top: 1px solid var(--ink);
+}
+
+.faq-item {
+  border-bottom: 1px solid var(--line);
+}
+
+.faq-item summary {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1.5rem;
+  padding-block: 1.125rem;
+  cursor: pointer;
+  list-style: none;
+}
+
+.faq-item summary::-webkit-details-marker {
+  display: none;
+}
+
+.faq-item summary h3 {
+  font-size: clamp(1.0625rem, 1rem + 0.25vw, 1.1875rem);
+}
+
+.faq-item summary:hover h3 {
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.2em;
+}
+
+/* Plus that turns into minus, drawn with two lines. */
+.faq-icon {
+  position: relative;
+  flex: none;
+  width: 1rem;
+  height: 1rem;
+  margin-top: 0.3rem;
+}
+
+.faq-icon::before,
+.faq-icon::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: 100%;
+  height: 1.5px;
+  background: var(--ink);
+  transition: transform 0.2s;
+}
+
+.faq-icon::after {
+  transform: rotate(90deg);
+}
+
+.faq-item[open] .faq-icon::after {
+  transform: rotate(0deg);
+}
+
+.faq-answer {
+  max-width: var(--measure);
+  padding-bottom: 1.25rem;
+}
+
+.faq-answer p + p {
+  margin-top: 0.75rem;
+}
+
+@media (forced-colors: active) {
+  .faq-icon::before,
+  .faq-icon::after {
+    background: CanvasText;
+    forced-color-adjust: none;
+  }
+}
+
+@media print {
+  /* Print every answer, open or not. */
+  .faq-item::details-content {
+    content-visibility: visible;
+    display: block;
+  }
+
+  .faq-icon {
+    display: none;
+  }
 }
 
 /* Contact */
@@ -1605,15 +1907,27 @@ main:focus {
   color: var(--ink-60);
 }
 
-.footer-nav ul {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem 1.75rem;
+.footer-nav {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(10rem, auto));
+  gap: 1.5rem clamp(2rem, 1rem + 3vw, 4rem);
+}
+
+.footer-col h2 {
+  margin-bottom: 0.875rem;
+  font-family: var(--font-text);
+  font-size: var(--fs-label);
+}
+
+.footer-col ul {
+  display: grid;
+  gap: 0.5rem;
 }
 
 .footer-nav a {
   color: var(--ink-80);
   text-decoration: none;
+  overflow-wrap: anywhere;
 }
 
 .footer-nav a:hover,
@@ -1634,13 +1948,15 @@ main:focus {
     grid-template-columns: 1fr;
   }
 
-  .footer-nav ul {
-    flex-direction: column;
-  }
-
   .footer-nav a {
     display: inline-block;
     padding-block: 0.25rem;
+  }
+}
+
+@media (max-width: 26rem) {
+  .footer-nav {
+    grid-template-columns: 1fr;
   }
 }
 
@@ -1668,6 +1984,33 @@ main:focus {
   margin-top: 1.25rem;
   font-size: var(--fs-lead);
   line-height: 1.5;
+}
+
+.legal-toc {
+  margin-top: 2.25rem;
+  padding: 1.25rem 1.5rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--tint);
+}
+
+.legal-toc h2 {
+  margin-bottom: 0.75rem;
+  color: var(--ink-60);
+  font-family: var(--font-text);
+  font-size: var(--fs-label);
+  letter-spacing: 0.14em;
+}
+
+.legal-toc ol {
+  columns: 2 14rem;
+  column-gap: 2rem;
+  font-size: var(--fs-small);
+}
+
+.legal-toc li {
+  padding-block: 0.25rem;
+  break-inside: avoid;
 }
 
 .legal-section {
@@ -1750,6 +2093,251 @@ main:focus {
 
 .not-found p + p {
   margin-top: 2rem;
+}
+
+/* High contrast (forced colors) */
+
+.footer-brand .logo-white {
+  display: none;
+}
+
+@media (forced-colors: active) {
+  /* Logos are images, so the browser does not recolour them: pick the
+   * provided version that stays visible on the user's background. */
+  .site-header .brand-logo--ink,
+  .site-header.is-dark .brand-logo--ink,
+  .footer-brand .logo-ink {
+    display: block;
+  }
+
+  .site-header .brand-logo--white,
+  .site-header.is-dark .brand-logo--white,
+  .footer-brand .logo-white {
+    display: none;
+  }
+
+  /* Shapes drawn with background colours would disappear. */
+  .menu-icon,
+  .menu-icon::before,
+  .menu-icon::after,
+  .mark,
+  .mark::before,
+  .mark::after,
+  .pill,
+  .milestone-node {
+    forced-color-adjust: none;
+  }
+
+  .menu-icon,
+  .menu-icon::before,
+  .menu-icon::after {
+    background: ButtonText;
+  }
+
+  .site-header.is-open .menu-icon {
+    background: transparent;
+  }
+
+  .mark {
+    border-color: CanvasText;
+  }
+
+  .mark--radar {
+    background: CanvasText;
+  }
+
+  .mark--rejected::before,
+  .mark--rejected::after {
+    background: CanvasText;
+  }
+
+  /* Observed stays filled and inferred outlined, as in the normal view. */
+  .pill {
+    border-color: CanvasText;
+    background: Canvas;
+    color: CanvasText;
+  }
+
+  .pill--observed {
+    background: CanvasText;
+    color: Canvas;
+  }
+
+  .milestone-node {
+    border-color: CanvasText;
+    background: Canvas;
+  }
+
+  .milestone.is-now .milestone-node {
+    border-color: Canvas;
+    background: CanvasText;
+    box-shadow: 0 0 0 1px CanvasText;
+  }
+
+  .now-tag {
+    border: 1px solid CanvasText;
+  }
+}
+
+@media (forced-colors: active) and (prefers-color-scheme: dark) {
+  .site-header .brand-logo--ink,
+  .site-header.is-dark .brand-logo--ink,
+  .footer-brand .logo-ink {
+    display: none;
+  }
+
+  .site-header .brand-logo--white,
+  .site-header.is-dark .brand-logo--white,
+  .footer-brand .logo-white {
+    display: block;
+  }
+}
+
+.print-only {
+  display: none;
+}
+
+/* Print: legal pages and the site are printed or saved as PDF for
+ * records. Black on white, no navigation, decoration or form, and link
+ * targets written out. */
+
+@media print {
+  @page {
+    margin: 16mm 15mm;
+  }
+
+  body {
+    display: block;
+    background: #FFFFFF;
+    color: #000000;
+    font-size: 10.5pt;
+  }
+
+  .skip-link,
+  .menu-toggle,
+  .site-nav,
+  .hero-art,
+  .hero-coords,
+  .section-orbit,
+  .name-mark,
+  .name-limb,
+  .contact-waves,
+  .actions,
+  .prompt-icon,
+  .prompt-send,
+  .prompt-caret,
+  .form-status,
+  .contact-form,
+  .legal-toc,
+  .footer-nav,
+  .btn {
+    display: none !important;
+  }
+
+  .site-header,
+  .site-header.is-dark {
+    position: static;
+    background: #FFFFFF;
+    border-bottom: 1px solid #000000;
+  }
+
+  .site-header .brand-logo--ink,
+  .site-header.is-dark .brand-logo--ink {
+    display: block;
+  }
+
+  .site-header .brand-logo--white,
+  .site-header.is-dark .brand-logo--white {
+    display: none;
+  }
+
+  .is-dark,
+  .demo,
+  .principles,
+  .site-footer {
+    background: #FFFFFF;
+    color: #000000;
+  }
+
+  .is-dark h1,
+  .is-dark h2,
+  .is-dark h3,
+  .is-dark a,
+  .is-dark .lead,
+  .is-dark .tech-label,
+  .is-dark .layer p,
+  .is-dark .layer-label,
+  .is-dark .layer-icon,
+  .is-dark .eyebrow,
+  .is-dark .name-body,
+  .is-dark .section-intro {
+    color: #000000;
+    opacity: 1;
+  }
+
+  .hero,
+  .name,
+  .section {
+    padding-block: 14pt;
+  }
+
+  .prompt-box {
+    border-color: #000000;
+    background: none;
+  }
+
+  .prompt-text {
+    color: #000000;
+  }
+
+  .brief-card,
+  .contact-panel {
+    box-shadow: none;
+  }
+
+  .pill--observed,
+  .mark--radar {
+    print-color-adjust: exact;
+  }
+
+  h1,
+  h2,
+  h3 {
+    break-after: avoid;
+  }
+
+  .problem-item,
+  .layer,
+  .step,
+  .brief-card,
+  .case,
+  .principle,
+  .milestone,
+  .fact,
+  .legal-section li {
+    break-inside: avoid;
+  }
+
+  .print-only {
+    display: block;
+  }
+
+  .contact-panel {
+    padding: 0;
+    border: 0;
+  }
+
+  .legal a[href^="http"]::after,
+  .contact-panel a[href^="http"]::after {
+    content: " (" attr(href) ")";
+    font-size: 0.9em;
+    overflow-wrap: anywhere;
+  }
+
+  .placeholder {
+    border: 1px solid #000000;
+    background: none;
+  }
 }
 
 /* Motion */

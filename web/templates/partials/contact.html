@@ -33,12 +33,12 @@
         <input type="hidden" name="t" value="{{$f.Token}}">
         <div class="field{{if $f.Err "name"}} has-error{{end}}">
           <label for="f-name">{{$c.NameLabel}}</label>
-          <input id="f-name" name="name" type="text" autocomplete="name" required maxlength="100" value="{{$f.Values.Name}}" aria-describedby="f-name-err"{{if $f.Err "name"}} aria-invalid="true"{{end}}>
+          <input id="f-name" name="name" type="text" autocomplete="name" autocapitalize="words" required maxlength="100" value="{{$f.Values.Name}}" aria-describedby="f-name-err"{{if $f.Err "name"}} aria-invalid="true"{{end}}>
           <p class="field-error" id="f-name-err"{{if not ($f.Err "name")}} hidden{{end}}>{{$f.Err "name"}}</p>
         </div>
         <div class="field{{if $f.Err "email"}} has-error{{end}}">
           <label for="f-email">{{$c.EmailLabel}}</label>
-          <input id="f-email" name="email" type="email" autocomplete="email" required maxlength="254" value="{{$f.Values.Email}}" aria-describedby="f-email-err"{{if $f.Err "email"}} aria-invalid="true"{{end}}>
+          <input id="f-email" name="email" type="email" autocomplete="email" autocapitalize="off" spellcheck="false" required maxlength="254" value="{{$f.Values.Email}}" aria-describedby="f-email-err"{{if $f.Err "email"}} aria-invalid="true"{{end}}>
           <p class="field-error" id="f-email-err"{{if not ($f.Err "email")}} hidden{{end}}>{{$f.Err "email"}}</p>
         </div>
         <div class="field-row">
@@ -81,6 +81,8 @@
       <p><a class="btn btn--primary" href="mailto:{{.Cfg.ContactEmail}}">{{$c.EmailUs}}</a></p>
       {{- end}}
       <p class="contact-alt"><a class="text-link" href="{{.Cfg.LinkedInURL}}" rel="noopener noreferrer">{{$c.LinkedIn}}</a></p>
+      {{- /* Print only: the address itself, since buttons are not printed. */}}
+      <p class="print-only"><a href="mailto:{{.Cfg.ContactEmail}}">{{.Cfg.ContactEmail}}</a></p>
     </div>
   </div>
 </section>

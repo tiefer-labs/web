@@ -54,7 +54,7 @@ services:
       app:
         condition: service_healthy
     environment:
-      ACME_EMAIL: ${ACME_EMAIL:?set ACME_EMAIL in deploy/.env for Let's Encrypt}
+      ACME_EMAIL: ${ACME_EMAIL:-hello@tiefer.space}
     ports:
       - "80:80"
       - "443:443"

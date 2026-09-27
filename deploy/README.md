@@ -23,7 +23,7 @@ the EU (see the main README on the legal side of that choice).
 | `www.tiefer.space` | `A` / `AAAA` | the same addresses | redirects to the bare domain |
 | `tiefer.space` | `CAA` | `0 issue "letsencrypt.org"` | only Let's Encrypt may issue certificates |
 | `tiefer.space` | `CAA` | `0 issuewild ";"` | no wildcard certificates at all |
-| `tiefer.space` | `CAA` | `0 iodef "mailto:SECURITY_EMAIL"` | where CAs report refused requests |
+| `tiefer.space` | `CAA` | `0 iodef "mailto:hello@tiefer.space"` | where CAs report refused requests |
 
 Also:
 
@@ -35,8 +35,8 @@ Also:
 
 ## 3. Mail for @tiefer.space
 
-The contact form sends mail from `CONTACT_FROM` (for example
-`website@tiefer.space`) through the SMTP provider. So that nobody else can
+The contact form sends mail from `website@tiefer.space` (`CONTACT_FROM`) to
+`hello@tiefer.space` (`CONTACT_EMAIL`) through the SMTP provider. So that nobody else can
 send mail in the name of tiefer.space, and so that the form's messages are
 not taken for spam:
 
@@ -70,11 +70,19 @@ cp .env.example deploy/.env
 
 In `deploy/.env` set at least:
 
-- `ACME_EMAIL`: address for Let's Encrypt notices;
-- `CONTACT_EMAIL`, and `SECURITY_EMAIL` if reports should go elsewhere;
 - `CSRF_SECRET`: `openssl rand -hex 32`;
-- `SMTP_*`, `CONTACT_TO`, `CONTACT_FROM` for the contact form;
-- the `LEGAL_*` values.
+- `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS` for the contact form;
+- `LEGAL_FOUNDER` (the site is operated by the founder until Tiefer is
+  registered as a company), and the `LEGAL_HOSTING_*` and `LEGAL_SMTP_*`
+  values. After registration, add `LEGAL_NAME` and the other company
+  details.
+
+The addresses default to tiefer.space: `hello@tiefer.space` for contact,
+security reports and Let's Encrypt notices (`CONTACT_EMAIL`,
+`SECURITY_EMAIL`, `ACME_EMAIL`), `website@tiefer.space` as the sender of
+form messages (`CONTACT_FROM`). The LinkedIn link defaults to
+`https://www.linkedin.com/company/tiefer`. Set those variables only to use
+other addresses.
 
 `ENV=production`, `SITE_URL=https://tiefer.space` and `TRUST_PROXY=true`
 are set by `docker-compose.yml`. Keep `deploy/.env` readable only by the

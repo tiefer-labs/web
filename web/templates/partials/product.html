@@ -21,6 +21,13 @@
         {{template "layer-icon" .Icon}}
         <h3 class="tech-label layer-label">{{.Label}}</h3>
         <p>{{.Text}}</p>
+        {{- with .Specs}}
+        <dl class="layer-specs">
+          {{- range .}}
+          <div><dt class="tech-label">{{.Label}}</dt><dd>{{.Value}}</dd></div>
+          {{- end}}
+        </dl>
+        {{- end}}
       </li>
       {{- end}}
     </ul>

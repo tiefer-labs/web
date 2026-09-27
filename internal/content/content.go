@@ -40,8 +40,10 @@ type Site struct {
 	Demo       Demo
 	UseCases   UseCases
 	Principles Principles
+	Limits     Limits
 	Roadmap    Roadmap
 	Name       Name
+	FAQ        FAQ
 	Contact    Contact
 	Footer     Footer
 	Legal      Legal
@@ -97,6 +99,7 @@ type Layer struct {
 	Icon  string // optical, radar, thermal or night
 	Label string
 	Text  string
+	Specs []Fact // data sources and limits, shown under the text
 }
 
 // Product explains the four layers.
@@ -110,6 +113,7 @@ type Product struct {
 type How struct {
 	Title string
 	Steps []Item
+	Note  Item // how the work is split between models
 }
 
 // BriefRow is one row of the illustrative brief. Tag is "observed",
@@ -143,21 +147,24 @@ type Demo struct {
 	Title     string
 	Body      string
 	CardLabel string // caption of the brief table
-	Rows      []BriefRow
-	Strip     Strip
+	// ContentsTitle and Contents list what every brief contains.
+	ContentsTitle string
+	Contents      []string
+	Rows          []BriefRow
+	Strip         Strip
 }
 
 // UseCase is one customer group.
 type UseCase struct {
-	Title    string
-	Text     string
-	Question string
+	Title     string
+	Text      string
+	Questions []string // example questions, the first one is shown first
 }
 
 // UseCases lists who Tiefer is for.
 type UseCases struct {
 	Title         string
-	QuestionLabel string
+	QuestionLabel string // label above the example questions
 	Cards         []UseCase
 	Note          string
 }
@@ -168,9 +175,25 @@ type Principles struct {
 	Items []Item
 }
 
+// Limit is one hard limit of satellite data and how Tiefer handles it.
+type Limit struct {
+	Limit    string
+	Response string
+}
+
+// Limits states what satellites cannot see.
+type Limits struct {
+	Title         string
+	Intro         string
+	LimitLabel    string
+	ResponseLabel string
+	Items         []Limit
+}
+
 // Milestone is one node on the roadmap.
 type Milestone struct {
 	Title string
+	When  string // planned period
 	Text  string
 	Now   bool
 }
@@ -186,6 +209,20 @@ type Roadmap struct {
 type Name struct {
 	Line string
 	Body string
+}
+
+// Question is one entry of the FAQ. Link, if set, follows the answer;
+// its Href is a site path such as /acceptable-use.
+type Question struct {
+	Question string
+	Answer   string
+	Link     Link
+}
+
+// FAQ answers the questions visitors ask most.
+type FAQ struct {
+	Title string
+	Items []Question
 }
 
 // Option is one choice of a select field.
@@ -242,10 +279,14 @@ type Contact struct {
 
 // Footer is the site footer.
 type Footer struct {
+	CompanyTitle  string
+	ContactTitle  string
+	Security      string
 	Copyright     string
 	LegalNotice   string
 	Privacy       string
 	AcceptableUse string
+	AIPolicy      string
 	LinkedIn      string
 	SourceCode    string
 	Tagline       string
@@ -258,13 +299,25 @@ type Fact struct {
 	Value string
 }
 
+// Stages of the business that a legal section can apply to.
+const (
+	// Founding is the stage before Tiefer is registered as a company: the
+	// founder operates the website as a private individual.
+	Founding = "founding"
+	// Company is the stage after registration (LEGAL_NAME is set).
+	Company = "company"
+)
+
 // LegalSection is one titled block of a legal page. Paragraphs, list
 // items and fact values may contain {tokens}.
 type LegalSection struct {
 	Heading string
-	Paras   []string
-	List    []string
-	Facts   []Fact
+	// Stage limits the section to Founding or Company; empty means it
+	// applies to both.
+	Stage string
+	Paras []string
+	List  []string
+	Facts []Fact
 }
 
 // LegalPage is the complete text of one legal page.
@@ -276,19 +329,22 @@ type LegalPage struct {
 	Updated     string
 }
 
-// Legal holds the three legal pages and their shared strings.
+// Legal holds the four legal pages and their shared strings.
 //
 // Tokens in curly braces are replaced with configuration values:
-// {legal_name}, {legal_form}, {address}, {tax_id}, {registration},
-// {director}, {contact_email}, {site_url}, {hosting_provider},
-// {hosting_country}, {smtp_provider}, {smtp_country}.
+// {operator} (the company once registered, the founder until then),
+// {founder}, {legal_name}, {legal_form}, {address}, {tax_id},
+// {registration}, {director}, {contact_email}, {site_url},
+// {hosting_provider}, {hosting_country}, {smtp_provider}, {smtp_country}.
 // Tokens in square brackets, such as [RETENTION_PERIOD], are placeholders
 // that a lawyer must replace in this file before launch.
 type Legal struct {
 	ReviewNote    string
+	Contents      string // heading of the list of sections
 	Notice        LegalPage
 	Privacy       LegalPage
 	AcceptableUse LegalPage
+	AI            LegalPage
 }
 
 // NotFound is the 404 page.

@@ -33,6 +33,7 @@ type page struct {
 	Form        *formState
 
 	tokens map[string]string
+	stage  string // content.Founding or content.Company, for legal pages
 }
 
 type alternate struct{ Lang, Href string }
@@ -78,6 +79,18 @@ func (p *page) Anchor(id string) string {
 		return p.Href("/")
 	}
 	return p.Href("/") + "#" + id
+}
+
+// LegalSections returns the sections of the legal page that apply to the
+// current stage of the business.
+func (p *page) LegalSections() []content.LegalSection {
+	var out []content.LegalSection
+	for _, sec := range p.Legal.Sections {
+		if sec.Stage == "" || sec.Stage == p.stage {
+			out = append(out, sec)
+		}
+	}
+	return out
 }
 
 // Fill escapes s, replaces {tokens} with configuration values and
@@ -128,6 +141,8 @@ func (s *Server) newPage(site *content.Site, name, path string) *page {
 func (s *Server) legalTokens() map[string]string {
 	l := s.cfg.Legal
 	return map[string]string{
+		"operator":         l.Operator(),
+		"founder":          l.Founder,
 		"legal_name":       l.Name,
 		"legal_form":       l.Form,
 		"address":          l.Address,
@@ -162,6 +177,10 @@ func (s *Server) legal(site *content.Site, name string, lp *content.LegalPage) h
 		p.Title = lp.Title + " | " + site.Meta.SiteName
 		p.Description = lp.Description
 		p.tokens = s.legalTokens()
+		p.stage = content.Founding
+		if s.cfg.Legal.Registered() {
+			p.stage = content.Company
+		}
 		s.renderPage(w, r, http.StatusOK, p)
 	}
 }

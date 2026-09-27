@@ -2,7 +2,7 @@
 
 The public website of **Tiefer**, a space technology startup from Baku that
 builds an AI analyst for satellite data, at **<https://tiefer.space>**. It is
-a business-card site: one main page, three legal pages and a contact form,
+a business-card site: one main page, four legal pages and a contact form,
 served by one small Go program.
 
 - One language (Go), one self-contained binary, no Node toolchain, no CSS build step.
@@ -75,12 +75,27 @@ number of radar, usable optical and rejected optical passes). If you change
 the rows, keep the strip consistent with them. `Port A` is fictional; keep it
 that way.
 
-**Roadmap.** `Roadmap.Items` is the list of milestones in order. Set
-`Now: true` on the milestone you are at (exactly one).
+**Roadmap.** `Roadmap.Items` is the list of milestones in order, each with
+its planned period in `When`. Set `Now: true` on the milestone you are at
+(exactly one).
+
+**Data layers.** Each entry of `Product.Layers` has `Specs`: its open data
+sources with their resolution, what can be ordered on demand, and its limit.
+Keep the figures to what the missions publish.
+
+**Limits and questions.** `Limits.Items` pairs each limit of satellite data
+with what Tiefer does about it. `FAQ.Items` holds the questions and answers;
+an answer can end with a link (`Link`, a site path such as
+`/acceptable-use`). Keep answers to what is true today, and say "on our
+roadmap" for what is planned.
 
 **Legal pages.** Their text is in `Legal` in the same file. Words in curly
-braces such as `{legal_name}` are filled from `LEGAL_*` environment
-variables. Words in square brackets such as `[RETENTION_PERIOD]` are
+braces such as `{operator}` are filled from `LEGAL_*` environment
+variables. Tiefer is not yet registered as a company, so the pages name the
+founder (`LEGAL_FOUNDER`) as the operator of the site; sections marked
+`Stage: Founding` are shown until then. Once the company is registered, set
+`LEGAL_NAME` and the other company details: the sections marked
+`Stage: Company` replace them, with no code change. Words in square brackets such as `[RETENTION_PERIOD]` are
 placeholders for a lawyer to replace in the file; they are highlighted on the
 page and listed by `make check`.
 
@@ -112,16 +127,16 @@ by hand:
 
 ## Configure the contact form (SMTP)
 
-The form is shown only when `SMTP_HOST`, `CONTACT_TO` and `CONTACT_FROM` are
-set; otherwise the contact section shows an "Email us" button instead.
+The form is shown when `SMTP_HOST` is set; otherwise the contact section
+shows an "Email us" button for `hello@tiefer.space` instead.
 Messages are sent by email and never stored; their content is never logged.
 
 | Variable | Meaning |
 |---|---|
 | `SMTP_HOST`, `SMTP_PORT` | Mail server. TLS is required: port 465 uses implicit TLS, any other port must offer STARTTLS |
 | `SMTP_USER`, `SMTP_PASS` | Login (optional, but set both or neither) |
-| `CONTACT_TO` | Where messages go |
-| `CONTACT_FROM` | Sender address; `Reply-To` is set to the visitor |
+| `CONTACT_TO` | Where messages go; default `CONTACT_EMAIL` (`hello@tiefer.space`) |
+| `CONTACT_FROM` | Sender address, default `website@tiefer.space`; `Reply-To` is set to the visitor |
 | `CSRF_SECRET` | Signing key for form tokens, 32+ characters, required in production (`openssl rand -hex 32`) |
 | `TRUST_PROXY` | `true` behind one reverse proxy, so rate limiting sees the real client |
 
@@ -182,7 +197,6 @@ The image on its own:
 ```sh
 make docker
 docker run -p 8080:8080 \
-  -e CONTACT_EMAIL=hello@tiefer.space \
   -e CSRF_SECRET="$(openssl rand -hex 32)" \
   tiefer-web
 ```
@@ -191,9 +205,10 @@ The image is built in two stages (the official Go image, then
 `gcr.io/distroless/static-debian12:nonroot`, both pinned by digest), is about
 20 MB, runs as user 65532, exposes `PORT` (default 8080) and has a health
 check (`/healthz`, also available as `tiefer-web healthcheck`). It sets
-`ENV=production`: `SITE_URL` defaults to `https://tiefer.space`, it refuses
-to start without `CONTACT_EMAIL` and `CSRF_SECRET`, answers only for the
-host `tiefer.space`, and logs JSON to stderr. Log lines hold method, path,
+`ENV=production`: `SITE_URL` defaults to `https://tiefer.space` and
+`CONTACT_EMAIL` to `hello@tiefer.space`, it refuses to start without
+`CSRF_SECRET`, answers only for the host `tiefer.space`, and logs JSON to
+stderr. Log lines hold method, path,
 status, size and duration, never IP addresses.
 
 The Go server speaks plain HTTP and must sit behind a TLS-terminating proxy
@@ -346,26 +361,44 @@ Notes on decisions:
 Environment variables (the server logs a warning at start while any of these
 has its default):
 
-- `CONTACT_EMAIL`, `SECURITY_EMAIL` (optional), `LINKEDIN_URL`, `REPO_URL`
-  (`SITE_URL` is `https://tiefer.space` in production)
-- `LEGAL_NAME`, `LEGAL_FORM`, `LEGAL_ADDRESS`, `LEGAL_TAX_ID` (VÖEN),
-  `LEGAL_REGISTRATION`, `LEGAL_DIRECTOR`
+- The site already uses `https://tiefer.space`, `hello@tiefer.space` (contact
+  and security reports), `website@tiefer.space` (sender of form messages),
+  `https://www.linkedin.com/company/tiefer` and
+  `https://github.com/tiefer-labs/web`; create these mailboxes, or set
+  `CONTACT_EMAIL`, `SECURITY_EMAIL` and `CONTACT_FROM` to other addresses
+- `LEGAL_FOUNDER`, the founder who operates the site until the company is
+  registered
+- After registration: `LEGAL_NAME`, `LEGAL_FORM`, `LEGAL_ADDRESS`,
+  `LEGAL_TAX_ID` (VÖEN), `LEGAL_REGISTRATION`, `LEGAL_DIRECTOR`, all
+  together
 - `LEGAL_HOSTING_PROVIDER`, `LEGAL_HOSTING_COUNTRY`, `LEGAL_SMTP_PROVIDER`,
   `LEGAL_SMTP_COUNTRY`
 - `LEGAL_REVIEWED=true`, only after the legal review
-- SMTP settings, `CONTACT_TO`, `CONTACT_FROM` and `CSRF_SECRET` for production
-- `ACME_EMAIL` in `deploy/.env`, and the DNS records in `deploy/README.md`
+- SMTP settings (`SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`) and
+  `CSRF_SECRET` for production
+- the DNS records in `deploy/README.md`
 
 Placeholders in `internal/content/en.go` for a lawyer (`make check` lists
 them with the pages they appear on):
 
-- Legal notice: `[CONTENT_RESPONSIBILITY]`, `[LAST_UPDATED]`
-- Privacy: `[EU_REPRESENTATIVE]`, `[HOSTING_PROVIDER_LOGS]`, `[LEGAL_BASIS]`,
+- Legal notice: `[POSTAL_ADDRESS]`, `[CONTENT_RESPONSIBILITY]`,
+  `[LAST_UPDATED]`
+- Privacy: `[APPLICABLE_LAW]`, `[EU_REPRESENTATIVE]`,
+  `[HOSTING_PROVIDER_LOGS]`, `[AZ_LEGAL_BASIS]`, `[LEGAL_BASIS]`,
   `[RECIPIENTS]`, `[INTERNATIONAL_TRANSFERS]`, `[RETENTION_PERIOD]`,
-  `[LOG_RETENTION_PERIOD]`, `[DATA_SUBJECT_RIGHTS]`,
-  `[SUPERVISORY_AUTHORITY_AZ]`, `[LAST_UPDATED]`
+  `[LOG_RETENTION_PERIOD]`, `[MAILBOX_SECURITY]`, `[AI_IN_MAILBOX]`,
+  `[DATA_SUBJECT_RIGHTS]`, `[SUPERVISORY_AUTHORITY_AZ]`, `[LAST_UPDATED]`
 - Acceptable use: `[AUP_SCOPE]`, `[SANCTIONS_REGIMES]`, `[SCREENING_PROCESS]`,
   `[ENFORCEMENT_TERMS]`, `[LAST_UPDATED]`
+- AI policy: `[AI_LAW_REVIEW]`, `[AI_ACT_ROLE]`, `[AI_ACT_CLASSIFICATION]`,
+  `[CUSTOMER_DATA]`, `[AI_TESTING]`, `[LAST_UPDATED]`
+
+The privacy notice follows the Azerbaijani Law on Personal Data, Convention
+108, the GDPR and the ePrivacy Directive; the AI policy follows the EU AI
+Act (Regulation (EU) 2024/1689) and the Azerbaijani framework. Both name the
+laws they rely on in their first section. Laws change: have counsel in
+Azerbaijan and in the EU confirm both pages before `LEGAL_REVIEWED=true`,
+and review them again when a law or its application dates change.
 
 ## Licence
 

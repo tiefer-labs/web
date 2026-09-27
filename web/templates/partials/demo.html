@@ -10,6 +10,14 @@
     <div class="demo-text">
       <h2 id="demo-title">{{.Title}}</h2>
       <p class="section-intro">{{.Body}}</p>
+      {{- with .Contents}}
+      <h3 class="tech-label brief-contents-title">{{$.Site.Demo.ContentsTitle}}</h3>
+      <ul class="brief-contents" role="list">
+        {{- range .}}
+        <li>{{.}}</li>
+        {{- end}}
+      </ul>
+      {{- end}}
     </div>
     <div class="brief-card">
       <table class="brief-table">

@@ -160,6 +160,7 @@ var routes = []struct {
 	{"/legal", 200},
 	{"/privacy", 200},
 	{"/acceptable-use", 200},
+	{"/ai-policy", 200},
 	{"/healthz", 200},
 	{"/robots.txt", 200},
 	{"/.well-known/security.txt", 200},
@@ -319,11 +320,14 @@ func TestContactDisabledShowsEmailButton(t *testing.T) {
 	if strings.Contains(body, "<form") {
 		t.Error("form rendered although SMTP is not configured")
 	}
-	if !strings.Contains(body, `href="mailto:hello@example.com">Email us</a>`) {
+	if !strings.Contains(body, `href="mailto:hello@tiefer.space">Email us</a>`) {
 		t.Error("Email us button missing")
 	}
-	if strings.Contains(body, "Source code") {
-		t.Error("source code link rendered without REPO_URL")
+	if !strings.Contains(body, `href="https://github.com/tiefer-labs/web"`) {
+		t.Error("the public repository is not linked by default")
+	}
+	if strings.Contains(newHarness(t, map[string]string{"REPO_URL": ""}).get(t, "/").Body.String(), "Source code") {
+		t.Error("source code link rendered although REPO_URL is set to empty")
 	}
 	w := h.do(t, post("/contact", validValues("x"), ""))
 	if w.Code != http.StatusSeeOther || h.mailer.count() != 0 {
@@ -334,7 +338,7 @@ func TestContactDisabledShowsEmailButton(t *testing.T) {
 func TestLegalPlaceholderNote(t *testing.T) {
 	note := "Placeholder text. To be reviewed before launch."
 	h := newHarness(t, nil)
-	for _, p := range []string{"/legal", "/privacy", "/acceptable-use"} {
+	for _, p := range []string{"/legal", "/privacy", "/acceptable-use", "/ai-policy"} {
 		body := h.get(t, p).Body.String()
 		if !strings.Contains(body, note) {
 			t.Errorf("%s: placeholder note missing", p)
@@ -343,17 +347,138 @@ func TestLegalPlaceholderNote(t *testing.T) {
 			t.Errorf("%s: want exactly one h1", p)
 		}
 	}
-	if !strings.Contains(h.get(t, "/legal").Body.String(), `<mark class="placeholder">[VOEN]</mark>`) {
-		t.Error("tax ID placeholder not rendered")
+	if !strings.Contains(h.get(t, "/legal").Body.String(), `<mark class="placeholder">[FOUNDER_NAME]</mark>`) {
+		t.Error("founder placeholder not rendered")
 	}
 
-	h = newHarness(t, map[string]string{"LEGAL_REVIEWED": "true", "LEGAL_TAX_ID": "1234567890"})
+	h = newHarness(t, map[string]string{"LEGAL_REVIEWED": "true", "LEGAL_FOUNDER": "Aysel Example"})
 	body := h.get(t, "/legal").Body.String()
 	if strings.Contains(body, note) {
 		t.Error("placeholder note shown although LEGAL_REVIEWED=true")
 	}
-	if !strings.Contains(body, "1234567890") {
-		t.Error("LEGAL_TAX_ID not rendered")
+	if !strings.Contains(body, "Aysel Example") {
+		t.Error("LEGAL_FOUNDER not rendered")
+	}
+}
+
+// TestLegalStages checks that the legal pages describe the founder as the
+// operator until the company details are set, and the company after.
+func TestLegalStages(t *testing.T) {
+	h := newHarness(t, map[string]string{"LEGAL_FOUNDER": "Aysel Example"})
+	notice := h.get(t, "/legal").Body.String()
+	privacy := h.get(t, "/privacy").Body.String()
+	for _, want := range []string{
+		"is not yet registered as a company",
+		`<dt>Name</dt><dd>Aysel Example</dd>`,
+		"Aysel Example is responsible for the content of this website.",
+	} {
+		if !strings.Contains(notice, want) {
+			t.Errorf("founding stage: legal notice lacks %q", want)
+		}
+	}
+	if !strings.Contains(privacy, `<dd>Aysel Example, founder of Tiefer</dd>`) {
+		t.Error("founding stage: the founder is not named as controller")
+	}
+	for _, unwanted := range []string{"VÖEN", "Legal form", `id="company"`} {
+		if strings.Contains(notice+privacy, unwanted) {
+			t.Errorf("founding stage: company detail %q shown", unwanted)
+		}
+	}
+
+	h = newHarness(t, map[string]string{
+		"LEGAL_FOUNDER":      "Aysel Example",
+		"LEGAL_NAME":         "Tiefer MMC",
+		"LEGAL_FORM":         "Limited liability company",
+		"LEGAL_ADDRESS":      "Baku",
+		"LEGAL_TAX_ID":       "1234567890",
+		"LEGAL_REGISTRATION": "Registered in Baku",
+		"LEGAL_DIRECTOR":     "Aysel Example",
+	})
+	notice = h.get(t, "/legal").Body.String()
+	privacy = h.get(t, "/privacy").Body.String()
+	for _, want := range []string{"1234567890", "Tiefer MMC is responsible for the content of this website."} {
+		if !strings.Contains(notice, want) {
+			t.Errorf("company stage: legal notice lacks %q", want)
+		}
+	}
+	if !strings.Contains(privacy, `<dd>Tiefer MMC</dd>`) {
+		t.Error("company stage: the company is not named as controller")
+	}
+	if strings.Contains(notice+privacy, "not yet registered") {
+		t.Error("company stage: founding text shown")
+	}
+	if strings.Count(privacy, `id="who-is-responsible"`) != 1 {
+		t.Error("company stage: controller section must appear once")
+	}
+}
+
+// TestPrivacyLaws checks that the privacy notice names the data
+// protection laws of both Azerbaijan and the EU.
+func TestPrivacyLaws(t *testing.T) {
+	h := newHarness(t, nil)
+	privacy := h.get(t, "/privacy").Body.String()
+	for _, want := range []string{
+		"Law on Personal Data of 11 May 2010",
+		"Convention 108",
+		"Regulation (EU) 2016/679",
+		"Directive 2002/58/EC",
+		"Article 77 GDPR",
+		`href="#automated-decisions-and-ai"`,
+	} {
+		if !strings.Contains(privacy, want) {
+			t.Errorf("privacy notice lacks %q", want)
+		}
+	}
+}
+
+// TestAIPolicy checks that the AI policy names the AI rules of both the
+// EU and Azerbaijan and is linked from the footer and the FAQ.
+func TestAIPolicy(t *testing.T) {
+	h := newHarness(t, nil)
+	ai := h.get(t, "/ai-policy").Body.String()
+	for _, want := range []string{
+		"Regulation (EU) 2024/1689",
+		"Article 50(2) of the AI Act",
+		"Annex III",
+		"Artificial Intelligence Strategy for 2025 to 2028",
+		`<a href="/ai-policy" aria-current="page">AI policy</a>`,
+	} {
+		if !strings.Contains(ai, want) {
+			t.Errorf("AI policy lacks %q", want)
+		}
+	}
+	if !strings.Contains(h.get(t, "/").Body.String(), `<a class="text-link" href="/ai-policy">`) {
+		t.Error("the FAQ does not link to the AI policy")
+	}
+}
+
+func TestFAQ(t *testing.T) {
+	h := newHarness(t, nil)
+	body := h.get(t, "/").Body.String()
+	for _, want := range []string{
+		`<section class="section faq" id="faq"`,
+		`<summary><h3>Does Tiefer operate its own satellites?</h3>`,
+		`<a class="text-link" href="/acceptable-use">`,
+		`<li><a href="#faq">FAQ</a></li>`,
+	} {
+		if !strings.Contains(body, want) {
+			t.Errorf("index lacks %q", want)
+		}
+	}
+}
+
+func TestLegalContents(t *testing.T) {
+	h := newHarness(t, nil)
+	body := h.get(t, "/privacy").Body.String()
+	for _, want := range []string{
+		`<nav class="legal-toc" aria-labelledby="legal-toc-title">`,
+		`<a href="#who-is-responsible">Who is responsible</a>`,
+		`<section class="legal-section" id="who-is-responsible">`,
+		`<a href="#complaints">Complaints</a>`,
+	} {
+		if !strings.Contains(body, want) {
+			t.Errorf("privacy page lacks %q", want)
+		}
 	}
 }
 
@@ -596,7 +721,7 @@ func TestContactDeliveryFailure(t *testing.T) {
 	h.advance(10 * time.Second)
 	w := h.do(t, post("/contact", validValues(tok), ""))
 	body := w.Body.String()
-	if w.Code != http.StatusServiceUnavailable || !strings.Contains(body, `Something went wrong. Please email us at <a href="mailto:hello@example.com">`) {
+	if w.Code != http.StatusServiceUnavailable || !strings.Contains(body, `Something went wrong. Please email us at <a href="mailto:hello@tiefer.space">`) {
 		t.Errorf("delivery failure: %d", w.Code)
 	}
 	if !strings.Contains(body, "Which ports saw more vessel activity?") {
@@ -681,7 +806,7 @@ func TestSecurityTxt(t *testing.T) {
 func TestSEOFiles(t *testing.T) {
 	h := newHarness(t, map[string]string{"SITE_URL": "https://tiefer.example"})
 	sitemap := h.get(t, "/sitemap.xml").Body.String()
-	for _, p := range []string{"https://tiefer.example/", "https://tiefer.example/legal", "https://tiefer.example/privacy", "https://tiefer.example/acceptable-use"} {
+	for _, p := range []string{"https://tiefer.example/", "https://tiefer.example/legal", "https://tiefer.example/privacy", "https://tiefer.example/acceptable-use", "https://tiefer.example/ai-policy"} {
 		if !strings.Contains(sitemap, "<loc>"+p+"</loc>") {
 			t.Errorf("sitemap lacks %s", p)
 		}
@@ -691,7 +816,7 @@ func TestSEOFiles(t *testing.T) {
 	}
 	var m map[string]any
 	w := h.get(t, "/site.webmanifest")
-	if err := json.Unmarshal(w.Body.Bytes(), &m); err != nil || m["theme_color"] != "#0C003D" {
+	if err := json.Unmarshal(w.Body.Bytes(), &m); err != nil || m["theme_color"] != "#0C003D" || m["id"] != "/" || m["scope"] != "/" {
 		t.Errorf("manifest: %v %v", err, m)
 	}
 	if w.Header().Get("Content-Type") != "application/manifest+json" {
