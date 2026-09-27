@@ -43,6 +43,7 @@ type Site struct {
 	Limits     Limits
 	Roadmap    Roadmap
 	Name       Name
+	FAQ        FAQ
 	Contact    Contact
 	Footer     Footer
 	Legal      Legal
@@ -208,6 +209,20 @@ type Roadmap struct {
 type Name struct {
 	Line string
 	Body string
+}
+
+// Question is one entry of the FAQ. Link, if set, follows the answer;
+// its Href is a site path such as /acceptable-use.
+type Question struct {
+	Question string
+	Answer   string
+	Link     Link
+}
+
+// FAQ answers the questions visitors ask most.
+type FAQ struct {
+	Title string
+	Items []Question
 }
 
 // Option is one choice of a select field.

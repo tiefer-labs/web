@@ -1,0 +1,30 @@
+{{- /*
+  This Source Code Form is subject to the terms of the Mozilla Public
+  License, v. 2.0. If a copy of the MPL was not distributed with this
+  file, You can obtain one at https://mozilla.org/MPL/2.0/.
+*/ -}}
+{{define "faq" -}}
+{{- $page := . -}}
+{{with .Site.FAQ -}}
+<section class="section faq" id="faq" aria-labelledby="faq-title">
+  <div class="wrap faq-grid">
+    <div class="section-head">
+      <h2 id="faq-title">{{.Title}}</h2>
+    </div>
+    <div class="faq-list">
+      {{- range .Items}}
+      <details class="faq-item">
+        <summary><h3>{{.Question}}</h3><span class="faq-icon" aria-hidden="true"></span></summary>
+        <div class="faq-answer">
+          <p>{{.Answer}}</p>
+          {{- if .Link.Href}}
+          <p><a class="text-link" href="{{$page.Href .Link.Href}}">{{.Link.Label}}</a></p>
+          {{- end}}
+        </div>
+      </details>
+      {{- end}}
+    </div>
+  </div>
+</section>
+{{- end}}
+{{- end}}

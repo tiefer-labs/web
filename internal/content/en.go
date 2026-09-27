@@ -36,6 +36,7 @@ var English = Site{
 			{Label: "How it works", Href: "how"},
 			{Label: "Use cases", Href: "use-cases"},
 			{Label: "Principles", Href: "principles"},
+			{Label: "FAQ", Href: "faq"},
 			{Label: "Contact", Href: "contact"},
 		},
 		CTA: Link{Label: "Request access", Href: "contact"},
@@ -242,6 +243,53 @@ var English = Site{
 	Name: Name{
 		Line: "Tiefer is German for deeper.",
 		Body: "We look past the surface of an image to what is actually happening on the ground, and we show you how we know.",
+	},
+
+	FAQ: FAQ{
+		Title: "Questions and answers",
+		Items: []Question{
+			{
+				Question: "Does Tiefer operate its own satellites?",
+				Answer:   "No. Tiefer works with public satellite data, such as the Copernicus Sentinel missions, Landsat and VIIRS, and orders imagery from commercial satellite operators when the archive is not enough. It is not tied to any one provider.",
+			},
+			{
+				Question: "Which places can I ask about?",
+				Answer:   "Any place on Earth. We start sales and example briefs in the Caspian, Caucasus, Black Sea and Central Asia region, the region we know best.",
+			},
+			{
+				Question: "How detailed and how recent is the data?",
+				Answer:   "It depends on the sensor. Free optical and radar data show details down to about 10 metres; free thermal and night-light data are much coarser. When a question needs finer detail or a more recent image, Tiefer prepares an order for commercial imagery.",
+			},
+			{
+				Question: "What happens when it is cloudy?",
+				Answer:   "Optical satellites cannot see through cloud, so Tiefer switches to radar. It never fills the gap with generated pixels, and the brief says which days had no optical view.",
+			},
+			{
+				Question: "Who decides when new imagery is bought?",
+				Answer:   "You do. Your organisation sets budget rules. Orders within the rules can go ahead automatically; anything beyond them waits for approval by a person.",
+			},
+			{
+				Question: "Can Tiefer run on our own servers?",
+				Answer:   "Sovereign deployments that run on your own servers, inside your country, are on our roadmap for governments and large companies.",
+			},
+			{
+				Question: "Can Tiefer be used to follow people?",
+				Answer:   "No. Tiefer answers questions about places, not about people. Customers are screened, and access can be suspended when the acceptable use policy is broken.",
+				Link:     Link{Label: "Read the acceptable use policy", Href: "/acceptable-use"},
+			},
+			{
+				Question: "What does it cost?",
+				Answer:   "We are setting prices together with our first pilot teams. Commercial imagery is priced by its provider and is only ordered within your budget rules.",
+			},
+			{
+				Question: "Which languages does Tiefer answer in?",
+				Answer:   "English, Azerbaijani, Turkish and Russian.",
+			},
+			{
+				Question: "What do SAR, tasking and revisit mean?",
+				Answer:   "SAR (synthetic aperture radar) is a radar that images the ground through cloud and at night. Tasking means ordering a satellite to image a specific place at a specific time. Revisit is how often a satellite passes over the same place.",
+			},
+		},
 	},
 
 	Contact: Contact{

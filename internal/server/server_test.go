@@ -357,6 +357,21 @@ func TestLegalPlaceholderNote(t *testing.T) {
 	}
 }
 
+func TestFAQ(t *testing.T) {
+	h := newHarness(t, nil)
+	body := h.get(t, "/").Body.String()
+	for _, want := range []string{
+		`<section class="section faq" id="faq"`,
+		`<summary><h3>Does Tiefer operate its own satellites?</h3>`,
+		`<a class="text-link" href="/acceptable-use">`,
+		`<li><a href="#faq">FAQ</a></li>`,
+	} {
+		if !strings.Contains(body, want) {
+			t.Errorf("index lacks %q", want)
+		}
+	}
+}
+
 func TestLegalContents(t *testing.T) {
 	h := newHarness(t, nil)
 	body := h.get(t, "/privacy").Body.String()

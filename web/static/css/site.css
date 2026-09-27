@@ -742,7 +742,8 @@ main:focus {
 .section--tint,
 .demo,
 .principles,
-.roadmap {
+.roadmap,
+.faq {
   background: var(--tint);
 }
 
@@ -1561,6 +1562,111 @@ main:focus {
   width: 100%;
   height: clamp(3rem, 2rem + 4vw, 6rem);
   max-width: none;
+}
+
+/* Questions and answers */
+
+.faq-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 4fr) minmax(0, 7fr);
+  gap: 1rem clamp(2.5rem, 1rem + 5vw, 6rem);
+  align-items: start;
+}
+
+@media (max-width: 60rem) {
+  .faq-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.faq-list {
+  border-top: 1px solid var(--ink);
+}
+
+.faq-item {
+  border-bottom: 1px solid var(--line);
+}
+
+.faq-item summary {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1.5rem;
+  padding-block: 1.125rem;
+  cursor: pointer;
+  list-style: none;
+}
+
+.faq-item summary::-webkit-details-marker {
+  display: none;
+}
+
+.faq-item summary h3 {
+  font-size: clamp(1.0625rem, 1rem + 0.25vw, 1.1875rem);
+}
+
+.faq-item summary:hover h3 {
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.2em;
+}
+
+/* Plus that turns into minus, drawn with two lines. */
+.faq-icon {
+  position: relative;
+  flex: none;
+  width: 1rem;
+  height: 1rem;
+  margin-top: 0.3rem;
+}
+
+.faq-icon::before,
+.faq-icon::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: 100%;
+  height: 1.5px;
+  background: var(--ink);
+  transition: transform 0.2s;
+}
+
+.faq-icon::after {
+  transform: rotate(90deg);
+}
+
+.faq-item[open] .faq-icon::after {
+  transform: rotate(0deg);
+}
+
+.faq-answer {
+  max-width: var(--measure);
+  padding-bottom: 1.25rem;
+}
+
+.faq-answer p + p {
+  margin-top: 0.75rem;
+}
+
+@media (forced-colors: active) {
+  .faq-icon::before,
+  .faq-icon::after {
+    background: CanvasText;
+    forced-color-adjust: none;
+  }
+}
+
+@media print {
+  /* Print every answer, open or not. */
+  .faq-item::details-content {
+    content-visibility: visible;
+    display: block;
+  }
+
+  .faq-icon {
+    display: none;
+  }
 }
 
 /* Contact */
