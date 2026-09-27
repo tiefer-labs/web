@@ -340,6 +340,9 @@ var English = Site{
 	},
 
 	Footer: Footer{
+		CompanyTitle:  "Company",
+		ContactTitle:  "Contact",
+		Security:      "Security",
 		Copyright:     "© 2026 Tiefer",
 		LegalNotice:   "Legal notice",
 		Privacy:       "Privacy",

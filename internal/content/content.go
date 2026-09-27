@@ -279,6 +279,9 @@ type Contact struct {
 
 // Footer is the site footer.
 type Footer struct {
+	CompanyTitle  string
+	ContactTitle  string
+	Security      string
 	Copyright     string
 	LegalNotice   string
 	Privacy       string
