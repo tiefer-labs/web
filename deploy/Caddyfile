@@ -1,0 +1,71 @@
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at https://mozilla.org/MPL/2.0/.
+
+# Caddy terminates TLS for tiefer.space and passes requests to the Go
+# server. Certificates come from Let's Encrypt automatically. Caddy's
+# defaults already give TLS 1.2 and 1.3 only, modern cipher suites, OCSP
+# stapling, HTTP/2 and HTTP/3, and a redirect from HTTP to HTTPS.
+#
+# There is no "log" directive on purpose: Caddy then writes no access log,
+# so visitor IP addresses are not stored (see the privacy notice). The Go
+# server logs requests without IP addresses.
+{
+	email {$ACME_EMAIL}
+	servers {
+		# The Host header must match the TLS server name (no domain fronting).
+		strict_sni_host on
+	}
+}
+
+# Any other host name over plain HTTP gets no answer at all. Unknown names
+# over HTTPS already fail during the TLS handshake (no certificate).
+http:// {
+	abort
+}
+
+# One canonical host: www redirects to the bare domain.
+www.tiefer.space {
+	header {
+		Strict-Transport-Security "max-age=63072000; includeSubDomains; preload"
+		-Server
+	}
+	redir https://tiefer.space{uri} permanent
+}
+
+tiefer.space {
+	# The contact form is the only request with a body; it is small.
+	request_body {
+		max_size 64KB
+	}
+
+	# Caddy sets X-Forwarded-For (the client address only, because it
+	# trusts no upstream proxy) and X-Forwarded-Proto, and keeps Host.
+	reverse_proxy app:8080 {
+		transport http {
+			dial_timeout 5s
+			response_header_timeout 60s
+		}
+	}
+
+	# All security headers come from the Go server. Hide the software
+	# names Caddy would add.
+	header {
+		-Server
+		-Via
+	}
+}
+
+# Optional: MTA-STS policy for mail to @tiefer.space (see deploy/DNS.md).
+# Uncomment after creating the DNS record for mta-sts.tiefer.space and
+# replace the mx line with your mail provider's MX host.
+#
+# mta-sts.tiefer.space {
+# 	header Content-Type "text/plain; charset=utf-8"
+# 	respond /.well-known/mta-sts.txt "version: STSv1
+# mode: enforce
+# mx: MX_HOST_OF_YOUR_MAIL_PROVIDER
+# max_age: 604800
+# "
+# 	respond 404
+# }
