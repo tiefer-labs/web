@@ -418,9 +418,20 @@ var English = Site{
 
 		Privacy: LegalPage{
 			Title:       "Privacy notice",
-			Description: "How the Tiefer website handles personal data: no cookies, no analytics, no requests to third parties.",
-			Intro:       "This notice explains what personal data this website processes, why, and what rights you have. It covers this website and its contact form. It is structured to address the Law of the Republic of Azerbaijan on Personal Data of 11 May 2010 and, for visitors in the European Union, the General Data Protection Regulation (GDPR).",
+			Description: "How the Tiefer website handles personal data under the laws of Azerbaijan and the GDPR: no cookies, no analytics, no requests to third parties.",
+			Intro:       "This notice explains what personal data this website processes, why, on what legal basis, and what rights you have. It covers this website and its contact form. It follows the laws of the Republic of Azerbaijan and, for people in the European Union, the General Data Protection Regulation (GDPR).",
 			Sections: []LegalSection{
+				{
+					Heading: "Laws this notice follows",
+					List: []string{
+						"Azerbaijan: the Constitution of the Republic of Azerbaijan (Article 32, the right to privacy), the Law on Personal Data of 11 May 2010, and the Law on Information, Informatisation and Protection of Information of 3 April 1998.",
+						"The Council of Europe Convention for the Protection of Individuals with regard to Automatic Processing of Personal Data (Convention 108), to which Azerbaijan is a party.",
+						"European Union: the General Data Protection Regulation (Regulation (EU) 2016/679). It applies to us where we offer our services to people in the EU (Article 3(2) GDPR).",
+						"European Union: the ePrivacy Directive (Directive 2002/58/EC) and the national laws that implement it, on storing and reading information on your device.",
+						"The national laws of EU member states that add to the GDPR, where they apply.",
+						"[APPLICABLE_LAW: confirm this list with counsel in Azerbaijan and in the EU, including amendments made after this notice was written.]",
+					},
+				},
 				{
 					Heading: "Who is responsible",
 					Stage:   Founding,
@@ -447,11 +458,15 @@ var English = Site{
 				},
 				{
 					Heading: "What this website does not do",
+					Paras: []string{
+						"Under Article 5(3) of the ePrivacy Directive, storing or reading information on your device needs your consent unless it is strictly necessary. This website stores and reads nothing, so it asks for no consent and shows no cookie banner.",
+					},
 					List: []string{
-						"It does not set cookies.",
-						"It does not use analytics, tracking pixels or advertising.",
+						"It does not set cookies and does not use local storage, session storage or any other storage in your browser.",
+						"It does not use analytics, tracking pixels, fingerprinting or advertising.",
 						"It does not load fonts, scripts or images from other servers. Everything, including the fonts, is served from our own server.",
 						"It does not embed social media plugins. The LinkedIn link is a plain link: LinkedIn receives data only if you follow it.",
+						"It does not build profiles of visitors.",
 					},
 				},
 				{
@@ -465,28 +480,33 @@ var English = Site{
 				{
 					Heading: "The contact form",
 					Paras: []string{
-						"If you use the contact form, we receive your name, your work email address, your organisation and role if you give them, your question, and your confirmation that we may reply.",
-						"We use these details only to reply to you and to discuss access to Tiefer.",
+						"If you use the contact form, we receive your name, your work email address, your organisation and role if you give them, your question, and your consent that we may reply.",
+						"Name, email address, question and consent are needed to reply to you; organisation and role are optional. You do not have to use the form, and you can write to us by email instead.",
+						"We use these details only to reply to you and to discuss access to Tiefer. We do not use them for marketing.",
 						"The website does not store your message in a database. It sends it by email, through our email provider {smtp_provider} ({smtp_country}), to the Tiefer mailbox, and keeps no copy on the web server. The content of your message is not written to the server logs.",
 						"If you email us directly, we receive your email address and what you write.",
 					},
 				},
 				{
-					Heading: "Legal basis",
-					Paras: []string{
-						"[LEGAL_BASIS: to be determined with counsel, under the Law of the Republic of Azerbaijan on Personal Data and under Article 6 GDPR.]",
+					Heading: "Purposes and legal bases",
+					List: []string{
+						"Running the website and keeping it secure, including the in-memory rate limit record: our legitimate interest in a working and secure website (Article 6(1)(f) GDPR).",
+						"Replying to a message about access to Tiefer: steps you ask for before a possible contract (Article 6(1)(b) GDPR). For other questions: our legitimate interest in answering them (Article 6(1)(f) GDPR).",
+						"Under the Law on Personal Data of Azerbaijan: your consent, which you give with the checkbox of the contact form or by writing to us, and which you can withdraw at any time. [AZ_LEGAL_BASIS: confirm the basis for the rate limit record under Azerbaijani law.]",
+						"[LEGAL_BASIS: confirm these legal bases with counsel.]",
 					},
 				},
 				{
 					Heading: "Who receives your data",
 					Paras: []string{
-						"Our hosting provider {hosting_provider} and our email provider {smtp_provider} process data on our behalf. We do not sell personal data and do not share it with advertisers. [RECIPIENTS: confirm the list of recipients and processing agreements.]",
+						"Our hosting provider {hosting_provider} and our email provider {smtp_provider} process data on our behalf, under agreements that bind them to our instructions (Article 28 GDPR). We do not sell personal data and do not share it with advertisers. We disclose it to authorities only where the law requires it. [RECIPIENTS: confirm the list of recipients and processing agreements.]",
 					},
 				},
 				{
 					Heading: "Transfers to other countries",
 					Paras: []string{
-						"Tiefer is based in Azerbaijan. Your data may be processed in {hosting_country} (hosting) and {smtp_country} (email). [INTERNATIONAL_TRANSFERS: describe the transfer safeguards under the GDPR and the cross-border transfer rules under Azerbaijani law.]",
+						"Tiefer is based in Azerbaijan. The European Commission has not adopted an adequacy decision for Azerbaijan. When you write to us from the EU, you send your message directly to us in Azerbaijan.",
+						"Where our providers process your data in another country, {hosting_country} (hosting) and {smtp_country} (email), we use the safeguards required by Chapter V of the GDPR, such as the standard contractual clauses of the European Commission. Under the Law on Personal Data, personal data may leave Azerbaijan only where the receiving country protects it at a comparable level or another condition of that law is met. [INTERNATIONAL_TRANSFERS: confirm the safeguards under the GDPR and under Azerbaijani law.]",
 					},
 				},
 				{
@@ -498,16 +518,49 @@ var English = Site{
 					},
 				},
 				{
+					Heading: "Security",
+					Paras: []string{
+						"The website is served only over HTTPS, and browsers are told never to connect to it without encryption. Messages from the contact form travel to our email provider over an encrypted connection. The website keeps no database of messages, so there is none to lose. [MAILBOX_SECURITY: describe how the mailbox is protected, for example with two-factor authentication.]",
+					},
+				},
+				{
+					Heading: "Automated decisions and AI",
+					Paras: []string{
+						"This website makes no decisions about you based solely on automated processing, including profiling (Article 22 GDPR). It does not pass your message to an AI system: the message is sent by email and read by a person at Tiefer. [AI_IN_MAILBOX: confirm that no AI tool processes messages in the mailbox, or name it here.]",
+						"How the Tiefer product itself uses AI is explained in the AI policy.",
+					},
+				},
+				{
 					Heading: "Your rights",
 					Paras: []string{
-						"You can ask us for access to your personal data and for its correction or deletion, and you can ask us to restrict its processing. You can object to processing and ask for your data in a portable format. Where processing is based on consent, you can withdraw it at any time; this does not affect processing that happened before.",
-						"To use these rights, write to {contact_email}. [DATA_SUBJECT_RIGHTS: confirm the rights and response times under Azerbaijani law and the GDPR.]",
+						"Under the GDPR and the Law on Personal Data you have the rights below. To use them, write to {contact_email}. We answer within one month; for complex requests this can be extended by two further months, and we will tell you if it is (Article 12(3) GDPR). [DATA_SUBJECT_RIGHTS: confirm the rights and response times under the Law on Personal Data.]",
+					},
+					List: []string{
+						"Access: to know whether we process your data and to receive a copy (Article 15 GDPR).",
+						"Correction of inaccurate or incomplete data (Article 16 GDPR).",
+						"Deletion (Article 17 GDPR).",
+						"Restriction of processing, or blocking under the Law on Personal Data (Article 18 GDPR).",
+						"Portability: to receive your data in a machine-readable format, where processing is based on consent or a contract (Article 20 GDPR).",
+						"Objection to processing based on our legitimate interests (Article 21 GDPR).",
+						"Withdrawal of consent at any time, without affecting processing that happened before (Article 7(3) GDPR).",
 					},
 				},
 				{
 					Heading: "Complaints",
 					Paras: []string{
-						"You can complain to a data protection supervisory authority, in particular in the EU member state where you live or work. In Azerbaijan: [SUPERVISORY_AUTHORITY_AZ].",
+						"You can complain to a data protection supervisory authority, in particular in the EU member state where you live or work or where you believe the infringement took place (Article 77 GDPR). In Azerbaijan: [SUPERVISORY_AUTHORITY_AZ]. You can also go to court.",
+					},
+				},
+				{
+					Heading: "Children",
+					Paras: []string{
+						"This website is meant for professionals and is not directed at children. We do not knowingly collect personal data from children.",
+					},
+				},
+				{
+					Heading: "Changes to this notice",
+					Paras: []string{
+						"We update this notice when the website, our providers or the law change. The date below shows the last change.",
 					},
 				},
 			},

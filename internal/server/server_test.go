@@ -411,6 +411,25 @@ func TestLegalStages(t *testing.T) {
 	}
 }
 
+// TestPrivacyLaws checks that the privacy notice names the data
+// protection laws of both Azerbaijan and the EU.
+func TestPrivacyLaws(t *testing.T) {
+	h := newHarness(t, nil)
+	privacy := h.get(t, "/privacy").Body.String()
+	for _, want := range []string{
+		"Law on Personal Data of 11 May 2010",
+		"Convention 108",
+		"Regulation (EU) 2016/679",
+		"Directive 2002/58/EC",
+		"Article 77 GDPR",
+		`href="#automated-decisions-and-ai"`,
+	} {
+		if !strings.Contains(privacy, want) {
+			t.Errorf("privacy notice lacks %q", want)
+		}
+	}
+}
+
 func TestFAQ(t *testing.T) {
 	h := newHarness(t, nil)
 	body := h.get(t, "/").Body.String()
