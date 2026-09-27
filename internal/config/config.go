@@ -25,9 +25,18 @@ const (
 	Production  = "production"
 )
 
-// ProductionSiteURL is the canonical address of the public site. It is the
-// default for SITE_URL in production.
-const ProductionSiteURL = "https://tiefer.space"
+// Addresses of the public site at tiefer.space, used as defaults.
+const (
+	// ProductionSiteURL is the default for SITE_URL in production.
+	ProductionSiteURL = "https://tiefer.space"
+	// DefaultContactEmail is the default for CONTACT_EMAIL, and for
+	// CONTACT_TO when the contact form is set up.
+	DefaultContactEmail = "hello@tiefer.space"
+	// DefaultContactFrom is the default sender of contact form messages.
+	DefaultContactFrom = "website@tiefer.space"
+	// DefaultRepoURL is the public source repository, linked in the footer.
+	DefaultRepoURL = "https://github.com/tiefer-labs/web"
+)
 
 // Legal holds the company details shown on the legal pages. Every value
 // defaults to a clearly marked placeholder, never to invented data.
@@ -88,7 +97,6 @@ type Var struct {
 // (SMTP, REPO_URL) are optional and therefore not listed here.
 var Defaults = []Var{
 	{"SITE_URL", "http://localhost:8080"},
-	{"CONTACT_EMAIL", "hello@example.com"},
 	{"LINKEDIN_URL", "https://www.linkedin.com/company/tiefer"},
 	{"LEGAL_NAME", "[COMPANY_LEGAL_NAME]"},
 	{"LEGAL_FORM", "[LEGAL_FORM]"},
@@ -174,7 +182,10 @@ func FromLookup(lookup func(string) (string, bool)) (*Config, error) {
 		}
 	}
 
-	c.ContactEmail = orDefault("CONTACT_EMAIL", true)
+	c.ContactEmail = get("CONTACT_EMAIL")
+	if c.ContactEmail == "" {
+		c.ContactEmail = DefaultContactEmail
+	}
 	if c.ContactEmail != "" && !validEmail(c.ContactEmail) {
 		errs = append(errs, fmt.Errorf("CONTACT_EMAIL is not a valid email address: %q", c.ContactEmail))
 	}
@@ -188,7 +199,13 @@ func FromLookup(lookup func(string) (string, bool)) (*Config, error) {
 	if err := checkHTTPURL("LINKEDIN_URL", c.LinkedInURL); err != nil {
 		errs = append(errs, err)
 	}
-	c.RepoURL = get("REPO_URL")
+	// The repository is public, so the footer links to it unless REPO_URL is
+	// set, including set to empty to hide the link.
+	if v, ok := lookup("REPO_URL"); ok {
+		c.RepoURL = strings.TrimSpace(v)
+	} else {
+		c.RepoURL = DefaultRepoURL
+	}
 	if c.RepoURL != "" {
 		if err := checkHTTPURL("REPO_URL", c.RepoURL); err != nil {
 			errs = append(errs, err)
@@ -199,12 +216,22 @@ func FromLookup(lookup func(string) (string, bool)) (*Config, error) {
 		errs = append(errs, err)
 	}
 
-	// Contact form delivery. All or nothing: a partial setup is an error.
+	// Contact form delivery. SMTP_HOST turns it on; messages go to
+	// CONTACT_EMAIL from website@tiefer.space unless CONTACT_TO and
+	// CONTACT_FROM say otherwise.
 	c.SMTP.Host = get("SMTP_HOST")
 	c.SMTP.User = get("SMTP_USER")
 	c.SMTP.Pass, _ = lookup("SMTP_PASS") // passwords may contain spaces
 	c.ContactTo = get("CONTACT_TO")
 	c.ContactFrom = get("CONTACT_FROM")
+	if c.SMTP.Host != "" {
+		if c.ContactTo == "" {
+			c.ContactTo = c.ContactEmail
+		}
+		if c.ContactFrom == "" {
+			c.ContactFrom = DefaultContactFrom
+		}
+	}
 	if c.SMTP.Host != "" || c.ContactTo != "" || c.ContactFrom != "" {
 		if c.SMTP.Host == "" {
 			errs = append(errs, errors.New("SMTP_HOST is required when CONTACT_TO or CONTACT_FROM is set"))
@@ -292,7 +319,6 @@ func (c *Config) Production() bool { return c.Env == Production }
 func (c *Config) DefaultsInUse() []string {
 	values := map[string]string{
 		"SITE_URL":               c.SiteURL,
-		"CONTACT_EMAIL":          c.ContactEmail,
 		"LINKEDIN_URL":           c.LinkedInURL,
 		"LEGAL_NAME":             c.Legal.Name,
 		"LEGAL_FORM":             c.Legal.Form,

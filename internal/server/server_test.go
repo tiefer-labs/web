@@ -319,11 +319,14 @@ func TestContactDisabledShowsEmailButton(t *testing.T) {
 	if strings.Contains(body, "<form") {
 		t.Error("form rendered although SMTP is not configured")
 	}
-	if !strings.Contains(body, `href="mailto:hello@example.com">Email us</a>`) {
+	if !strings.Contains(body, `href="mailto:hello@tiefer.space">Email us</a>`) {
 		t.Error("Email us button missing")
 	}
-	if strings.Contains(body, "Source code") {
-		t.Error("source code link rendered without REPO_URL")
+	if !strings.Contains(body, `href="https://github.com/tiefer-labs/web"`) {
+		t.Error("the public repository is not linked by default")
+	}
+	if strings.Contains(newHarness(t, map[string]string{"REPO_URL": ""}).get(t, "/").Body.String(), "Source code") {
+		t.Error("source code link rendered although REPO_URL is set to empty")
 	}
 	w := h.do(t, post("/contact", validValues("x"), ""))
 	if w.Code != http.StatusSeeOther || h.mailer.count() != 0 {
@@ -626,7 +629,7 @@ func TestContactDeliveryFailure(t *testing.T) {
 	h.advance(10 * time.Second)
 	w := h.do(t, post("/contact", validValues(tok), ""))
 	body := w.Body.String()
-	if w.Code != http.StatusServiceUnavailable || !strings.Contains(body, `Something went wrong. Please email us at <a href="mailto:hello@example.com">`) {
+	if w.Code != http.StatusServiceUnavailable || !strings.Contains(body, `Something went wrong. Please email us at <a href="mailto:hello@tiefer.space">`) {
 		t.Errorf("delivery failure: %d", w.Code)
 	}
 	if !strings.Contains(body, "Which ports saw more vessel activity?") {

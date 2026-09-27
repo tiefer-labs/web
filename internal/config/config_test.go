@@ -41,9 +41,9 @@ func TestDevelopmentDefaults(t *testing.T) {
 func TestProductionRequiresValues(t *testing.T) {
 	_, err := load(map[string]string{"ENV": "production"})
 	if err == nil {
-		t.Fatal("production without CONTACT_EMAIL and CSRF_SECRET must fail")
+		t.Fatal("production without CSRF_SECRET must fail")
 	}
-	for _, name := range []string{"CONTACT_EMAIL", "CSRF_SECRET"} {
+	for _, name := range []string{"CSRF_SECRET"} {
 		if !strings.Contains(err.Error(), name) {
 			t.Errorf("error does not mention %s: %v", name, err)
 		}
@@ -65,6 +65,31 @@ func TestProductionDefaultsToTheRealDomain(t *testing.T) {
 	for _, name := range c.DefaultsInUse() {
 		if name == "SITE_URL" {
 			t.Error("the production domain must not be reported as a placeholder")
+		}
+	}
+}
+
+func TestTieferSpaceDefaults(t *testing.T) {
+	c, err := load(map[string]string{"SMTP_HOST": "smtp.example.org"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if c.ContactEmail != "hello@tiefer.space" || c.SecurityEmail != "hello@tiefer.space" {
+		t.Errorf("contact %q, security %q", c.ContactEmail, c.SecurityEmail)
+	}
+	if !c.ContactEnabled() || c.ContactTo != "hello@tiefer.space" || c.ContactFrom != "website@tiefer.space" {
+		t.Errorf("contact form defaults: to %q, from %q", c.ContactTo, c.ContactFrom)
+	}
+	if c.RepoURL != "https://github.com/tiefer-labs/web" {
+		t.Errorf("RepoURL = %q", c.RepoURL)
+	}
+	c, err = load(map[string]string{"REPO_URL": ""})
+	if err != nil || c.RepoURL != "" {
+		t.Errorf("REPO_URL set to empty must hide the link: %q, %v", c.RepoURL, err)
+	}
+	for _, name := range c.DefaultsInUse() {
+		if name == "CONTACT_EMAIL" {
+			t.Error("hello@tiefer.space is not a placeholder")
 		}
 	}
 }
@@ -111,7 +136,6 @@ func TestInvalidValues(t *testing.T) {
 		{map[string]string{"CSRF_SECRET": "short"}, "CSRF_SECRET"},
 		{map[string]string{"LEGAL_REVIEWED": "yes please"}, "LEGAL_REVIEWED"},
 		{map[string]string{"CONTACT_TO": "team@example.org"}, "SMTP_HOST"},
-		{map[string]string{"SMTP_HOST": "smtp.example.org"}, "CONTACT_TO"},
 		{map[string]string{"SMTP_HOST": "smtp.example.org", "CONTACT_TO": "a@b.example", "CONTACT_FROM": "c@d.example", "SMTP_USER": "u"}, "SMTP_PASS"},
 		{map[string]string{"SMTP_HOST": "smtp.example.org", "CONTACT_TO": "a@b.example", "CONTACT_FROM": "c@d.example", "SMTP_PORT": "x"}, "SMTP_PORT"},
 		{map[string]string{"ENV": "production", "SITE_URL": "https://a.example", "CONTACT_EMAIL": "a@b.example", "CSRF_SECRET": strings.Repeat("s", 32), "SMTP_SKIP_VERIFY": "true"}, "SMTP_SKIP_VERIFY"},
