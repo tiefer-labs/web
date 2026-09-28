@@ -147,3 +147,11 @@ of `main`.
   template safety (allowed functions only, no inline scripts, styles,
   handlers or third-party URLs) and no unsafe `template.*` conversions.
   Next: design, fonts and performance.
+- **Phase 4** (done): `docs/DESIGN.md`; stylesheet with the colour tokens,
+  12-column grid, one composition per section, hero orbit drawn for the
+  site with one short satellite motion (none with reduced motion);
+  WOFF2 fonts built by `scripts/fonts.py` (subset to Latin, Headline `wdth`
+  pinned to 100, 24.6 KB + 25.5 KB) with metric-matched local fallbacks;
+  2.9 KB script; budget tests (index 6.8 KB gzipped, first view about 84 KB
+  in 10 requests, render p99 about 2.6 ms). Next: the contact form. Open:
+  the fonts have no `tnum` feature, so tabular figures are not available.

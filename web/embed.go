@@ -15,7 +15,7 @@ import (
 //go:embed templates
 var templates embed.FS
 
-//go:embed static/css static/js static/brand
+//go:embed static/css static/js static/brand static/fonts/*.woff2
 //go:embed static/favicon.svg static/favicon.ico static/apple-touch-icon.png
 //go:embed static/icon-192.png static/icon-512.png static/og-image.png
 var static embed.FS

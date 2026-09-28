@@ -10,14 +10,8 @@
     <p class="section-label">{{$s.Label}}</p>
     <h2 class="how-title" id="how-title">{{$s.Title}}</h2>
     <div class="flow">
-      <svg class="flow-line flow-h" viewBox="0 0 1000 40" preserveAspectRatio="none" aria-hidden="true" focusable="false">
-        <path class="flow-rail" d="M10 12H990"/>
-        <path class="flow-branch" d="M210 12V36"/>
-        <rect class="flow-node" x="5" y="7" width="10" height="10"/>
-        <rect class="flow-node" x="205" y="7" width="10" height="10"/>
-        <rect class="flow-node" x="405" y="7" width="10" height="10"/>
-        <rect class="flow-node" x="605" y="7" width="10" height="10"/>
-        <rect class="flow-node flow-node-end" x="805" y="7" width="10" height="10"/>
+      <svg class="flow-rail" viewBox="0 0 100 2" preserveAspectRatio="none" aria-hidden="true" focusable="false">
+        <path d="M0 1H100"/>
       </svg>
       <ol class="flow-steps numbered">
         {{- range $s.Steps}}

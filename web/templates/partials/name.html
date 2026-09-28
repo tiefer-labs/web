@@ -6,7 +6,7 @@
 {{define "name" -}}
 {{- $s := .Site.Name -}}
 <section class="section name" id="name" aria-labelledby="name-title">
-  <img class="name-mark" src="{{asset "brand/tiefer-mark-white.svg"}}" alt="" width="690" height="690">
+  <img class="name-mark" src="{{asset "brand/tiefer-mark-white.svg"}}" alt="" width="690" height="690" loading="lazy" decoding="async">
   <div class="wrap grid">
     <p class="section-label">{{$s.Label}}</p>
     <h2 class="name-line" id="name-title">{{$s.Line}}</h2>

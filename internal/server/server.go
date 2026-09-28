@@ -43,17 +43,18 @@ type Options struct {
 
 // Server serves the website.
 type Server struct {
-	cfg       *config.Config
-	log       *slog.Logger
-	now       func() time.Time
-	assets    *render.Assets
-	templates *render.Templates
-	locales   []*content.Site
-	jsonLD    template.HTML
-	headers   http.Header // security headers set on every response
-	handler   http.Handler
-	routes    []route
-	allow     map[string][]string // exact path to its methods, for 405 replies
+	cfg          *config.Config
+	log          *slog.Logger
+	now          func() time.Time
+	assets       *render.Assets
+	templates    *render.Templates
+	locales      []*content.Site
+	jsonLD       template.HTML
+	manifestJSON []byte
+	headers      http.Header // security headers set on every response
+	handler      http.Handler
+	routes       []route
+	allow        map[string][]string // exact path to its methods, for 405 replies
 }
 
 // route is one registered endpoint. The list drives the header tests,
@@ -82,12 +83,16 @@ func New(o Options) (*Server, error) {
 		return nil, err
 	}
 	s.headers = securityHeaders(s.cfg, "")
+	if err := s.buildManifest(); err != nil {
+		return nil, err
+	}
 
 	mux := http.NewServeMux()
 	s.handle(mux, "GET", "/healthz", "/healthz", http.HandlerFunc(s.healthz))
 	s.handle(mux, "GET", render.StaticPrefix+"{path...}", s.assetURL("css/site.css"), http.HandlerFunc(s.static))
 	s.handle(mux, "GET", "/favicon.ico", "/favicon.ico", s.rootAsset("favicon.ico"))
 	s.handle(mux, "GET", "/apple-touch-icon.png", "/apple-touch-icon.png", s.rootAsset("apple-touch-icon.png"))
+	s.handle(mux, "GET", "/site.webmanifest", "/site.webmanifest", http.HandlerFunc(s.manifest))
 	for _, site := range s.locales {
 		pre := site.Locale.Prefix
 		s.handle(mux, "GET", pre+"/{$}", pre+"/", s.index(site))

@@ -19,7 +19,7 @@ import (
 
 // harness runs the full handler with a controllable clock.
 type harness struct {
-	t   *testing.T
+	t   testing.TB
 	srv *Server
 	cfg *config.Config
 
@@ -27,7 +27,7 @@ type harness struct {
 	now time.Time
 }
 
-func newHarness(t *testing.T, set map[string]string) *harness {
+func newHarness(t testing.TB, set map[string]string) *harness {
 	t.Helper()
 	cfg, err := config.Load(func(k string) (string, bool) {
 		v, ok := set[k]
