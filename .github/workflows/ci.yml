@@ -33,6 +33,8 @@ jobs:
           cache-dependency-path: tools/go.sum
       - name: gofmt, vet, staticcheck, gosec and tests (including the text check and budgets)
         run: make check
+      - name: Placeholders and defaults still to fill (warnings only)
+        run: make placeholders
       - name: govulncheck
         run: make vuln
       - name: Fuzz (short)

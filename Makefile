@@ -9,7 +9,7 @@ IMAGE   := tiefer-web:local
 LDFLAGS := -s -w -buildid=
 FUZZTIME ?= 20s
 
-.PHONY: run build test check fmt vet lint sec vuln fuzz docker clean
+.PHONY: run build test check fmt vet lint sec vuln fuzz docker placeholders clean
 
 run:
 	go run ./cmd/tiefer-web
@@ -49,6 +49,10 @@ fuzz:
 
 docker:
 	docker build -t $(IMAGE) .
+
+# Lists placeholders and configuration defaults still in use (warnings).
+placeholders:
+	@go test -count=1 -v -run 'TestPlaceholderReport' ./internal/server | grep WARNING || true
 
 clean:
 	rm -rf bin
