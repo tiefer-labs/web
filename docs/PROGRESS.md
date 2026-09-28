@@ -155,3 +155,10 @@ of `main`.
   2.9 KB script; budget tests (index 6.8 KB gzipped, first view about 84 KB
   in 10 requests, render p99 about 2.6 ms). Next: the contact form. Open:
   the fonts have no `tnum` feature, so tabular figures are not available.
+- **Phase 5** (done): contact form with signed single-use tokens,
+  cross-origin protection, honeypot, 3 s minimum fill time, per-client and
+  global rate limits (IPv6 per /64), validation with localised messages,
+  SMTP only over TLS, JSON answers for the script and Post/Redirect/Get
+  without it. Tested with a fake mailer, a local TLS SMTP server, fuzz
+  targets and end to end against Mailpit (with and without JavaScript).
+  Next: legal pages and security.txt.

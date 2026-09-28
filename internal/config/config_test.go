@@ -100,10 +100,11 @@ func TestInvalid(t *testing.T) {
 		{map[string]string{"SMTP_HOST": "smtp.example.org", "CONTACT_TO": "a@b.example", "CONTACT_FROM": "c@d.example", "SMTP_USER": "u"}, "SMTP_PASS"},
 		{map[string]string{"SMTP_HOST": "smtp.example.org", "CONTACT_TO": "a@b.example", "CONTACT_FROM": "c@d.example", "SMTP_PORT": "x"}, "SMTP_PORT"},
 		{map[string]string{"BEHIND_FRONT_DOOR": "true"}, "FRONT_DOOR_ID"},
+		{map[string]string{"SMTP_SKIP_VERIFY": "true"}, "SMTP_SKIP_VERIFY"},
 	}
 	for _, tc := range cases {
 		set := map[string]string{}
-		if tc.want == "https" || tc.want == "FRONT_DOOR_ID" {
+		if tc.want == "https" || tc.want == "FRONT_DOOR_ID" || tc.want == "SMTP_SKIP_VERIFY" {
 			set = prodEnv()
 		}
 		for k, v := range tc.set {

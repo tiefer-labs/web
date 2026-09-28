@@ -49,7 +49,7 @@ func TestAllCopyFromContent(t *testing.T) {
 	skip := map[string]bool{
 		// Shown only in other states or on other pages.
 		"Success": true, "Invalid": true, "Expired": true, "Limited": true, "ErrorBefore": true, "ErrorAfter": true,
-		"EmailUs": true, "Sending": true, "Required": true, "CharactersLabel": true,
+		"EmailUs": true, "Sending": true,
 		"NameMissing": true, "NameTooLong": true, "EmailMissing": true, "EmailInvalid": true, "OrgTooLong": true,
 		"RoleInvalid": true, "MessageMissing": true, "MessageTooLong": true, "ConsentMissing": true,
 		"LegalLabel": true, "BackHome": true, "MenuClose": true, "Prefix": true, "Code": true,

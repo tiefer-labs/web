@@ -191,45 +191,43 @@ type Option struct {
 
 // Contact is the contact section and its form.
 type Contact struct {
-	Label           string
-	Title           string
-	Body            string
-	FormLabel       string // accessible name of the form
-	NameLabel       string
-	EmailLabel      string
-	OrgLabel        string
-	RoleLabel       string
-	RoleEmpty       string
-	Roles           []Option
-	MessageLabel    string
-	MessageHint     string
-	Optional        string
-	Required        string
-	ConsentBefore   string
-	ConsentLink     string
-	ConsentAfter    string
-	HoneypotLabel   string
-	Submit          string
-	Sending         string
-	Success         string
-	ErrorBefore     string // followed by the contact email as a link
-	ErrorAfter      string
-	Invalid         string // summary when fields need attention
-	Expired         string // the form token expired or was used
-	Limited         string // too many messages
-	EmailUs         string
-	PreferEmail     string
-	LinkedIn        string
-	NameMissing     string
-	NameTooLong     string
-	EmailMissing    string
-	EmailInvalid    string
-	OrgTooLong      string
-	RoleInvalid     string
-	MessageMissing  string
-	MessageTooLong  string
-	ConsentMissing  string
-	CharactersLabel string // "characters", after the counter
+	Label          string
+	Title          string
+	Body           string
+	FormLabel      string // accessible name of the form
+	NameLabel      string
+	EmailLabel     string
+	OrgLabel       string
+	RoleLabel      string
+	RoleEmpty      string
+	Roles          []Option
+	MessageLabel   string
+	MessageHint    string
+	Optional       string
+	ConsentBefore  string
+	ConsentLink    string
+	ConsentAfter   string
+	HoneypotLabel  string
+	Submit         string
+	Sending        string
+	Success        string
+	ErrorBefore    string // followed by the contact email as a link
+	ErrorAfter     string
+	Invalid        string // summary when fields need attention
+	Expired        string // the form token expired or was used
+	Limited        string // too many messages
+	EmailUs        string
+	PreferEmail    string
+	LinkedIn       string
+	NameMissing    string
+	NameTooLong    string
+	EmailMissing   string
+	EmailInvalid   string
+	OrgTooLong     string
+	RoleInvalid    string
+	MessageMissing string
+	MessageTooLong string
+	ConsentMissing string
 }
 
 // Footer is the site footer.

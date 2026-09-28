@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/tiefer-labs/web/internal/config"
+	"github.com/tiefer-labs/web/internal/contact"
 	"github.com/tiefer-labs/web/internal/content"
 	"github.com/tiefer-labs/web/internal/render"
 )
@@ -29,6 +30,11 @@ const (
 	MaxHeaderBytes    = 8 << 10
 	MaxURLLength      = 2048
 	MaxFormBytes      = 16 << 10 // the contact form, the only request with a body
+
+	MaxFormPosts      = 20     // contact form posts per client per hour
+	MaxSendsPerClient = 5      // delivered messages per client per hour
+	MaxSendsTotal     = 60     // delivered messages per hour in total
+	MaxClients        = 50_000 // clients tracked by the rate limits
 )
 
 // Options are the dependencies of the server.
@@ -39,6 +45,7 @@ type Options struct {
 	Templates fs.FS           // the template tree, usually web.Templates()
 	Static    fs.FS           // the static tree, usually web.Static()
 	Locales   []*content.Site // defaults to content.Locales
+	Mailer    contact.Mailer  // defaults to SMTP from the configuration
 }
 
 // Server serves the website.
@@ -51,7 +58,12 @@ type Server struct {
 	locales      []*content.Site
 	jsonLD       template.HTML
 	manifestJSON []byte
-	headers      http.Header // security headers set on every response
+	mailer       contact.Mailer
+	tokens       *contact.Tokens
+	attempts     *contact.Limiter // form posts per client
+	sends        *contact.Limiter // delivered messages per client
+	globalSends  *contact.Limiter // delivered messages in total
+	headers      http.Header      // security headers set on every response
 	handler      http.Handler
 	routes       []route
 	allow        map[string][]string // exact path to its methods, for 405 replies
@@ -75,6 +87,14 @@ func New(o Options) (*Server, error) {
 		o.Locales = content.Locales
 	}
 	s := &Server{cfg: o.Config, log: o.Logger, now: o.Now, locales: o.Locales, allow: map[string][]string{}}
+	s.tokens = contact.NewTokens([]byte(s.cfg.CSRFSecret.Reveal()), o.Now)
+	s.attempts = contact.NewLimiter(MaxFormPosts, time.Hour, MaxClients, o.Now)
+	s.sends = contact.NewLimiter(MaxSendsPerClient, time.Hour, MaxClients, o.Now)
+	s.globalSends = contact.NewLimiter(MaxSendsTotal, time.Hour, 1, o.Now)
+	s.mailer = o.Mailer
+	if s.mailer == nil {
+		s.mailer = s.mailerFromConfig()
+	}
 	var err error
 	if s.assets, err = render.LoadAssets(o.Static); err != nil {
 		return nil, err
@@ -93,9 +113,19 @@ func New(o Options) (*Server, error) {
 	s.handle(mux, "GET", "/favicon.ico", "/favicon.ico", s.rootAsset("favicon.ico"))
 	s.handle(mux, "GET", "/apple-touch-icon.png", "/apple-touch-icon.png", s.rootAsset("apple-touch-icon.png"))
 	s.handle(mux, "GET", "/site.webmanifest", "/site.webmanifest", http.HandlerFunc(s.manifest))
+	// Cross-origin form posts are refused by Sec-Fetch-Site and Origin;
+	// SITE_URL is trusted explicitly because behind a proxy the Host header
+	// may be the origin's own name.
+	csrf := http.NewCrossOriginProtection()
+	if err := csrf.AddTrustedOrigin(s.cfg.Site()); err != nil {
+		return nil, err
+	}
 	for _, site := range s.locales {
 		pre := site.Locale.Prefix
 		s.handle(mux, "GET", pre+"/{$}", pre+"/", s.index(site))
+		if s.cfg.ContactEnabled() {
+			s.handle(mux, "POST", pre+"/contact", pre+"/contact", csrf.Handler(s.contactForm(site)))
+		}
 		if pre != "" {
 			s.handle(mux, "GET", pre, pre, http.RedirectHandler(pre+"/", http.StatusMovedPermanently))
 		}

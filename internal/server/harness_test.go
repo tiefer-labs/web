@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/tiefer-labs/web/internal/config"
+	"github.com/tiefer-labs/web/internal/contact"
 	"github.com/tiefer-labs/web/web"
 )
 
@@ -29,6 +30,12 @@ type harness struct {
 
 func newHarness(t testing.TB, set map[string]string) *harness {
 	t.Helper()
+	return newHarnessMailer(t, set, nil)
+}
+
+// newHarnessMailer builds a harness whose contact form delivers to m.
+func newHarnessMailer(t testing.TB, set map[string]string, m contact.Mailer) *harness {
+	t.Helper()
 	cfg, err := config.Load(func(k string) (string, bool) {
 		v, ok := set[k]
 		return v, ok
@@ -43,6 +50,7 @@ func newHarness(t testing.TB, set map[string]string) *harness {
 		Now:       h.clock,
 		Templates: web.Templates(),
 		Static:    web.Static(),
+		Mailer:    m,
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -54,6 +62,12 @@ func (h *harness) clock() time.Time {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 	return h.now
+}
+
+func (h *harness) advance(d time.Duration) {
+	h.mu.Lock()
+	h.now = h.now.Add(d)
+	h.mu.Unlock()
 }
 
 func (h *harness) do(r *http.Request) *httptest.ResponseRecorder {

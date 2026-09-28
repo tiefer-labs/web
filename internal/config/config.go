@@ -61,6 +61,9 @@ type SMTP struct {
 	Port int
 	User string
 	Pass Secret
+	// SkipVerify accepts any TLS certificate. Development only, for a
+	// local catcher such as Mailpit; refused in production.
+	SkipVerify bool
 }
 
 // Legal holds the company details shown on the legal pages. Unset values
@@ -127,6 +130,7 @@ var Vars = []Var{
 	{"SMTP_PASS", "", "SMTP password. In production it comes from Azure Key Vault."},
 	{"CONTACT_TO", "", "Where contact form messages are delivered."},
 	{"CONTACT_FROM", "", "Sender address of contact form messages."},
+	{"SMTP_SKIP_VERIFY", "false", "Development only: accept the self-signed certificate of a local SMTP catcher such as Mailpit. Refused in production."},
 	{"CSRF_SECRET", "", "Signing key for form tokens, at least 32 characters. Required in production; random in development."},
 	{"LEGAL_NAME", "[COMPANY_LEGAL_NAME]", "Company legal name."},
 	{"LEGAL_FORM", "[LEGAL_FORM]", "Legal form, for example MMC (limited liability company under the laws of the Republic of Azerbaijan)."},
@@ -261,6 +265,11 @@ func Load(lookup func(string) (string, bool)) (*Config, error) {
 		}
 	} else if c.ContactTo != "" || c.ContactFrom != "" || c.SMTP.User != "" || c.SMTP.Pass.Set() {
 		errs = append(errs, errors.New("SMTP_HOST is required when other SMTP or CONTACT_ settings are set"))
+	}
+
+	c.SMTP.SkipVerify = boolean("SMTP_SKIP_VERIFY")
+	if prod && c.SMTP.SkipVerify {
+		errs = append(errs, errors.New("SMTP_SKIP_VERIFY is not allowed in production"))
 	}
 
 	switch secret := get("CSRF_SECRET"); {

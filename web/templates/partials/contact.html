@@ -34,7 +34,7 @@
         <p class="status status-error">{{$s.ErrorBefore}} <a href="mailto:{{.Cfg.ContactEmail}}">{{.Cfg.ContactEmail}}</a>{{$s.ErrorAfter}}</p>
         {{- end}}
       </div>
-      <form class="contact-form" method="post" action="{{.Href "/contact"}}" aria-label="{{$s.FormLabel}}" data-error-before="{{$s.ErrorBefore}}" data-error-after="{{$s.ErrorAfter}}" data-email="{{.Cfg.ContactEmail}}">
+      <form class="contact-form" method="post" action="{{.Href "/contact"}}#contact" aria-label="{{$s.FormLabel}}" data-error-before="{{$s.ErrorBefore}}" data-error-after="{{$s.ErrorAfter}}" data-email="{{.Cfg.ContactEmail}}">
         <input type="hidden" name="t" value="{{$f.Token}}">
         <div class="field">
           <label for="f-name">{{$s.NameLabel}}</label>
