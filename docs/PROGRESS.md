@@ -119,3 +119,15 @@ of `main`.
 - `web/templates/partials/question.html`
 - `web/templates/partials/roadmap.html`
 - `web/templates/partials/use-cases.html`
+
+## Phase log
+
+- **Phase 0** (done): previous site removed on `site-v1`; kit kept; brief
+  saved as `docs/PROMPT.md` and `docs/START.md`.
+- **Phase 1** (done): Go module (standard library only), `tools/go.mod`
+  with staticcheck v0.8.1, gosec v2.29.0 and govulncheck v1.8.0 as `go tool`
+  entries; config with validation and redacted secrets; server limits,
+  method, URL and body rules, Front Door ID check, security headers on every
+  response, `/healthz`; Makefile, Dockerfile (digests pinned), CI, CodeQL and
+  Dependabot (actions pinned by SHA). Next: the text check. Open:
+  `vuln.go.dev` is blocked in this environment, so `make vuln` runs in CI.
