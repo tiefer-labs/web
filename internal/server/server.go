@@ -59,6 +59,8 @@ type Server struct {
 	jsonLD          template.HTML
 	manifestJSON    []byte
 	securityTxtBody []byte
+	sitemapXML      []byte
+	robotsTxt       []byte
 	mailer          contact.Mailer
 	tokens          *contact.Tokens
 	attempts        *contact.Limiter // form posts per client
@@ -103,7 +105,13 @@ func New(o Options) (*Server, error) {
 	if s.templates, err = render.LoadTemplates(o.Templates, s.assets); err != nil {
 		return nil, err
 	}
-	s.headers = securityHeaders(s.cfg, "")
+	scripts, err := s.buildJSONLD()
+	if err != nil {
+		return nil, err
+	}
+	s.headers = securityHeaders(s.cfg, scripts)
+	s.sitemapXML = s.buildSitemap()
+	s.robotsTxt = s.buildRobots()
 	if err := s.buildManifest(); err != nil {
 		return nil, err
 	}
@@ -114,6 +122,8 @@ func New(o Options) (*Server, error) {
 	s.handle(mux, "GET", render.StaticPrefix+"{path...}", s.assetURL("css/site.css"), http.HandlerFunc(s.static))
 	s.handle(mux, "GET", "/favicon.ico", "/favicon.ico", s.rootAsset("favicon.ico"))
 	s.handle(mux, "GET", "/apple-touch-icon.png", "/apple-touch-icon.png", s.rootAsset("apple-touch-icon.png"))
+	s.handle(mux, "GET", "/robots.txt", "/robots.txt", http.HandlerFunc(s.robots))
+	s.handle(mux, "GET", "/sitemap.xml", "/sitemap.xml", http.HandlerFunc(s.sitemap))
 	s.handle(mux, "GET", "/site.webmanifest", "/site.webmanifest", http.HandlerFunc(s.manifest))
 	s.handle(mux, "GET", "/.well-known/security.txt", "/.well-known/security.txt", http.HandlerFunc(s.securityTxt))
 	s.handle(mux, "GET", "/security.txt", "/security.txt", http.RedirectHandler("/.well-known/security.txt", http.StatusMovedPermanently))

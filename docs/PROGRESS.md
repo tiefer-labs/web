@@ -169,3 +169,9 @@ of `main`.
   until `LEGAL_REVIEWED=true`; `/.well-known/security.txt` with a fixed
   Expires date and a test that fails 30 days before it. Next: SEO and
   metadata.
+- **Phase 7** (done): title, description, canonical, Open Graph and
+  Twitter tags; JSON-LD Organization (name, url, logo, sameAs) allowed by
+  its SHA-256 hash in the CSP; sitemap from the page list and `SITE_URL`;
+  robots.txt (crawlers kept out outside production); manifest; 404 page.
+  Tests check the hash, heading order and that every sitemap URL answers
+  200. Next: Azure infrastructure.
