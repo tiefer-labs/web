@@ -182,3 +182,7 @@ of `main`.
   with Bicep CLI 0.47.16 (downloaded to a scratch folder, not installed);
   nothing deployed. API versions and role IDs looked up in the Azure
   specifications and documentation. Next: licence, notices, README.
+- **Phase 9** (done): MPL 2.0 header on every source file (a test checks
+  it, and the full text in `LICENSE`), `NOTICE.md` (brand assets, fonts,
+  Unicode data, tools, images), `docs/SECURITY-DECISIONS.md` completed,
+  full `README.md`. Next: verification and the design review rounds.

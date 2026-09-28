@@ -5,6 +5,40 @@ when to revisit it. `docs/HARDENING.md` was not available during the
 rebuild (see `docs/PROGRESS.md`); every entry marked **check against
 HARDENING.md** must be compared with that document once it exists.
 
+## Headers and limits
+
+Chosen without `HARDENING.md` sections 3 and 4: **check against
+HARDENING.md**.
+
+- **One header set on every response**, applied before the handler runs,
+  so 404, 405, 413, 414, 431 from the Go server excepted, redirects and
+  panics carry it too. 431 (oversized headers) is answered by `net/http`
+  before any handler and has no security headers; it has no body worth
+  protecting. Revisit if a proxy in front can add headers.
+- **CSP**: `default-src 'none'` and only what the site uses; the JSON-LD
+  block by SHA-256 hash; `script-src-attr` and `style-src-attr 'none'`;
+  Trusted Types required with no policy (the script only assigns text);
+  `upgrade-insecure-requests` in production.
+- **HSTS** is sent in every environment (browsers ignore it over plain
+  HTTP), two years with `includeSubDomains`; `preload` only with
+  `HSTS_PRELOAD=true`, a founder decision.
+- **COEP `require-corp`** works because every resource is same-origin; it
+  must be revisited before embedding anything from elsewhere.
+- **`Referrer-Policy: no-referrer`**: the LinkedIn and GitHub links do not
+  learn which page a visitor came from.
+- **Limits**: ReadHeaderTimeout 5 s, ReadTimeout 10 s, WriteTimeout 30 s
+  (covers SMTP), IdleTimeout 60 s, headers 8 KB, URLs 2 KB, form bodies
+  16 KB, bodies refused on GET and HEAD, methods GET, HEAD and POST only,
+  graceful shutdown 15 s.
+- **Host check**: in production without Front Door only the `SITE_URL`
+  host is answered (421 otherwise). Behind Front Door the host is the
+  origin's own name, so the Front Door ID check replaces it.
+- **Gzip and BREACH**: HTML is compressed per response. Pages contain a
+  form token and error pages repeat submitted values, but the token is new
+  on every response and cross-site posts are refused, so an attacker cannot
+  collect many responses with the same secret. Revisit if a page ever
+  carries a long-lived secret.
+
 ## Suppressed findings
 
 | Where | Finding | Why it is safe | Revisit |
@@ -80,3 +114,18 @@ Bicep). **Check against AZURE.md.**
   stored in GitHub.
 - **The default Front Door domain** is linked at first so the site can be
   checked before DNS exists; the runbook switches it off afterwards.
+
+## Process
+
+- **Kit incomplete.** `HARDENING.md`, `AZURE.md`, `START.md`, `CLAUDE.md`,
+  `.claude/settings.json` and the current `Tiefer_2026_az.md` were not
+  available. `START.md` and the brief were saved from the session; the
+  others must be added and this file checked against them.
+- **govulncheck** could not reach vuln.go.dev from the build environment;
+  it runs in CI (`make vuln`) on every push and weekly.
+- **Unicode data** for the emoji check is Unicode 15.0 (via rivo/uniseg);
+  unicode.org was not reachable. Regenerate with `gen.go` from the current
+  `emoji-data.txt` when possible.
+- **Company status.** The brief describes a company registered in
+  Azerbaijan; the legal notice therefore shows the company fields with
+  placeholders until they are configured.
