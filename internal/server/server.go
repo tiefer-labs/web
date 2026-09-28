@@ -50,23 +50,24 @@ type Options struct {
 
 // Server serves the website.
 type Server struct {
-	cfg          *config.Config
-	log          *slog.Logger
-	now          func() time.Time
-	assets       *render.Assets
-	templates    *render.Templates
-	locales      []*content.Site
-	jsonLD       template.HTML
-	manifestJSON []byte
-	mailer       contact.Mailer
-	tokens       *contact.Tokens
-	attempts     *contact.Limiter // form posts per client
-	sends        *contact.Limiter // delivered messages per client
-	globalSends  *contact.Limiter // delivered messages in total
-	headers      http.Header      // security headers set on every response
-	handler      http.Handler
-	routes       []route
-	allow        map[string][]string // exact path to its methods, for 405 replies
+	cfg             *config.Config
+	log             *slog.Logger
+	now             func() time.Time
+	assets          *render.Assets
+	templates       *render.Templates
+	locales         []*content.Site
+	jsonLD          template.HTML
+	manifestJSON    []byte
+	securityTxtBody []byte
+	mailer          contact.Mailer
+	tokens          *contact.Tokens
+	attempts        *contact.Limiter // form posts per client
+	sends           *contact.Limiter // delivered messages per client
+	globalSends     *contact.Limiter // delivered messages in total
+	headers         http.Header      // security headers set on every response
+	handler         http.Handler
+	routes          []route
+	allow           map[string][]string // exact path to its methods, for 405 replies
 }
 
 // route is one registered endpoint. The list drives the header tests,
@@ -106,6 +107,7 @@ func New(o Options) (*Server, error) {
 	if err := s.buildManifest(); err != nil {
 		return nil, err
 	}
+	s.securityTxtBody = s.buildSecurityTxt()
 
 	mux := http.NewServeMux()
 	s.handle(mux, "GET", "/healthz", "/healthz", http.HandlerFunc(s.healthz))
@@ -113,6 +115,8 @@ func New(o Options) (*Server, error) {
 	s.handle(mux, "GET", "/favicon.ico", "/favicon.ico", s.rootAsset("favicon.ico"))
 	s.handle(mux, "GET", "/apple-touch-icon.png", "/apple-touch-icon.png", s.rootAsset("apple-touch-icon.png"))
 	s.handle(mux, "GET", "/site.webmanifest", "/site.webmanifest", http.HandlerFunc(s.manifest))
+	s.handle(mux, "GET", "/.well-known/security.txt", "/.well-known/security.txt", http.HandlerFunc(s.securityTxt))
+	s.handle(mux, "GET", "/security.txt", "/security.txt", http.RedirectHandler("/.well-known/security.txt", http.StatusMovedPermanently))
 	// Cross-origin form posts are refused by Sec-Fetch-Site and Origin;
 	// SITE_URL is trusted explicitly because behind a proxy the Host header
 	// may be the origin's own name.
@@ -123,6 +127,9 @@ func New(o Options) (*Server, error) {
 	for _, site := range s.locales {
 		pre := site.Locale.Prefix
 		s.handle(mux, "GET", pre+"/{$}", pre+"/", s.index(site))
+		s.handle(mux, "GET", pre+"/legal", pre+"/legal", s.legal(site, PageLegal, &site.Legal.Notice))
+		s.handle(mux, "GET", pre+"/privacy", pre+"/privacy", s.legal(site, PagePrivacy, &site.Legal.Privacy))
+		s.handle(mux, "GET", pre+"/acceptable-use", pre+"/acceptable-use", s.legal(site, PageAcceptableUse, &site.Legal.AcceptableUse))
 		if s.cfg.ContactEnabled() {
 			s.handle(mux, "POST", pre+"/contact", pre+"/contact", csrf.Handler(s.contactForm(site)))
 		}

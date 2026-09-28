@@ -162,3 +162,10 @@ of `main`.
   without it. Tested with a fake mailer, a local TLS SMTP server, fuzz
   targets and end to end against Mailpit (with and without JavaScript).
   Next: legal pages and security.txt.
+- **Phase 6** (done): `/legal`, `/privacy` (with the Azure Front Door, WAF
+  and App Service paragraph and the log retention from `LOG_RETENTION_DAYS`)
+  and `/acceptable-use`, rendered from content with `{tokens}` from the
+  configuration and highlighted `[PLACEHOLDERS]`; the review note shows
+  until `LEGAL_REVIEWED=true`; `/.well-known/security.txt` with a fixed
+  Expires date and a test that fails 30 days before it. Next: SEO and
+  metadata.
