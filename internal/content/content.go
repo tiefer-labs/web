@@ -108,6 +108,7 @@ type How struct {
 	Label       string
 	Title       string
 	Steps       []Item
+	Branch      string // telemetry label on the branch at the Filter step
 	Note        string
 	GroundTitle string
 	Ground      []Item

@@ -11,10 +11,10 @@ Chosen without `HARDENING.md` sections 3 and 4: **check against
 HARDENING.md**.
 
 - **One header set on every response**, applied before the handler runs,
-  so 404, 405, 413, 414, 431 from the Go server excepted, redirects and
-  panics carry it too. 431 (oversized headers) is answered by `net/http`
-  before any handler and has no security headers; it has no body worth
-  protecting. Revisit if a proxy in front can add headers.
+  so errors (400, 404, 405, 413, 414), redirects and panics carry it too.
+  The one exception is 431 (oversized headers), which `net/http` answers
+  before any handler runs; it has no body worth protecting. Revisit if a
+  proxy in front can add headers.
 - **CSP**: `default-src 'none'` and only what the site uses; the JSON-LD
   block by SHA-256 hash; `script-src-attr` and `style-src-attr 'none'`;
   Trusted Types required with no policy (the script only assigns text);

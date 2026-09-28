@@ -10,7 +10,8 @@ budget tests.
 
 - Subset to Basic Latin, Latin-1 Supplement, Latin Extended-A and the
   punctuation the site uses.
-- Keep the wght axis (200 to 700).
+- Keep the wght axis, limited to the two weights the design uses
+  (docs/DESIGN.md): Mozilla Text 400 to 500, Mozilla Headline 500 to 600.
 - Pin the wdth axis of Mozilla Headline to 100.
 """
 import io
@@ -53,5 +54,5 @@ def build(src, dst, pin=None):
     font.save(FONTS + dst)
 
 
-build("MozillaHeadline-VF.ttf", "MozillaHeadline.woff2", pin={"wdth": 100})
-build("MozillaText-VF.ttf", "MozillaText.woff2")
+build("MozillaHeadline-VF.ttf", "MozillaHeadline.woff2", pin={"wdth": 100, "wght": (500, 600)})
+build("MozillaText-VF.ttf", "MozillaText.woff2", pin={"wght": (400, 500)})

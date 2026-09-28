@@ -186,3 +186,57 @@ of `main`.
   it, and the full text in `LICENSE`), `NOTICE.md` (brand assets, fonts,
   Unicode data, tools, images), `docs/SECURITY-DECISIONS.md` completed,
   full `README.md`. Next: verification and the design review rounds.
+- **Phase 10** (verification):
+  - `make check` and `make fuzz` pass (four targets, 20 s each). The
+    container runs read-only, without capabilities, as UID 65532. It has no
+    shell and reports healthy. Every route over real HTTP carries all 11
+    security headers and no `Server` header. Unknown methods get 405, a
+    foreign host 421.
+  - Headless Chromium at 360, 390, 768, 1024, 1280 and 1440 px on every
+    page:
+    - 234 requests, none to another origin;
+    - no CSP violations and no console errors (apart from the 404 status
+      of the deliberate 404 page);
+    - no horizontal scroll and one h1 per page;
+    - the menu closes on Escape and returns focus;
+    - no motion with reduced motion; the skip link is the first tab stop;
+    - axe (WCAG 2.2 AA and best practice): 0 violations.
+  - Lighthouse 12.8.2 on mobile (development server): Performance 100,
+    Accessibility 100, Best Practices 100. SEO 69 because robots.txt keeps
+    crawlers out outside production by design; every other SEO audit
+    passes. LCP 1.35 s, TBT 0 ms, CLS 0.
+  - ZAP could not run: ghcr.io blobs are blocked here and Docker Hub
+    answered 429.
+
+## Design review
+
+Checked against "Not a template" in `docs/PROMPT.md` section 3.
+
+**Round 1** (390 and 1440 px, every page):
+
+- Hero: orbital drawing, left-aligned text, one solid button. Passes.
+- Problem, Product, Alert packet, Use cases, Principles, Roadmap, Contact,
+  footer and legal pages: no cards with icons, no gradients, no pills, no
+  centred blocks; neighbouring layouts differ. Pass.
+- How it works: precise but close to a generic five-step timeline. Fix:
+  a dashed branch at Filter labelled `KEPT ON BOARD`, the same telemetry
+  label as in the hero, so the diagram shows what Tiefer does with a
+  filtered frame.
+- Name: the headline ran into the four-wave mark. Fix: headline in columns
+  3 to 8 (two lines), mark 280 px, clear of the text.
+- The Name mark and the footer logo were missing from full-page
+  screenshots (lazy loading; the capture does not scroll). Fix: both small
+  SVGs load eagerly. The first view stays within budget: 87 KB in 12
+  requests.
+- Fonts narrowed to the two weights used per family (46 KB for both),
+  and the stylesheet now loads before the font preloads. LCP went from
+  1.50 s to 1.35 s.
+
+**Round 2** (every page at 390 and 1440 px after the fixes):
+
+- At 390 px the four-wave mark sat behind the body text of the Name
+  section and lowered its contrast. Fix: on narrow screens the mark is
+  small (64 px), in the label row, clear of the text.
+- Everything else passes: no section could be swapped with another
+  company's, the page is calm, and the only motion is the one-time
+  satellite pass.

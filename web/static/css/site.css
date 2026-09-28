@@ -7,14 +7,14 @@
 @font-face {
   font-family: "Mozilla Headline";
   src: url(../fonts/MozillaHeadline.woff2) format("woff2");
-  font-weight: 200 700;
+  font-weight: 500 600;
   font-style: normal;
   font-display: swap;
 }
 @font-face {
   font-family: "Mozilla Text";
   src: url(../fonts/MozillaText.woff2) format("woff2");
-  font-weight: 200 700;
+  font-weight: 400 500;
   font-style: normal;
   font-display: swap;
 }
@@ -487,6 +487,16 @@ h3 {
   font-variant-numeric: tabular-nums;
 }
 .flow-steps p { margin-top: 6px; font-size: var(--fs-small); }
+.flow-steps .flow-branch {
+  margin-top: 14px;
+  padding: 10px 0 0 12px;
+  border-left: 1px dashed var(--ink-60);
+  color: var(--ink-60);
+  font-size: var(--fs-label);
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  line-height: 1.3;
+}
 .how-note { margin-top: 48px; max-width: 40em; }
 .ground { margin-top: 72px; }
 .ground-title { font-size: var(--fs-label); font-family: var(--text); font-weight: 500; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-60); }
@@ -673,6 +683,10 @@ h3 {
   opacity: 0.1;
   pointer-events: none;
 }
+@media (max-width: 1023px) {
+  /* Small, in the label row, clear of the text. */
+  .name-mark { top: 104px; width: 64px; transform: none; opacity: 0.16; }
+}
 .name-limb {
   position: absolute;
   left: 0; right: 0; bottom: 0;
@@ -682,9 +696,9 @@ h3 {
 .name-limb path { fill: none; stroke: var(--on-ink-muted); stroke-width: var(--stroke); opacity: 0.4; vector-effect: non-scaling-stroke; }
 @media (min-width: 1024px) {
   .name .section-label { grid-column: 1 / 3; grid-row: 1; }
-  .name-line { grid-column: 3 / 11; grid-row: 1; font-size: clamp(2.5rem, 1.6rem + 1.9vw, 3.5rem); }
-  .name-body { grid-column: 3 / 9; }
-  .name-mark { right: max(var(--pad), calc((100% - var(--max)) / 2)); width: 240px; }
+  .name-line { grid-column: 3 / 9; grid-row: 1; font-size: clamp(2.5rem, 1.6rem + 1.9vw, 3.5rem); }
+  .name-body { grid-column: 3 / 8; }
+  .name-mark { right: max(var(--pad), calc((100% - var(--max)) / 2)); width: 280px; }
 }
 
 /* 09 Contact */

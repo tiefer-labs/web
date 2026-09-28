@@ -14,11 +14,14 @@
         <path d="M0 1H100"/>
       </svg>
       <ol class="flow-steps numbered">
-        {{- range $s.Steps}}
+        {{- range $i, $step := $s.Steps}}
         <li>
           <svg class="flow-mark" viewBox="0 0 12 12" width="12" height="12" aria-hidden="true" focusable="false"><rect x="1" y="1" width="10" height="10"/></svg>
-          <h3>{{.Title}}</h3>
-          <p>{{.Text}}</p>
+          <h3>{{$step.Title}}</h3>
+          <p>{{$step.Text}}</p>
+          {{- if eq $i 1}}
+          <p class="flow-branch" aria-hidden="true">{{$s.Branch}}</p>
+          {{- end}}
         </li>
         {{- end}}
       </ol>

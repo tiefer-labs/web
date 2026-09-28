@@ -41,8 +41,8 @@
 <link rel="icon" href="{{asset "favicon.svg"}}" type="image/svg+xml">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <link rel="manifest" href="/site.webmanifest">
-{{- template "fonts" .}}
 <link rel="stylesheet" href="{{asset "css/site.css"}}">
+{{- template "fonts" .}}
 <script src="{{asset "js/site.js"}}" defer></script>
 {{- if and .JSONLD (eq .Name "index")}}
 {{.JSONLD}}

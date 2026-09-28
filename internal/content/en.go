@@ -80,6 +80,7 @@ var English = Site{
 			{Title: "Alert", Text: "Event found? Build a small alert packet."},
 			{Title: "Downlink", Text: "Send it through the first available channel to the operator."},
 		},
+		Branch:      "KEPT ON BOARD",
 		Note:        "How fast an alert reaches the ground depends on the communication link: the next ground station pass, a relay, or a wider ground network. Tiefer makes the alert small enough to use whichever comes first.",
 		GroundTitle: "On the ground too",
 		Ground: []Item{
