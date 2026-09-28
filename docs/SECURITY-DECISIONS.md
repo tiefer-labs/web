@@ -42,3 +42,41 @@ HARDENING.md** must be compared with that document once it exists.
   sender's address goes into `Reply-To` only. Fuzz tests cover this.
 - **No content in logs.** Delivery failures log the error only, never
   the message, the sender or the address of the client.
+
+## Azure (infra/)
+
+`docs/AZURE.md` was not available; the layout follows the brief (App
+Service, Front Door with WAF, Key Vault, Container Registry, GitHub OIDC,
+Bicep). **Check against AZURE.md.**
+
+- **API versions** were taken from the stable folders of
+  `Azure/azure-rest-api-specs` (each resource type checked in its version):
+  App Service 2024-11-01, Front Door (Microsoft.Cdn) 2024-09-01, WAF policy
+  2024-02-01, Key Vault 2024-11-01, Container Registry 2023-07-01, managed
+  identities 2023-01-31, role assignments 2022-04-01, Log Analytics
+  2023-09-01. Diagnostic settings use 2021-05-01-preview, the only version
+  the specification has. Role IDs come from the Azure built-in roles
+  documentation; the WAF rule set names from Azure quickstart templates
+  and their versions (default rule set 2.1, bot manager 1.1) from the
+  Front Door DRS documentation.
+- **Key Vault public endpoint.** The web app has no virtual network, so
+  it reaches Key Vault over the public endpoint; access is by Azure RBAC
+  only (the app identity may read secrets), soft delete and purge
+  protection are on. Revisit with VNet integration and a private endpoint
+  if the budget allows.
+- **Registry Basic tier**, public endpoint, no admin user; push and pull
+  only with the two managed identities.
+- **Front Door Premium by default** for the managed rule sets. Standard is
+  a founder decision on cost; then only the custom rules apply.
+- **Logs**: only the WAF log and the application console log go to Log
+  Analytics, kept 30 days (`logRetentionDays`, which must equal
+  `LOG_RETENTION_DAYS`). The Front Door access log and the App Service HTTP
+  log, which hold IP addresses, are not enabled.
+- **Unresolved Key Vault references** make the application refuse to
+  start, so a literal reference can never become the CSRF key.
+- **Deployment**: CI and deployment run in one workflow on pushes to
+  `main`; the deploy job needs the `production` environment (with a
+  required reviewer) and Azure login by OpenID Connect. No credentials are
+  stored in GitHub.
+- **The default Front Door domain** is linked at first so the site can be
+  checked before DNS exists; the runbook switches it off afterwards.

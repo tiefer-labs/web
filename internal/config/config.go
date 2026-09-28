@@ -272,6 +272,14 @@ func Load(lookup func(string) (string, bool)) (*Config, error) {
 		errs = append(errs, errors.New("SMTP_SKIP_VERIFY is not allowed in production"))
 	}
 
+	// An unresolved Key Vault reference reaches the app as its literal
+	// text. For CSRF_SECRET that text would be a public, known key.
+	for _, name := range []string{"CSRF_SECRET", "SMTP_PASS"} {
+		if v, _ := lookup(name); strings.HasPrefix(strings.TrimSpace(v), "@Microsoft.KeyVault(") {
+			errs = append(errs, fmt.Errorf("%s is an unresolved Key Vault reference: check the web app identity and the secret in Key Vault", name))
+		}
+	}
+
 	switch secret := get("CSRF_SECRET"); {
 	case secret == "" && prod:
 		errs = append(errs, errors.New("CSRF_SECRET is required in production (at least 32 characters: openssl rand -hex 32)"))

@@ -175,3 +175,10 @@ of `main`.
   robots.txt (crawlers kept out outside production); manifest; 404 page.
   Tests check the hash, heading order and that every sitemap URL answers
   200. Next: Azure infrastructure.
+- **Phase 8** (done): `infra/` Bicep (monitoring, identities with a GitHub
+  federated credential, registry, Key Vault, App Service locked to Front
+  Door, Front Door Premium with WAF, www and HTTP redirects), parameters
+  file, runbook `infra/README.md`, `deploy.yml` with OIDC. Built and linted
+  with Bicep CLI 0.47.16 (downloaded to a scratch folder, not installed);
+  nothing deployed. API versions and role IDs looked up in the Azure
+  specifications and documentation. Next: licence, notices, README.

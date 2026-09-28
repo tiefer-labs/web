@@ -4,20 +4,17 @@
 
 name: CI
 
+# Pushes to main run this workflow through deploy.yml, which deploys only
+# when it passes.
 on:
-  push:
-    branches: [main]
   pull_request:
   schedule:
     - cron: "17 5 * * 1" # weekly, to catch new vulnerabilities
   workflow_dispatch:
+  workflow_call:
 
 permissions:
   contents: read
-
-concurrency:
-  group: ci-${{ github.ref }}
-  cancel-in-progress: true
 
 jobs:
   check:
@@ -39,6 +36,20 @@ jobs:
         run: make vuln
       - name: Fuzz (short)
         run: make fuzz FUZZTIME=10s
+
+  infra:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Build and lint the Bicep templates (offline, nothing is deployed)
+        run: |
+          az bicep install
+          az bicep build --file infra/main.bicep --stdout > /dev/null
+          az bicep build-params --file infra/main.bicepparam --stdout > /dev/null
+          az bicep lint --file infra/main.bicep
 
   docker:
     runs-on: ubuntu-24.04

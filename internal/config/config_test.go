@@ -101,6 +101,7 @@ func TestInvalid(t *testing.T) {
 		{map[string]string{"SMTP_HOST": "smtp.example.org", "CONTACT_TO": "a@b.example", "CONTACT_FROM": "c@d.example", "SMTP_PORT": "x"}, "SMTP_PORT"},
 		{map[string]string{"BEHIND_FRONT_DOOR": "true"}, "FRONT_DOOR_ID"},
 		{map[string]string{"SMTP_SKIP_VERIFY": "true"}, "SMTP_SKIP_VERIFY"},
+		{map[string]string{"CSRF_SECRET": "@Microsoft.KeyVault(VaultName=tiefer-web-kv;SecretName=csrf-secret)"}, "unresolved Key Vault reference"},
 	}
 	for _, tc := range cases {
 		set := map[string]string{}
