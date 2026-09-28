@@ -13,69 +13,62 @@ import (
 	"strings"
 )
 
-// Templates holds one parsed template set per page. Each set contains the
-// layout, every partial and one file of pages/.
+// Funcs returns the template functions. They are the only functions
+// templates may call besides the comparison builtins; a test enforces
+// this list.
+func Funcs(a *Assets) template.FuncMap {
+	return template.FuncMap{
+		// asset returns the hashed URL of a static file. An unknown path
+		// fails the render, so a typo cannot ship.
+		"asset": a.URL,
+	}
+}
+
+// Templates holds one parsed template set per page.
 type Templates struct {
 	pages map[string]*template.Template
 }
 
-// LoadTemplates parses layout.html, partials/*.html and every page in
-// pages/*.html once, at startup.
-func LoadTemplates(fsys fs.FS, assets *Assets) (*Templates, error) {
-	funcs := template.FuncMap{
-		"asset":     assets.URL,
-		"integrity": assets.Integrity,
-		"inc":       func(i int) int { return i + 1 },
-		"pad2":      func(i int) string { return fmt.Sprintf("%02d", i) },
-		"slug":      Slug,
-	}
-	base, err := template.New("layout.html").Funcs(funcs).ParseFS(fsys, "layout.html", "partials/*.html")
+// LoadTemplates parses layout.html and every partial once, then clones
+// the set for each file in pages/, which defines the "content" block.
+func LoadTemplates(fsys fs.FS, a *Assets) (*Templates, error) {
+	base := template.New("layout.html").Funcs(Funcs(a))
+	base, err := base.ParseFS(fsys, "layout.html", "partials/*.html")
 	if err != nil {
 		return nil, fmt.Errorf("render: %w", err)
 	}
-	pages, err := fs.Glob(fsys, "pages/*.html")
+	files, err := fs.Glob(fsys, "pages/*.html")
 	if err != nil {
 		return nil, err
 	}
 	t := &Templates{pages: map[string]*template.Template{}}
-	for _, p := range pages {
-		set, err := base.Clone()
+	for _, f := range files {
+		clone, err := base.Clone()
 		if err != nil {
 			return nil, err
 		}
-		if _, err := set.ParseFS(fsys, p); err != nil {
-			return nil, fmt.Errorf("render: %w", err)
+		if _, err := clone.ParseFS(fsys, f); err != nil {
+			return nil, fmt.Errorf("render: %s: %w", f, err)
 		}
-		t.pages[strings.TrimSuffix(path.Base(p), ".html")] = set
+		t.pages[strings.TrimSuffix(path.Base(f), ".html")] = clone
 	}
 	return t, nil
 }
 
-// Render executes the layout for page (the file name in pages/ without
-// .html) with data.
+// Render writes page (a file name in pages/ without .html) with data.
 func (t *Templates) Render(w io.Writer, page string, data any) error {
-	set, ok := t.pages[page]
+	tpl, ok := t.pages[page]
 	if !ok {
 		return fmt.Errorf("render: unknown page %q", page)
 	}
-	return set.ExecuteTemplate(w, "layout", data)
+	return tpl.ExecuteTemplate(w, "layout.html", data)
 }
 
-// Slug turns a heading into a fragment identifier: lowercase ASCII letters
-// and digits, other characters collapsed into single hyphens.
-func Slug(s string) string {
-	var b strings.Builder
-	dash := false
-	for _, r := range strings.ToLower(s) {
-		if (r >= 'a' && r <= 'z') || (r >= '0' && r <= '9') {
-			if dash && b.Len() > 0 {
-				b.WriteByte('-')
-			}
-			b.WriteRune(r)
-			dash = false
-		} else {
-			dash = true
-		}
+// Pages returns the names of all page templates.
+func (t *Templates) Pages() []string {
+	out := make([]string, 0, len(t.pages))
+	for name := range t.pages {
+		out = append(out, name)
 	}
-	return b.String()
+	return out
 }

@@ -4,23 +4,27 @@
   file, You can obtain one at https://mozilla.org/MPL/2.0/.
 */ -}}
 {{define "header" -}}
-<header class="site-header{{if .HeaderDark}} is-dark{{end}}" data-header>
+{{- $ui := .Site.UI -}}
+<header class="site-header{{if .OnDark}} on-dark{{end}}" id="top">
   <div class="wrap header-bar">
-    <a class="brand" href="{{.Anchor "top"}}">
-      <img class="brand-logo brand-logo--ink" src="{{asset "brand/tiefer-logo.svg"}}" alt="{{.Site.UI.LogoAlt}}" width="3669" height="700">
-      <img class="brand-logo brand-logo--white" src="{{asset "brand/tiefer-logo-white.svg"}}" alt="{{.Site.UI.LogoAlt}}" width="3669" height="700">
+    <a class="logo" href="{{.Anchor "#top"}}">
+      {{- if .OnDark}}
+      <img src="{{asset "brand/tiefer-logo-white.svg"}}" alt="{{.Site.Meta.SiteName}}" width="126" height="24">
+      {{- else}}
+      <img src="{{asset "brand/tiefer-logo.svg"}}" alt="{{.Site.Meta.SiteName}}" width="126" height="24">
+      {{- end}}
     </a>
-    <button class="menu-toggle" type="button" aria-expanded="false" aria-controls="site-nav" data-open="{{.Site.UI.MenuOpen}}" data-close="{{.Site.UI.MenuClose}}">
-      <span class="menu-icon" aria-hidden="true"></span>
-      <span class="menu-label">{{.Site.UI.MenuOpen}}</span>
-    </button>
-    <nav id="site-nav" class="site-nav" aria-label="{{.Site.UI.NavLabel}}">
-      <ul class="nav-list">
-        {{- range .Site.Nav.Links}}
+    <nav class="site-nav" aria-label="{{$ui.NavLabel}}">
+      <button class="menu-toggle" type="button" aria-expanded="false" aria-controls="nav-list" data-open="{{$ui.MenuOpen}}" data-close="{{$ui.MenuClose}}">
+        <span class="menu-label">{{$ui.MenuOpen}}</span>
+        <svg class="menu-icon" viewBox="0 0 20 12" width="20" height="12" aria-hidden="true" focusable="false"><path d="M0 1h20M0 6h20M0 11h20"/></svg>
+      </button>
+      <ul class="nav-list" id="nav-list" role="list">
+        {{- range .Site.Nav}}
         <li><a href="{{$.Anchor .Href}}">{{.Label}}</a></li>
         {{- end}}
+        <li class="nav-cta"><a class="button button-outline" href="{{.Anchor .Site.CTA.Href}}">{{.Site.CTA.Label}}</a></li>
       </ul>
-      <a class="btn btn--primary nav-cta" href="{{.Anchor .Site.Nav.CTA.Href}}">{{.Site.Nav.CTA.Label}}</a>
     </nav>
   </div>
 </header>

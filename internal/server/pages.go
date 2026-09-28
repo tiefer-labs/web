@@ -10,37 +10,40 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/tiefer-labs/web/internal/contact"
 	"github.com/tiefer-labs/web/internal/content"
-	"github.com/tiefer-labs/web/internal/textcheck"
+)
+
+// Page names: files in web/templates/pages without .html.
+const (
+	PageIndex         = "index"
+	PageLegal         = "legal"
+	PagePrivacy       = "privacy"
+	PageAcceptableUse = "acceptable-use"
+	PageNotFound      = "404"
 )
 
 // page is the data every template receives.
 type page struct {
 	Site        *content.Site
-	Name        string // template name in web/templates/pages
-	Path        string // path relative to the locale prefix
+	Name        string
+	Path        string // path without the locale prefix
 	Title       string
 	Description string
 	Canonical   string
 	Alternates  []alternate
 	OGImage     string
 	JSONLD      template.HTML
-	HeaderDark  bool
+	OnDark      bool // the header sits on the dark hero
 	NoIndex     bool
 	Cfg         publicConfig
-	Legal       *content.LegalPage
-	Form        *formState
-
-	tokens map[string]string
-	stage  string // content.Founding or content.Company, for legal pages
+	Form        *formView
+	Legal       *legalView
 }
 
 type alternate struct{ Lang, Href string }
 
-// publicConfig is the part of the configuration templates may use.
+// publicConfig is the part of the configuration templates may read.
 type publicConfig struct {
-	SiteURL        string
 	ContactEmail   string
 	LinkedInURL    string
 	RepoURL        string
@@ -48,19 +51,7 @@ type publicConfig struct {
 	LegalReviewed  bool
 }
 
-// formState is the contact form as rendered: status, values and errors.
-type formState struct {
-	Status string // "", "sent", "invalid", "expired" or "error"
-	Token  string
-	Values contact.Submission
-	Errors map[string]string // field name to message
-}
-
-// Err returns the error message for a field, or "".
-func (f *formState) Err(field string) string { return f.Errors[field] }
-
-// Href returns a site path with the locale prefix, for example /privacy
-// or /az/privacy.
+// Href returns a site path with the locale prefix.
 func (p *page) Href(path string) string {
 	if path == "/" {
 		return p.Site.Locale.Prefix + "/"
@@ -68,47 +59,17 @@ func (p *page) Href(path string) string {
 	return p.Site.Locale.Prefix + path
 }
 
-// Anchor links to a section of the index page: a plain fragment on the
-// index page itself, the full path elsewhere. "top" on other pages links
-// to the start page.
-func (p *page) Anchor(id string) string {
-	switch {
-	case p.Name == PageIndex:
-		return "#" + id
-	case id == "top":
-		return p.Href("/")
+// Anchor turns a fragment link from the content ("#contact") into a link
+// that works from every page: the fragment alone on the index page, the
+// index path with the fragment elsewhere.
+func (p *page) Anchor(href string) string {
+	if !strings.HasPrefix(href, "#") {
+		return href
 	}
-	return p.Href("/") + "#" + id
-}
-
-// LegalSections returns the sections of the legal page that apply to the
-// current stage of the business.
-func (p *page) LegalSections() []content.LegalSection {
-	var out []content.LegalSection
-	for _, sec := range p.Legal.Sections {
-		if sec.Stage == "" || sec.Stage == p.stage {
-			out = append(out, sec)
-		}
+	if p.Name == PageIndex {
+		return href
 	}
-	return out
-}
-
-// Fill escapes s, replaces {tokens} with configuration values and
-// highlights [PLACEHOLDER] tokens, for the legal pages.
-func (p *page) Fill(s string) template.HTML {
-	out := template.HTMLEscapeString(s)
-	for key, value := range p.tokens {
-		v := template.HTMLEscapeString(value)
-		switch key {
-		case "contact_email":
-			v = `<a href="mailto:` + v + `">` + v + `</a>`
-		case "site_url":
-			v = `<a href="` + v + `/">` + v + `</a>`
-		}
-		out = strings.ReplaceAll(out, "{"+key+"}", v)
-	}
-	out = textcheck.PlaceholderPattern.ReplaceAllString(out, `<mark class="placeholder">$0</mark>`)
-	return template.HTML(out)
+	return p.Href("/") + href
 }
 
 func (s *Server) newPage(site *content.Site, name, path string) *page {
@@ -118,10 +79,9 @@ func (s *Server) newPage(site *content.Site, name, path string) *page {
 		Path:        path,
 		Title:       site.Meta.Title,
 		Description: site.Meta.Description,
-		OGImage:     s.abs(s.assetURL("og-image.png")),
+		OGImage:     s.cfg.Site() + s.assetURL("og-image.png"),
 		JSONLD:      s.jsonLD,
 		Cfg: publicConfig{
-			SiteURL:        s.cfg.SiteURL,
 			ContactEmail:   s.cfg.ContactEmail,
 			LinkedInURL:    s.cfg.LinkedInURL,
 			RepoURL:        s.cfg.RepoURL,
@@ -129,82 +89,69 @@ func (s *Server) newPage(site *content.Site, name, path string) *page {
 			LegalReviewed:  s.cfg.Legal.Reviewed,
 		},
 	}
-	p.Canonical = s.abs(p.Href(path))
+	p.Canonical = s.cfg.Site() + p.Href(path)
 	for _, l := range s.locales {
 		lp := &page{Site: l}
-		p.Alternates = append(p.Alternates, alternate{l.Locale.Code, s.abs(lp.Href(path))})
+		p.Alternates = append(p.Alternates, alternate{l.Locale.Code, s.cfg.Site() + lp.Href(path)})
 	}
-	p.Alternates = append(p.Alternates, alternate{"x-default", s.abs(path)})
+	if len(s.locales) > 1 {
+		p.Alternates = append(p.Alternates, alternate{"x-default", s.cfg.Site() + path})
+	}
 	return p
 }
 
-func (s *Server) legalTokens() map[string]string {
-	l := s.cfg.Legal
-	return map[string]string{
-		"operator":         l.Operator(),
-		"founder":          l.Founder,
-		"legal_name":       l.Name,
-		"legal_form":       l.Form,
-		"address":          l.Address,
-		"tax_id":           l.TaxID,
-		"registration":     l.Registration,
-		"director":         l.Director,
-		"hosting_provider": l.HostingProvider,
-		"hosting_country":  l.HostingCountry,
-		"smtp_provider":    l.SMTPProvider,
-		"smtp_country":     l.SMTPCountry,
-		"contact_email":    s.cfg.ContactEmail,
-		"site_url":         s.cfg.SiteURL,
+func (s *Server) assetURL(p string) string {
+	u, err := s.assets.URL(p)
+	if err != nil {
+		panic(err) // embedded at build time; a test renders every page
 	}
+	return u
 }
 
 func (s *Server) index(site *content.Site) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		p := s.newPage(site, PageIndex, "/")
-		p.HeaderDark = true
-		p.Form = &formState{Token: s.tokens.Issue()}
+		p.OnDark = true
+		p.Form = s.newForm(r)
 		if r.URL.Query().Get("sent") == "1" {
-			p.Form.Status = "sent"
+			p.Form.Status = statusSent
 		}
 		s.renderPage(w, r, http.StatusOK, p)
 	}
 }
 
-func (s *Server) legal(site *content.Site, name string, lp *content.LegalPage) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		p := s.newPage(site, name, "/"+name)
-		p.Legal = lp
-		p.Title = lp.Title + " | " + site.Meta.SiteName
-		p.Description = lp.Description
-		p.tokens = s.legalTokens()
-		p.stage = content.Founding
-		if s.cfg.Legal.Registered() {
-			p.stage = content.Company
-		}
-		s.renderPage(w, r, http.StatusOK, p)
-	}
-}
-
-func (s *Server) notFound(w http.ResponseWriter, r *http.Request) {
+// notFoundPage renders the 404 page in the locale of the path.
+func (s *Server) notFoundPage(w http.ResponseWriter, r *http.Request) {
 	site := s.localeFor(r.URL.Path)
 	p := s.newPage(site, PageNotFound, "/")
 	p.Title = site.NotFound.Title + " | " + site.Meta.SiteName
 	p.NoIndex = true
 	p.Alternates = nil
+	p.Canonical = ""
 	s.renderPage(w, r, http.StatusNotFound, p)
 }
 
+// localeFor returns the locale whose prefix starts the path.
+func (s *Server) localeFor(path string) *content.Site {
+	for _, l := range s.locales {
+		if pre := l.Locale.Prefix; pre != "" && (path == pre || strings.HasPrefix(path, pre+"/")) {
+			return l
+		}
+	}
+	return s.locales[0]
+}
+
 // renderPage renders into a buffer first, so a template error becomes a
-// clean 500 instead of a half-written page.
+// clean 500 instead of half a page.
 func (s *Server) renderPage(w http.ResponseWriter, r *http.Request, status int, p *page) {
 	var buf bytes.Buffer
 	if err := s.templates.Render(&buf, p.Name, p); err != nil {
-		s.log.Error("render failed", "page", p.Name, "err", err)
-		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		s.log.Error("render", "page", p.Name, "err", err)
+		plainError(w, http.StatusInternalServerError)
 		return
 	}
-	// Pages carry a single-use form token: a shared cache (CDN or proxy)
-	// must not hand the same page to several visitors.
+	// Pages carry a single-use form token, so no shared cache may keep
+	// them; the browser revalidates.
 	if w.Header().Get("Cache-Control") == "" {
 		w.Header().Set("Cache-Control", "private, no-cache")
 	}

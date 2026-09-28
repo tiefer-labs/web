@@ -2,37 +2,15 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
-// Package content holds every piece of website copy as typed Go values,
-// one file per locale (en.go, later az.go, de.go, ...). Templates only
-// read from these structs, so changing a sentence here changes the site.
 package content
 
-// Locale identifies one language version of the site.
-type Locale struct {
-	Code     string // BCP 47 language tag, used in lang and hreflang
-	Prefix   string // URL prefix: "" for the default locale, "/az" and so on for others
-	Name     string // Name of the language in that language
-	OGLocale string // Open Graph locale, for example en_GB
-}
-
-// Link is a label with a target.
-type Link struct {
-	Label string
-	Href  string
-}
-
-// Item is a titled piece of text, used for grids and lists.
-type Item struct {
-	Title string
-	Text  string
-}
-
-// Site is the complete copy of the website in one locale.
+// Site is the complete copy of the site in one locale.
 type Site struct {
 	Locale     Locale
 	Meta       Meta
 	UI         UI
-	Nav        Nav
+	Nav        []Link
+	CTA        Link
 	Hero       Hero
 	Problem    Problem
 	Product    Product
@@ -40,166 +18,160 @@ type Site struct {
 	Demo       Demo
 	UseCases   UseCases
 	Principles Principles
-	Limits     Limits
 	Roadmap    Roadmap
 	Name       Name
-	FAQ        FAQ
 	Contact    Contact
 	Footer     Footer
 	Legal      Legal
 	NotFound   NotFound
 }
 
-// Meta holds the document metadata of the index page.
+// Locale identifies a language version of the site. The default locale
+// has an empty Prefix and is served at the root; others live under their
+// prefix, for example /az.
+type Locale struct {
+	Code   string // BCP 47 tag for lang and hreflang, for example "en"
+	Prefix string // URL prefix, "" for the default locale
+}
+
+// Meta holds page metadata.
 type Meta struct {
 	SiteName    string
-	Title       string
+	Title       string // title of the index page
 	Description string
 	OGImageAlt  string
+	ThemeColor  string
 }
 
-// UI holds small interface strings.
+// UI holds interface strings that are not part of one section.
 type UI struct {
-	SkipLink  string
-	MenuOpen  string
-	MenuClose string
-	LogoAlt   string
-	NavLabel  string
-	FooterNav string
+	SkipLink   string
+	NavLabel   string
+	MenuOpen   string
+	MenuClose  string
+	FooterNav  string
+	LegalLabel string // label of the navigation on legal pages
+	BackHome   string
 }
 
-// Nav is the main navigation.
-type Nav struct {
-	Links []Link // Href is an anchor on the index page, for example "product"
-	CTA   Link
+// Link is a label and a target: a fragment ("#contact"), a site path
+// ("/privacy") or an absolute URL.
+type Link struct {
+	Label string
+	Href  string
+}
+
+// Item is a title with a sentence.
+type Item struct {
+	Title string
+	Text  string
 }
 
 // Hero is the dark opening section.
 type Hero struct {
-	Coordinates     string // technical label, desktop only
-	ArtLabels       []string
-	Eyebrow         string
-	Title           string
-	Lead            string
-	Question        string
-	QuestionCaption string
-	Primary         Link
-	Secondary       Link
+	Position  string // technical label, top right on desktop
+	AlertTag  string // telemetry label on the downlink line
+	Stored    string // telemetry label at the ground point
+	Eyebrow   string
+	Title     string
+	Lead      string
+	Primary   Link
+	Secondary Link
 }
 
-// Problem describes why answers from satellite data are hard to get.
+// Problem is the statement of the problem.
 type Problem struct {
+	Label string
 	Title string
 	Intro string
 	Items []Item
 }
 
-// Layer is one of the four data layers. Icon selects the inline SVG icon.
-type Layer struct {
-	Icon  string // optical, radar, thermal or night
-	Label string
-	Text  string
-	Specs []Fact // data sources and limits, shown under the text
+// Stage is one onboard stage in the product table.
+type Stage struct {
+	Number string
+	Name   string
+	Text   string
 }
 
-// Product explains the four layers.
+// Product lists the four onboard stages.
 type Product struct {
+	Label  string
 	Title  string
 	Body   string
-	Layers []Layer
+	Stages []Stage
+	Note   string
 }
 
-// How lists the steps from question to brief.
+// How is the capture-to-alert flow and the ground products.
 type How struct {
-	Title string
-	Steps []Item
-	Note  Item // how the work is split between models
+	Label       string
+	Title       string
+	Steps       []Item
+	Branch      string // telemetry label on the branch at the Filter step
+	Note        string
+	GroundTitle string
+	Ground      []Item
 }
 
-// BriefRow is one row of the illustrative brief. Tag is "observed",
-// "inferred" or empty; TagLabel is its visible text.
-type BriefRow struct {
-	Label    string
-	Tag      string
-	TagLabel string
-	Value    string
+// Field is one row of the illustrative alert packet.
+type Field struct {
+	Name  string
+	Value string
+	Kind  string // "", "observed" or "inferred"
 }
 
-// PassDay lists the satellite passes of one day in the demo strip.
-type PassDay struct {
-	Radar    int
-	Optical  int
-	Rejected int
-}
-
-// Strip is the decorative 14 day pass strip under the brief.
-type Strip struct {
-	Days           []PassDay
-	FirstDay       string
-	LastDay        string
-	LegendRadar    string
-	LegendOptical  string
-	LegendRejected string
-}
-
-// Demo is the illustrative brief section.
+// Demo is the illustrative alert packet.
 type Demo struct {
-	Title     string
-	Body      string
-	CardLabel string // caption of the brief table
-	// ContentsTitle and Contents list what every brief contains.
-	ContentsTitle string
-	Contents      []string
-	Rows          []BriefRow
-	Strip         Strip
+	Label      string
+	Title      string
+	Body       string
+	CardLabel  string // "Illustrative example. Not real data."
+	CardTitle  string // caption of the packet table
+	Fields     []Field
+	SceneLabel string
+	AlertLabel string
 }
 
-// UseCase is one customer group.
+// UseCase is one event type.
 type UseCase struct {
-	Title     string
-	Text      string
-	Questions []string // example questions, the first one is shown first
-}
-
-// UseCases lists who Tiefer is for.
-type UseCases struct {
-	Title         string
-	QuestionLabel string // label above the example questions
-	Cards         []UseCase
-	Note          string
-}
-
-// Principles lists how Tiefer works.
-type Principles struct {
+	Label string
 	Title string
-	Items []Item
+	Text  string
 }
 
-// Limit is one hard limit of satellite data and how Tiefer handles it.
-type Limit struct {
-	Limit    string
-	Response string
+// UseCases lists the event types.
+type UseCases struct {
+	Label string
+	Title string
+	Cases []UseCase
+	Note  string
 }
 
-// Limits states what satellites cannot see.
-type Limits struct {
-	Title         string
-	Intro         string
-	LimitLabel    string
-	ResponseLabel string
-	Items         []Limit
+// Principle is one clause of the principles.
+type Principle struct {
+	Number    string
+	Statement string
+	Text      string
 }
 
-// Milestone is one node on the roadmap.
+// Principles lists how Tiefer builds flight software.
+type Principles struct {
+	Label string
+	Title string
+	Items []Principle
+}
+
+// Milestone is one node of the roadmap.
 type Milestone struct {
 	Title string
-	When  string // planned period
 	Text  string
 	Now   bool
 }
 
-// Roadmap shows where Tiefer is.
+// Roadmap is the timeline.
 type Roadmap struct {
+	Label    string
 	Title    string
 	NowLabel string
 	Items    []Milestone
@@ -207,22 +179,9 @@ type Roadmap struct {
 
 // Name explains the name.
 type Name struct {
-	Line string
-	Body string
-}
-
-// Question is one entry of the FAQ. Link, if set, follows the answer;
-// its Href is a site path such as /acceptable-use.
-type Question struct {
-	Question string
-	Answer   string
-	Link     Link
-}
-
-// FAQ answers the questions visitors ask most.
-type FAQ struct {
-	Title string
-	Items []Question
+	Label string
+	Line  string
+	Body  string
 }
 
 // Option is one choice of a select field.
@@ -231,96 +190,74 @@ type Option struct {
 	Label string
 }
 
-// FormErrors are the messages shown next to invalid form fields and in
-// the form status area.
-type FormErrors struct {
-	NameRequired     string
-	NameTooLong      string
-	EmailRequired    string
-	EmailInvalid     string
-	OrgTooLong       string
-	RoleInvalid      string
-	QuestionRequired string
-	QuestionTooLong  string
-	ConsentRequired  string
-	Invalid          string // general characters not allowed
-	Summary          string // shown above the form when fields are invalid
-	Expired          string
-	ErrorBefore      string // followed by the contact email as a link
-	ErrorAfter       string
-}
-
-// Contact is the contact section and form.
+// Contact is the contact section and its form.
 type Contact struct {
-	Title         string
-	Body          string
-	FormLabel     string
-	NameLabel     string
-	EmailLabel    string
-	OrgLabel      string
-	RoleLabel     string
-	RoleEmpty     string
-	Roles         []Option
-	QuestionLabel string
-	QuestionHint  string
-	OptionalLabel string
-	ConsentBefore string
-	ConsentLink   string
-	ConsentAfter  string
-	HoneypotLabel string
-	Submit        string
-	Sending       string
-	Success       string
-	Errors        FormErrors
-	EmailUs       string
-	PreferEmail   string
-	LinkedIn      string
+	Label          string
+	Title          string
+	Body           string
+	FormLabel      string // accessible name of the form
+	NameLabel      string
+	EmailLabel     string
+	OrgLabel       string
+	RoleLabel      string
+	RoleEmpty      string
+	Roles          []Option
+	MessageLabel   string
+	MessageHint    string
+	Optional       string
+	ConsentBefore  string
+	ConsentLink    string
+	ConsentAfter   string
+	HoneypotLabel  string
+	Submit         string
+	Sending        string
+	Success        string
+	ErrorBefore    string // followed by the contact email as a link
+	ErrorAfter     string
+	Invalid        string // summary when fields need attention
+	Expired        string // the form token expired or was used
+	Limited        string // too many messages
+	EmailUs        string
+	PreferEmail    string
+	LinkedIn       string
+	NameMissing    string
+	NameTooLong    string
+	EmailMissing   string
+	EmailInvalid   string
+	OrgTooLong     string
+	RoleInvalid    string
+	MessageMissing string
+	MessageTooLong string
+	ConsentMissing string
 }
 
 // Footer is the site footer.
 type Footer struct {
-	CompanyTitle  string
-	ContactTitle  string
-	Security      string
 	Copyright     string
 	LegalNotice   string
 	Privacy       string
 	AcceptableUse string
-	AIPolicy      string
 	LinkedIn      string
 	SourceCode    string
 	Tagline       string
 }
 
-// Fact is a label and value pair on a legal page. Value may contain
-// {tokens} that are filled from configuration (see Legal.Tokens).
+// Fact is a label and value on a legal page; Value may contain {tokens}.
 type Fact struct {
 	Label string
 	Value string
 }
 
-// Stages of the business that a legal section can apply to.
-const (
-	// Founding is the stage before Tiefer is registered as a company: the
-	// founder operates the website as a private individual.
-	Founding = "founding"
-	// Company is the stage after registration (LEGAL_NAME is set).
-	Company = "company"
-)
-
-// LegalSection is one titled block of a legal page. Paragraphs, list
+// LegalSection is one titled part of a legal page. Paragraphs, list
 // items and fact values may contain {tokens}.
 type LegalSection struct {
-	Heading string
-	// Stage limits the section to Founding or Company; empty means it
-	// applies to both.
-	Stage string
+	Title string
+	Facts []Fact
 	Paras []string
 	List  []string
-	Facts []Fact
 }
 
-// LegalPage is the complete text of one legal page.
+// LegalPage is one legal page.
 type LegalPage struct {
 	Title       string
 	Description string
@@ -329,34 +266,28 @@ type LegalPage struct {
 	Updated     string
 }
 
-// Legal holds the four legal pages and their shared strings.
-//
-// Tokens in curly braces are replaced with configuration values:
-// {operator} (the company once registered, the founder until then),
-// {founder}, {legal_name}, {legal_form}, {address}, {tax_id},
-// {registration}, {director}, {contact_email}, {site_url},
-// {hosting_provider}, {hosting_country}, {smtp_provider}, {smtp_country}.
-// Tokens in square brackets, such as [RETENTION_PERIOD], are placeholders
-// that a lawyer must replace in this file before launch.
+// Legal holds the legal pages and their shared strings. Words in curly
+// braces, such as {legal_name}, are filled from configuration; words in
+// square brackets, such as [RETENTION_PERIOD], are placeholders for a
+// lawyer to replace here before launch.
 type Legal struct {
 	ReviewNote    string
-	Contents      string // heading of the list of sections
+	Contents      string
 	Notice        LegalPage
 	Privacy       LegalPage
 	AcceptableUse LegalPage
-	AI            LegalPage
 }
 
 // NotFound is the 404 page.
 type NotFound struct {
-	Label string
+	Code  string
 	Title string
 	Body  string
 	Home  string
 }
 
-// Locales lists every locale the site serves. The first entry is the
-// default locale and is served without a URL prefix.
+// Locales lists every locale the site serves. The first is the default
+// and is served without a URL prefix.
 var Locales = []*Site{&English}
 
 // Default returns the default locale.

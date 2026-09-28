@@ -5,32 +5,36 @@
 package textcheck
 
 import (
-	"io/fs"
-	"os"
-	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 )
 
 // The forbidden characters are written as escapes so that this file
-// passes its own repository scan.
+// passes the repository scan.
 func TestCharacters(t *testing.T) {
 	cases := []struct {
 		in   string
 		want int
 	}{
-		{"plain text, with a hyphen-minus and 2027-2029", 0},
+		{"plain text, a hyphen-minus and 2027-2029", 0},
 		{"\u00a9 2026 Tiefer", 0},
-		{"T\u00fcrkiye and V\u00d6EN", 0},
+		{"T\u00fcrkiye, V\u00d6EN, \u018f\u0259, \u0411\u0430\u043a\u0443", 0},
+		{"48 KB \u00b7 12% \u2022 40.41 N", 0},
 		{"a \u2014 b", 1},
 		{"a \u2013 b", 1},
 		{"a \u2015 b", 1},
 		{"launch \U0001F680", 1},
 		{"star \u2605", 1},
+		{"check \u2714", 1},
+		{"arrow \u2192 next", 1},
+		{"box \u25A0", 1},
 		{"heart \u2764\ufe0f", 2},
 		{"\u00a9\ufe0f", 1},
 		{"flag \U0001F1E6\U0001F1FF", 2},
 		{"keycap 1\ufe0f\u20e3", 2},
+		{"thumb \U0001F44D\U0001F3FD", 2},
+		{"bad \xff utf8", 1},
 	}
 	for _, c := range cases {
 		if got := Characters(c.in); len(got) != c.want {
@@ -43,97 +47,71 @@ func TestCharacters(t *testing.T) {
 	}
 }
 
+func TestExtPictTable(t *testing.T) {
+	n := 0
+	for i, r := range extPict {
+		if r[0] > r[1] || (i > 0 && r[0] <= extPict[i-1][1]+1) {
+			t.Fatalf("range %d (%X..%X) is not sorted and merged", i, r[0], r[1])
+		}
+		n += int(r[1]-r[0]) + 1
+	}
+	if n != 3537 { // Extended_Pictographic in Unicode 15.0
+		t.Errorf("table holds %d code points, want 3537", n)
+	}
+}
+
 func TestBannedWords(t *testing.T) {
-	bad := []string{"A revolutionary tool", "Cutting-edge", "game-changing", "AI-powered analyst",
-		"seamless", "Seamlessly", "unlock value", "We leverage", "empowering teams", "like magic"}
+	bad := []string{"A revolutionary tool", "Cutting-edge", "cutting edge", "game-changing", "AI-powered analyst",
+		"AI powered", "seamless", "Seamlessly", "unlock value", "We leverage", "leveraging", "empowering teams",
+		"empowerment", "like magic", "magical"}
 	for _, s := range bad {
 		if len(BannedWords(s)) != 1 {
-			t.Errorf("BannedWords(%q) found nothing", s)
+			t.Errorf("BannedWords(%q) found %d, want 1", s, len(BannedWords(s)))
 		}
 	}
-	good := []string{"An AI analyst for satellite data", "leverets", "unlockable", "imagery", "powered by radar"}
+	good := []string{"AI software that runs on the satellite", "unlockable", "magicians", "imagery", "powered by the bus"}
 	for _, s := range good {
 		if f := BannedWords(s); len(f) != 0 {
 			t.Errorf("BannedWords(%q) = %v, want none", s, f)
 		}
 	}
+	for _, w := range Banned {
+		if len(BannedWords(w)) != 1 {
+			t.Errorf("the pattern does not match the listed word %q", w)
+		}
+	}
+	f := BannedWords("ok\nwe unlock it")
+	if len(f) != 1 || f[0].Line != 2 || f[0].Col != 4 {
+		t.Errorf("position = %v, want 2:4", f)
+	}
 }
 
 func TestPlaceholders(t *testing.T) {
-	got := Placeholders("[COMPANY_LEGAL_NAME] at [VOEN] and [LEGAL_BASIS: ask counsel] [a] [COMPANY_LEGAL_NAME]")
+	got := Placeholders("[COMPANY_LEGAL_NAME] MMC, [VOEN], [LEGAL_BASIS: ask counsel], [a], [X], [VOEN]")
 	want := []string{"[COMPANY_LEGAL_NAME]", "[VOEN]", "[LEGAL_BASIS]"}
-	if strings.Join(got, ",") != strings.Join(want, ",") {
+	if !slices.Equal(got, want) {
 		t.Errorf("Placeholders = %v, want %v", got, want)
 	}
 }
 
 func TestVisibleText(t *testing.T) {
-	doc := `<html><head><title>T &amp; U</title><meta name="description" content="Desc">` +
-		`<style>.magic{}</style><script>var seamless=1</script></head>` +
-		`<body><!-- unlock --><img alt="Logo" src="x.svg"><p>Hello <b>world</b></p></body></html>`
-	var texts []string
-	for _, s := range VisibleText(doc) {
-		texts = append(texts, s.Text)
+	doc := `<html><head><title>Tiefer | Edge AI</title><meta name="description" content="Kilobyte alerts">
+<script type="application/ld+json">{"unlock":"hidden"}</script><style>.magic{}</style></head>
+<body><!-- seamless --><section id="hero"><h1>See deeper.</h1><img alt="Orbit &amp; swath" src="x.svg"></section>
+<section id="contact"><input placeholder="you@example.org"><p>Talk to us</p></section></body></html>`
+	segs := VisibleText(doc)
+	all := ""
+	for _, s := range segs {
+		all += "[" + s.Section + "] " + s.Text + "\n"
 	}
-	got := strings.Join(texts, "|")
-	if got != "T & U|Desc|Logo|Hello|world" {
-		t.Errorf("VisibleText = %q", got)
+	for _, want := range []string{"[page] Kilobyte alerts", "Tiefer | Edge AI", "[hero] Orbit & swath", "See deeper.", "[contact] you@example.org", "Talk to us"} {
+		if !strings.Contains(all, want) {
+			t.Errorf("visible text lacks %q:\n%s", want, all)
+		}
 	}
-}
-
-// TestTextCheckRepository scans every text file in the repository for em
-// and en dashes, the horizontal bar and emoji, and reports file and line.
-func TestTextCheckRepository(t *testing.T) {
-	root := moduleRoot(t)
-	binary := map[string]bool{".png": true, ".ico": true, ".woff2": true, ".woff": true, ".ttf": true, ".gz": true}
-	checked := 0
-	err := filepath.WalkDir(root, func(path string, d fs.DirEntry, err error) error {
-		if err != nil {
-			return err
+	for _, hidden := range []string{"unlock", "magic", "seamless", "x.svg"} {
+		if strings.Contains(all, hidden) {
+			t.Errorf("visible text contains hidden %q:\n%s", hidden, all)
 		}
-		name := d.Name()
-		if d.IsDir() {
-			if path != root && (strings.HasPrefix(name, ".") && name != ".github" || name == "bin" || name == "dist") {
-				return filepath.SkipDir
-			}
-			return nil
-		}
-		if binary[strings.ToLower(filepath.Ext(name))] || name == "tiefer-web" {
-			return nil
-		}
-		b, err := os.ReadFile(path)
-		if err != nil {
-			return err
-		}
-		checked++
-		rel, _ := filepath.Rel(root, path)
-		for _, f := range Characters(string(b)) {
-			t.Errorf("%s:%s", rel, f)
-		}
-		return nil
-	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	if checked < 20 {
-		t.Fatalf("only %d files checked; is the module root right?", checked)
-	}
-}
-
-func moduleRoot(t *testing.T) string {
-	t.Helper()
-	dir, err := os.Getwd()
-	if err != nil {
-		t.Fatal(err)
-	}
-	for {
-		if _, err := os.Stat(filepath.Join(dir, "go.mod")); err == nil {
-			return dir
-		}
-		parent := filepath.Dir(dir)
-		if parent == dir {
-			t.Fatal("go.mod not found")
-		}
-		dir = parent
 	}
 }

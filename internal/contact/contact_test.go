@@ -5,169 +5,155 @@
 package contact
 
 import (
+	"bytes"
+	"errors"
+	"mime"
+	"net/mail"
+	"net/netip"
 	"net/url"
 	"strings"
 	"testing"
 	"time"
 )
 
-var roles = []string{"trader-analyst", "insurer", "other"}
+type clock struct{ t time.Time }
 
-func validForm() url.Values {
-	return url.Values{
-		FieldName:     {"Aysel Mammadova"},
-		FieldEmail:    {"aysel@example.org"},
-		FieldOrg:      {"Example Trading"},
-		FieldRole:     {"trader-analyst"},
-		FieldQuestion: {"Which ports saw more vessel activity?\r\nAnd why?"},
-		FieldConsent:  {"yes"},
-	}
-}
+func (c *clock) now() time.Time { return c.t }
 
-func TestParseValid(t *testing.T) {
-	s, errs := Parse(validForm(), roles)
-	if len(errs) != 0 {
-		t.Fatalf("unexpected errors: %v", errs)
+func TestTokens(t *testing.T) {
+	c := &clock{time.Date(2026, 10, 1, 9, 0, 0, 0, time.UTC)}
+	tk := NewTokens([]byte("0123456789abcdef0123456789abcdef"), c.now)
+	tok := tk.Issue()
+	if err := tk.Check(tok); !errors.Is(err, ErrTooFast) {
+		t.Errorf("fresh token: %v, want ErrTooFast", err)
 	}
-	if s.Question != "Which ports saw more vessel activity?\nAnd why?" {
-		t.Errorf("newlines not normalised: %q", s.Question)
+	c.t = c.t.Add(5 * time.Second)
+	if err := tk.Check(tok); err != nil {
+		t.Errorf("after 5 s: %v", err)
 	}
-	if !s.Consent || s.Role != "trader-analyst" {
-		t.Errorf("unexpected submission: %+v", s)
+	if err := tk.Use(tok); err != nil {
+		t.Errorf("first use: %v", err)
 	}
-}
+	if err := tk.Use(tok); !errors.Is(err, ErrTokenExpired) {
+		t.Errorf("replay: %v, want ErrTokenExpired", err)
+	}
+	old := tk.Issue()
+	c.t = c.t.Add(3 * time.Hour)
+	if err := tk.Check(old); !errors.Is(err, ErrTokenExpired) {
+		t.Errorf("3 h old token: %v", err)
+	}
 
-func TestParseOptionalFieldsMayBeEmpty(t *testing.T) {
-	f := validForm()
-	f.Del(FieldOrg)
-	f.Del(FieldRole)
-	if _, errs := Parse(f, roles); len(errs) != 0 {
-		t.Fatalf("unexpected errors: %v", errs)
-	}
-}
-
-func TestParseMissingFields(t *testing.T) {
-	_, errs := Parse(url.Values{}, roles)
-	for _, field := range []string{FieldName, FieldEmail, FieldQuestion, FieldConsent} {
-		if errs[field] != Required {
-			t.Errorf("%s: got %q, want %q", field, errs[field], Required)
+	// Tampering, other keys and garbage are invalid.
+	fresh := tk.Issue()
+	c.t = c.t.Add(10 * time.Second)
+	b := []byte(fresh)
+	b[len(b)/2] ^= 1
+	other := NewTokens([]byte("another-secret-another-secret-xx"), c.now)
+	for _, s := range []string{string(b), "", "abc", strings.Repeat("A", len(fresh)), other.Issue()} {
+		if err := tk.Check(s); !errors.Is(err, ErrTokenInvalid) && !errors.Is(err, ErrTooFast) {
+			t.Errorf("Check(%q) = %v, want invalid", s, err)
 		}
 	}
-	if _, ok := errs[FieldOrg]; ok {
-		t.Error("organisation is optional")
+	if err := tk.Check(fresh); err != nil {
+		t.Errorf("untampered token: %v", err)
 	}
 }
 
-func TestParseRejects(t *testing.T) {
-	cases := []struct {
-		field, value string
-		want         Problem
-	}{
-		{FieldName, "Eve\r\nBcc: victim@example.com", NotAllowed},
-		{FieldName, "Eve\nBcc: victim@example.com", NotAllowed},
-		{FieldEmail, "eve@example.com\r\nBcc: victim@example.com", NotAllowed},
-		{FieldEmail, "eve@example.com\nBcc: victim@example.com", NotAllowed},
-		{FieldEmail, "Eve <eve@example.com>", InvalidEmail},
-		{FieldEmail, "eve@localhost", InvalidEmail},
-		{FieldEmail, "not an email", InvalidEmail},
-		{FieldEmail, strings.Repeat("a", 250) + "@example.com", InvalidEmail},
-		{FieldOrg, "Org\r\nX-Header: 1", NotAllowed},
-		{FieldName, strings.Repeat("n", MaxName+1), TooLong},
-		{FieldOrg, strings.Repeat("o", MaxOrg+1), TooLong},
-		{FieldQuestion, strings.Repeat("q", MaxQuestion+1), TooLong},
-		{FieldQuestion, "null\x00byte", NotAllowed},
-		{FieldRole, "admin", UnknownRole},
+func TestParseAndValidate(t *testing.T) {
+	roles := []string{"operator", "other"}
+	v := url.Values{
+		"name":    {"  Ada\r\nBcc: x@example.org  "},
+		"email":   {" ada@example.org "},
+		"org":     {"Orbit\tLab"},
+		"role":    {"operator"},
+		"message": {"Line one\r\nLine two\x00\x07"},
+		"consent": {"yes"},
 	}
-	for _, c := range cases {
-		f := validForm()
-		f.Set(c.field, c.value)
-		_, errs := Parse(f, roles)
-		if errs[c.field] != c.want {
-			t.Errorf("%s=%q: got %q, want %q", c.field, c.value, errs[c.field], c.want)
+	s := Parse(v)
+	if s.Name != "Ada Bcc: x@example.org" || s.Email != "ada@example.org" || s.Org != "Orbit Lab" {
+		t.Errorf("parsed: %+v", s)
+	}
+	if s.Message != "Line one\nLine two" {
+		t.Errorf("message = %q", s.Message)
+	}
+	if p := s.Validate(roles); len(p) != 0 {
+		t.Errorf("valid submission: %v", p)
+	}
+	bad := Submission{Name: strings.Repeat("a", MaxName+1), Email: "ada@example.org\nBcc: x@y.z", Role: "admin", Message: ""}
+	want := map[string]Problem{"name": TooLong, "email": Invalid, "role": Invalid, "message": Missing, "consent": Missing}
+	got := bad.Validate(roles)
+	for k, v := range want {
+		if got[k] != v {
+			t.Errorf("%s: %q, want %q", k, got[k], v)
 		}
 	}
-}
-
-func TestParseCountsCharactersNotBytes(t *testing.T) {
-	f := validForm()
-	f.Set(FieldQuestion, strings.Repeat("ə", MaxQuestion)) // two bytes each
-	if _, errs := Parse(f, roles); len(errs) != 0 {
-		t.Fatalf("2,000 characters must be accepted: %v", errs)
+	if p := (Submission{Name: "A", Email: "a@b.de", Message: strings.Repeat("é", MaxMessage), Consent: true}).Validate(roles); len(p) != 0 {
+		t.Errorf("2,000 characters (not bytes) must pass: %v", p)
 	}
 }
 
-func TestTokenRoundTrip(t *testing.T) {
-	now := time.Unix(1_800_000_000, 0)
-	clock := func() time.Time { return now }
-	tokens := NewTokens([]byte("0123456789abcdef0123456789abcdef"), clock)
-
-	tok := tokens.Issue()
-	if _, err := tokens.Check(tok); err != ErrTooFast {
-		t.Fatalf("immediate submit: got %v, want ErrTooFast", err)
-	}
-	now = now.Add(5 * time.Second)
-	nonce, err := tokens.Check(tok)
+func TestBuild(t *testing.T) {
+	m := Message{From: "web@tiefer.space", To: "hello@tiefer.space", ReplyTo: "ada@example.org",
+		Subject: "Website contact: Ada Łukasiewicz", Body: "Hello\nsecond line with = sign", Date: time.Unix(0, 0), Domain: "tiefer.space"}
+	raw, err := Build(m)
 	if err != nil {
-		t.Fatalf("valid token rejected: %v", err)
+		t.Fatal(err)
 	}
-	if !tokens.Consume(nonce) {
-		t.Fatal("first use must succeed")
+	msg, err := mail.ReadMessage(bytes.NewReader(raw))
+	if err != nil {
+		t.Fatal(err)
 	}
-	if tokens.Consume(nonce) {
-		t.Fatal("second use must fail")
+	if msg.Header.Get("Reply-To") != "ada@example.org" || msg.Header.Get("From") != "web@tiefer.space" {
+		t.Errorf("headers: %v", msg.Header)
 	}
-
-	now = now.Add(13 * time.Hour)
-	if _, err := tokens.Check(tok); err != ErrTokenExpired {
-		t.Fatalf("old token: got %v, want ErrTokenExpired", err)
+	dec := new(mime.WordDecoder)
+	if subj, _ := dec.DecodeHeader(msg.Header.Get("Subject")); subj != m.Subject {
+		t.Errorf("subject = %q", subj)
 	}
-}
-
-func TestTokenTampering(t *testing.T) {
-	now := time.Unix(1_800_000_000, 0)
-	a := NewTokens([]byte("0123456789abcdef0123456789abcdef"), func() time.Time { return now })
-	b := NewTokens([]byte("fedcba9876543210fedcba9876543210"), func() time.Time { return now.Add(time.Minute) })
-	tok := a.Issue()
-	if _, err := b.Check(tok); err != ErrTokenInvalid {
-		t.Errorf("token from another key: got %v, want ErrTokenInvalid", err)
-	}
-	flipped := []byte(tok)
-	if flipped[3] == 'A' {
-		flipped[3] = 'B'
-	} else {
-		flipped[3] = 'A'
-	}
-	now = now.Add(time.Minute)
-	for _, bad := range []string{"", "abc", string(flipped), tok + "x"} {
-		if _, err := a.Check(bad); err != ErrTokenInvalid {
-			t.Errorf("Check(%q): got %v, want ErrTokenInvalid", bad, err)
+	for _, v := range []string{"a\r\nBcc: x@y.z", "a\nb", "a\x00"} {
+		if _, err := Build(Message{From: "a@b.de", To: "c@d.de", Subject: v, Domain: "x"}); !errors.Is(err, ErrHeader) {
+			t.Errorf("Build accepted header %q", v)
 		}
 	}
 }
 
-func TestBuildMessage(t *testing.T) {
-	s, _ := Parse(validForm(), roles)
-	s.Name = "Aysel Məmmədova"
-	msg := string(BuildMessage(Envelope{
-		From: "web@tiefer.example", To: "team@tiefer.example", SiteURL: "https://tiefer.example",
-		RoleLabel: "Trader or analyst", Now: time.Unix(1_800_000_000, 0),
-	}, s))
-	head, body, ok := strings.Cut(msg, "\r\n\r\n")
-	if !ok {
-		t.Fatal("no header/body separator")
-	}
-	for _, want := range []string{
-		"From: \"Tiefer website\" <web@tiefer.example>\r\n",
-		"To: team@tiefer.example\r\n",
-		"Reply-To: =?utf-8?q?Aysel_M=C9=99mm=C9=99dova?= <aysel@example.org>\r\n",
-		"Subject: =?utf-8?q?",
-		"Content-Type: text/plain; charset=utf-8\r\n",
-	} {
-		if !strings.Contains(head, want) {
-			t.Errorf("header missing %q in:\n%s", want, head)
+func TestLimiter(t *testing.T) {
+	c := &clock{time.Unix(1000, 0)}
+	l := NewLimiter(2, time.Hour, 2, c.now)
+	for i, want := range []bool{true, true, false} {
+		if got := l.Allow("a"); got != want {
+			t.Errorf("event %d: Allow = %v, want %v", i+1, got, want)
 		}
 	}
-	if !strings.Contains(body, "Trader or analyst") || !strings.Contains(body, "vessel activity") {
-		t.Errorf("body incomplete:\n%s", body)
+	c.t = c.t.Add(61 * time.Minute)
+	if !l.Allow("a") {
+		t.Error("the window must slide")
+	}
+	if !l.Allow("b") {
+		t.Error("second key")
+	}
+	if l.Allow("c") {
+		t.Error("a full table of active keys must fail closed")
+	}
+	c.t = c.t.Add(2 * time.Hour)
+	if !l.Allow("c") {
+		t.Error("expired keys must be pruned")
+	}
+}
+
+func TestClientKey(t *testing.T) {
+	cases := map[string]string{
+		"203.0.113.7":             "203.0.113.7",
+		"::ffff:203.0.113.7":      "203.0.113.7",
+		"2001:db8:1:2:3:4:5:6":    "2001:db8:1:2::/64",
+		"2001:db8:1:2:ffff::1234": "2001:db8:1:2::/64",
+	}
+	for in, want := range cases {
+		if got := ClientKey(netip.MustParseAddr(in)); got != want {
+			t.Errorf("ClientKey(%s) = %s, want %s", in, got, want)
+		}
+	}
+	if ClientKey(netip.Addr{}) != "unknown" {
+		t.Error("invalid address")
 	}
 }

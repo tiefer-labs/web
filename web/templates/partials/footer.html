@@ -6,38 +6,23 @@
 {{define "footer" -}}
 {{- $f := .Site.Footer -}}
 <footer class="site-footer">
-  <div class="wrap footer-inner">
-    <div class="footer-brand">
-      <a href="{{.Anchor "top"}}">
-        <img class="logo-ink" src="{{asset "brand/tiefer-logo.svg"}}" alt="{{.Site.UI.LogoAlt}}" width="3669" height="700" loading="lazy">
-        {{- /* Only shown in high contrast mode with a dark background. */}}
-        <img class="logo-white" src="{{asset "brand/tiefer-logo-white.svg"}}" alt="{{.Site.UI.LogoAlt}}" width="3669" height="700" loading="lazy">
-      </a>
-      <p class="footer-tagline">{{$f.Tagline}}</p>
-    </div>
+  <div class="wrap footer-grid">
+    <a class="footer-logo" href="{{.Href "/"}}">
+      <img src="{{asset "brand/tiefer-logo.svg"}}" alt="{{.Site.Meta.SiteName}}" width="84" height="16">
+    </a>
     <nav class="footer-nav" aria-label="{{.Site.UI.FooterNav}}">
-      <div class="footer-col">
-        <h2 class="tech-label">{{$f.CompanyTitle}}</h2>
-        <ul role="list">
-          <li><a href="{{.Href "/legal"}}"{{if eq .Name "legal"}} aria-current="page"{{end}}>{{$f.LegalNotice}}</a></li>
-          <li><a href="{{.Href "/privacy"}}"{{if eq .Name "privacy"}} aria-current="page"{{end}}>{{$f.Privacy}}</a></li>
-          <li><a href="{{.Href "/acceptable-use"}}"{{if eq .Name "acceptable-use"}} aria-current="page"{{end}}>{{$f.AcceptableUse}}</a></li>
-          <li><a href="{{.Href "/ai-policy"}}"{{if eq .Name "ai-policy"}} aria-current="page"{{end}}>{{$f.AIPolicy}}</a></li>
-          <li><a href="/.well-known/security.txt">{{$f.Security}}</a></li>
-        </ul>
-      </div>
-      <div class="footer-col">
-        <h2 class="tech-label">{{$f.ContactTitle}}</h2>
-        <ul role="list">
-          <li><a href="mailto:{{.Cfg.ContactEmail}}">{{.Cfg.ContactEmail}}</a></li>
-          <li><a href="{{.Cfg.LinkedInURL}}" rel="noopener noreferrer">{{$f.LinkedIn}}</a></li>
-          {{- if .Cfg.RepoURL}}
-          <li><a href="{{.Cfg.RepoURL}}" rel="noopener noreferrer">{{$f.SourceCode}}</a></li>
-          {{- end}}
-        </ul>
-      </div>
+      <ul role="list">
+        <li><a href="{{.Href "/legal"}}"{{if eq .Name "legal"}} aria-current="page"{{end}}>{{$f.LegalNotice}}</a></li>
+        <li><a href="{{.Href "/privacy"}}"{{if eq .Name "privacy"}} aria-current="page"{{end}}>{{$f.Privacy}}</a></li>
+        <li><a href="{{.Href "/acceptable-use"}}"{{if eq .Name "acceptable-use"}} aria-current="page"{{end}}>{{$f.AcceptableUse}}</a></li>
+        <li><a href="{{.Cfg.LinkedInURL}}" rel="noopener noreferrer">{{$f.LinkedIn}}</a></li>
+        {{- if .Cfg.RepoURL}}
+        <li><a href="{{.Cfg.RepoURL}}" rel="noopener noreferrer">{{$f.SourceCode}}</a></li>
+        {{- end}}
+      </ul>
     </nav>
     <p class="footer-copy">{{$f.Copyright}}</p>
+    <p class="footer-tagline">{{$f.Tagline}}</p>
   </div>
 </footer>
 {{- end}}

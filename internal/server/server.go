@@ -2,15 +2,10 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
-// Package server wires the routes, handlers and middleware of the
-// website.
+// Package server holds the routes, handlers and middleware of the site.
 package server
 
 import (
-	"crypto/sha256"
-	"encoding/base64"
-	"encoding/json"
-	"fmt"
 	"html/template"
 	"io/fs"
 	"log/slog"
@@ -24,224 +19,203 @@ import (
 	"github.com/tiefer-labs/web/internal/render"
 )
 
-// Page names, matching the files in web/templates/pages, and their paths
-// relative to the locale prefix.
+// Limits of the HTTP server. They are exported so that cmd/tiefer-web
+// and the tests use the same values.
 const (
-	PageIndex         = "index"
-	PageLegal         = "legal"
-	PagePrivacy       = "privacy"
-	PageAcceptableUse = "acceptable-use"
-	PageAI            = "ai-policy"
-	PageNotFound      = "404"
+	ReadHeaderTimeout = 5 * time.Second
+	ReadTimeout       = 10 * time.Second
+	WriteTimeout      = 30 * time.Second // covers SMTP delivery of the contact form
+	IdleTimeout       = 60 * time.Second
+	ShutdownTimeout   = 15 * time.Second
+	MaxHeaderBytes    = 8 << 10
+	MaxURLLength      = 2048
+	MaxFormBytes      = 16 << 10 // the contact form, the only request with a body
+
+	MaxFormPosts      = 20     // contact form posts per client per hour
+	MaxSendsPerClient = 5      // delivered messages per client per hour
+	MaxSendsTotal     = 60     // delivered messages per hour in total
+	MaxClients        = 50_000 // clients tracked by the rate limits
 )
 
-// Pages lists every public page in sitemap order.
-var Pages = []struct{ Name, Path string }{
-	{PageIndex, "/"},
-	{PageLegal, "/legal"},
-	{PagePrivacy, "/privacy"},
-	{PageAcceptableUse, "/acceptable-use"},
-	{PageAI, "/ai-policy"},
-}
-
-// Options holds the dependencies of the server.
+// Options are the dependencies of the server.
 type Options struct {
 	Config    *config.Config
 	Logger    *slog.Logger
-	Templates fs.FS
-	Static    fs.FS
-	Locales   []*content.Site // defaults to content.Locales
-	Mailer    contact.Mailer  // defaults to SMTP from the config
 	Now       func() time.Time
+	Templates fs.FS           // the template tree, usually web.Templates()
+	Static    fs.FS           // the static tree, usually web.Static()
+	Locales   []*content.Site // defaults to content.Locales
+	Mailer    contact.Mailer  // defaults to SMTP from the configuration
 }
 
 // Server serves the website.
 type Server struct {
-	cfg         *config.Config
-	log         *slog.Logger
-	assets      *render.Assets
-	templates   *render.Templates
-	locales     []*content.Site
-	mailer      contact.Mailer
-	tokens      *contact.Tokens
-	limiter     *rateLimiter // per client
-	sendLimiter *rateLimiter // all delivered messages together
-	now         func() time.Time
-	jsonLD      template.HTML
-	csp         string
-	hsts        string
-	started     time.Time
-	handler     http.Handler
+	cfg             *config.Config
+	log             *slog.Logger
+	now             func() time.Time
+	assets          *render.Assets
+	templates       *render.Templates
+	locales         []*content.Site
+	jsonLD          template.HTML
+	manifestJSON    []byte
+	securityTxtBody []byte
+	sitemapXML      []byte
+	robotsTxt       []byte
+	mailer          contact.Mailer
+	tokens          *contact.Tokens
+	attempts        *contact.Limiter // form posts per client
+	sends           *contact.Limiter // delivered messages per client
+	globalSends     *contact.Limiter // delivered messages in total
+	headers         http.Header      // security headers set on every response
+	handler         http.Handler
+	routes          []route
+	allow           map[string][]string // exact path to its methods, for 405 replies
 }
 
-// New builds the server: it loads assets and templates, prepares the
-// JSON-LD block and its CSP hash, and registers every route.
+// route is one registered endpoint. The list drives the header tests,
+// so every route is covered.
+type route struct {
+	method, pattern, sample string
+}
+
+// New builds the server and registers every route.
 func New(o Options) (*Server, error) {
+	if o.Logger == nil {
+		o.Logger = slog.Default()
+	}
 	if o.Now == nil {
 		o.Now = time.Now
 	}
 	if o.Locales == nil {
 		o.Locales = content.Locales
 	}
-	if o.Logger == nil {
-		o.Logger = slog.Default()
+	s := &Server{cfg: o.Config, log: o.Logger, now: o.Now, locales: o.Locales, allow: map[string][]string{}}
+	s.tokens = contact.NewTokens([]byte(s.cfg.CSRFSecret.Reveal()), o.Now)
+	s.attempts = contact.NewLimiter(MaxFormPosts, time.Hour, MaxClients, o.Now)
+	s.sends = contact.NewLimiter(MaxSendsPerClient, time.Hour, MaxClients, o.Now)
+	s.globalSends = contact.NewLimiter(MaxSendsTotal, time.Hour, 1, o.Now)
+	s.mailer = o.Mailer
+	if s.mailer == nil {
+		s.mailer = s.mailerFromConfig()
 	}
-	assets, err := render.LoadAssets(o.Static)
+	var err error
+	if s.assets, err = render.LoadAssets(o.Static); err != nil {
+		return nil, err
+	}
+	if s.templates, err = render.LoadTemplates(o.Templates, s.assets); err != nil {
+		return nil, err
+	}
+	scripts, err := s.buildJSONLD()
 	if err != nil {
 		return nil, err
 	}
-	templates, err := render.LoadTemplates(o.Templates, assets)
-	if err != nil {
+	s.headers = securityHeaders(s.cfg, scripts)
+	s.sitemapXML = s.buildSitemap()
+	s.robotsTxt = s.buildRobots()
+	if err := s.buildManifest(); err != nil {
 		return nil, err
 	}
-	s := &Server{
-		cfg:         o.Config,
-		log:         o.Logger,
-		assets:      assets,
-		templates:   templates,
-		locales:     o.Locales,
-		mailer:      o.Mailer,
-		tokens:      contact.NewTokens(o.Config.CSRFSecret, o.Now),
-		limiter:     newRateLimiter(5, time.Hour, o.Now),
-		sendLimiter: newRateLimiter(50, time.Hour, o.Now),
-		now:         o.Now,
-		started:     o.Now(),
-	}
-	if s.mailer == nil && o.Config.ContactEnabled() {
-		s.mailer = &contact.SMTPMailer{
-			Host:       o.Config.SMTP.Host,
-			Port:       o.Config.SMTP.Port,
-			User:       o.Config.SMTP.User,
-			Pass:       o.Config.SMTP.Pass,
-			SkipVerify: o.Config.SMTP.SkipVerify,
-			LocalName:  hostOf(o.Config.SiteURL),
-		}
-	}
-	if err := s.buildJSONLD(); err != nil {
-		return nil, err
-	}
-	s.handler = s.routes()
-	return s, nil
-}
+	s.securityTxtBody = s.buildSecurityTxt()
 
-// Handler returns the root HTTP handler with all middleware applied.
-func (s *Server) Handler() http.Handler { return s.handler }
-
-func (s *Server) routes() http.Handler {
 	mux := http.NewServeMux()
-	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
-		w.Header().Set("Cache-Control", "no-store")
-		_, _ = w.Write([]byte("ok"))
-	})
-	mux.HandleFunc("GET /robots.txt", s.robots)
-	mux.HandleFunc("GET /.well-known/security.txt", s.securityTxt)
-	mux.Handle("GET /security.txt", http.RedirectHandler("/.well-known/security.txt", http.StatusMovedPermanently))
-	mux.HandleFunc("GET /sitemap.xml", s.sitemap)
-	mux.HandleFunc("GET /site.webmanifest", s.manifest)
-	mux.HandleFunc("GET /favicon.ico", s.rootAsset("favicon.ico"))
-	mux.HandleFunc("GET /apple-touch-icon.png", s.rootAsset("apple-touch-icon.png"))
-	mux.HandleFunc("GET "+render.StaticPrefix+"{path...}", s.static)
-
+	s.handle(mux, "GET", "/healthz", "/healthz", http.HandlerFunc(s.healthz))
+	s.handle(mux, "GET", render.StaticPrefix+"{path...}", s.assetURL("css/site.css"), http.HandlerFunc(s.static))
+	s.handle(mux, "GET", "/favicon.ico", "/favicon.ico", s.rootAsset("favicon.ico"))
+	s.handle(mux, "GET", "/apple-touch-icon.png", "/apple-touch-icon.png", s.rootAsset("apple-touch-icon.png"))
+	s.handle(mux, "GET", "/robots.txt", "/robots.txt", http.HandlerFunc(s.robots))
+	s.handle(mux, "GET", "/sitemap.xml", "/sitemap.xml", http.HandlerFunc(s.sitemap))
+	s.handle(mux, "GET", "/site.webmanifest", "/site.webmanifest", http.HandlerFunc(s.manifest))
+	s.handle(mux, "GET", "/.well-known/security.txt", "/.well-known/security.txt", http.HandlerFunc(s.securityTxt))
+	s.handle(mux, "GET", "/security.txt", "/security.txt", http.RedirectHandler("/.well-known/security.txt", http.StatusMovedPermanently))
+	// Cross-origin form posts are refused by Sec-Fetch-Site and Origin;
+	// SITE_URL is trusted explicitly because behind a proxy the Host header
+	// may be the origin's own name.
 	csrf := http.NewCrossOriginProtection()
+	if err := csrf.AddTrustedOrigin(s.cfg.Site()); err != nil {
+		return nil, err
+	}
 	for _, site := range s.locales {
-		prefix := site.Locale.Prefix
-		mux.HandleFunc("GET "+prefix+"/{$}", s.index(site))
-		mux.HandleFunc("GET "+prefix+"/legal", s.legal(site, PageLegal, &site.Legal.Notice))
-		mux.HandleFunc("GET "+prefix+"/privacy", s.legal(site, PagePrivacy, &site.Legal.Privacy))
-		mux.HandleFunc("GET "+prefix+"/acceptable-use", s.legal(site, PageAcceptableUse, &site.Legal.AcceptableUse))
-		mux.HandleFunc("GET "+prefix+"/ai-policy", s.legal(site, PageAI, &site.Legal.AI))
-		mux.Handle("POST "+prefix+"/contact", csrf.Handler(s.contact(site)))
-		if prefix != "" {
-			mux.Handle("GET "+prefix, http.RedirectHandler(prefix+"/", http.StatusMovedPermanently))
+		pre := site.Locale.Prefix
+		s.handle(mux, "GET", pre+"/{$}", pre+"/", s.index(site))
+		s.handle(mux, "GET", pre+"/legal", pre+"/legal", s.legal(site, PageLegal, &site.Legal.Notice))
+		s.handle(mux, "GET", pre+"/privacy", pre+"/privacy", s.legal(site, PagePrivacy, &site.Legal.Privacy))
+		s.handle(mux, "GET", pre+"/acceptable-use", pre+"/acceptable-use", s.legal(site, PageAcceptableUse, &site.Legal.AcceptableUse))
+		if s.cfg.ContactEnabled() {
+			s.handle(mux, "POST", pre+"/contact", pre+"/contact", csrf.Handler(s.contactForm(site)))
+		}
+		if pre != "" {
+			s.handle(mux, "GET", pre, pre, http.RedirectHandler(pre+"/", http.StatusMovedPermanently))
 		}
 	}
 	mux.HandleFunc("/", s.notFound)
 
 	var h http.Handler = mux
-	h = fetchMetadata(h)
-	h = s.canonicalHost(h)
+	h = s.limitRequests(h)
+	h = s.frontDoor(h)
 	h = s.securityHeaders(h)
 	h = s.logRequests(h)
 	h = s.recoverPanics(h)
-	return h
+	s.handler = h
+	return s, nil
 }
 
-// buildJSONLD prepares the Organization block and the CSP that allows
-// exactly this script by its hash, without 'unsafe-inline'.
-func (s *Server) buildJSONLD() error {
-	org := map[string]any{
-		"@context": "https://schema.org",
-		"@type":    "Organization",
-		"name":     content.Default().Meta.SiteName,
-		"url":      s.cfg.SiteURL + "/",
-		"logo":     s.cfg.SiteURL + render.StaticPrefix + "icon-512.png",
-		"email":    s.cfg.ContactEmail,
-		"sameAs":   []string{s.cfg.LinkedInURL},
-	}
-	b, err := json.Marshal(org) // escapes <, > and & for safe embedding
-	if err != nil {
-		return err
-	}
-	sum := sha256.Sum256(b)
-	hash := "'sha256-" + base64.StdEncoding.EncodeToString(sum[:]) + "'"
-	s.jsonLD = template.HTML(`<script type="application/ld+json">` + string(b) + `</script>`)
+// Handler returns the root handler with all middleware.
+func (s *Server) Handler() http.Handler { return s.handler }
 
-	// Everything is same-origin. Inline event handlers and style
-	// attributes are not used, and the script only assigns text, so
-	// Trusted Types can be enforced with no policy at all.
-	csp := []string{
-		"default-src 'none'",
-		"script-src 'self' " + hash,
-		"script-src-attr 'none'",
-		"style-src 'self'",
-		"style-src-attr 'none'",
-		"img-src 'self'",
-		"font-src 'self'",
-		"connect-src 'self'",
-		"manifest-src 'self'",
-		"form-action 'self'",
-		"frame-ancestors 'none'",
-		"base-uri 'none'",
-		"object-src 'none'",
-		"require-trusted-types-for 'script'",
-		"trusted-types 'none'",
+// HTTPServer returns an http.Server with the limits of this package.
+func (s *Server) HTTPServer(addr string) *http.Server {
+	return &http.Server{
+		Addr:              addr,
+		Handler:           s.handler,
+		ReadHeaderTimeout: ReadHeaderTimeout,
+		ReadTimeout:       ReadTimeout,
+		WriteTimeout:      WriteTimeout,
+		IdleTimeout:       IdleTimeout,
+		MaxHeaderBytes:    MaxHeaderBytes,
+		// Answer "OPTIONS *" through the handler (405) instead of
+		// Go's built-in reply.
+		DisableGeneralOptionsHandler: true,
+		ErrorLog:                     slog.NewLogLogger(s.log.Handler(), slog.LevelWarn),
 	}
-	s.hsts = "max-age=63072000; includeSubDomains"
-	if s.cfg.Production() {
-		csp = append(csp, "upgrade-insecure-requests")
-		// tiefer.space and all its subdomains are HTTPS only, so the
-		// domain can be submitted to the browsers' HSTS preload list.
-		s.hsts += "; preload"
-	}
-	s.csp = strings.Join(csp, "; ")
-	return nil
 }
 
-func hostOf(siteURL string) string {
-	_, rest, _ := strings.Cut(siteURL, "://")
-	host, _, _ := strings.Cut(rest, ":")
-	return host
-}
-
-// localeFor returns the locale whose prefix matches the request path.
-func (s *Server) localeFor(path string) *content.Site {
-	for _, site := range s.locales {
-		p := site.Locale.Prefix
-		if p != "" && (path == p || strings.HasPrefix(path, p+"/")) {
-			return site
+func (s *Server) handle(mux *http.ServeMux, method, pattern, sample string, h http.Handler) {
+	mux.Handle(method+" "+pattern, h)
+	s.routes = append(s.routes, route{method, pattern, sample})
+	if pattern == sample {
+		s.allow[pattern] = append(s.allow[pattern], method)
+		if method == http.MethodGet {
+			s.allow[pattern] = append(s.allow[pattern], http.MethodHead)
 		}
 	}
-	return s.locales[0]
 }
 
-// abs returns the absolute URL of a site path.
-func (s *Server) abs(path string) string { return s.cfg.SiteURL + path }
+func (s *Server) healthz(w http.ResponseWriter, _ *http.Request) {
+	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+	w.Header().Set("Cache-Control", "no-store")
+	_, _ = w.Write([]byte("ok"))
+}
 
-func (s *Server) assetURL(path string) string {
-	u, err := s.assets.URL(path)
-	if err != nil {
-		panic(fmt.Sprintf("server: %v", err)) // embedded at build time; a test covers it
+// notFound answers every request no route matched. A known path with
+// the wrong method gets 405; GET and HEAD get the 404 page, anything else
+// a short text 404.
+func (s *Server) notFound(w http.ResponseWriter, r *http.Request) {
+	if methods, ok := s.allow[r.URL.Path]; ok {
+		w.Header().Set("Allow", strings.Join(methods, ", "))
+		plainError(w, http.StatusMethodNotAllowed)
+		return
 	}
-	return u
+	if r.Method == http.MethodGet || r.Method == http.MethodHead {
+		s.notFoundPage(w, r)
+		return
+	}
+	plainError(w, http.StatusNotFound)
+}
+
+// plainError writes a short text error. It never includes request data.
+func plainError(w http.ResponseWriter, status int) {
+	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+	w.Header().Set("Cache-Control", "no-store")
+	w.WriteHeader(status)
+	_, _ = w.Write([]byte(http.StatusText(status) + "\n"))
 }

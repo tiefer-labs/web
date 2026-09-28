@@ -3,8 +3,7 @@
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 // Command tiefer-web serves the Tiefer website. Everything it needs is
-// embedded in the binary; configuration comes from environment variables
-// (see .env.example).
+// embedded in the binary; configuration comes from environment variables.
 package main
 
 import (
@@ -12,9 +11,11 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"net"
 	"net/http"
 	"os"
 	"os/signal"
+	"strconv"
 	"strings"
 	"syscall"
 	"time"
@@ -26,7 +27,7 @@ import (
 
 func main() {
 	// "tiefer-web healthcheck" probes /healthz, for container health
-	// checks on images without a shell or curl.
+	// checks in an image without a shell or curl.
 	if len(os.Args) > 1 && os.Args[1] == "healthcheck" {
 		os.Exit(healthcheck())
 	}
@@ -37,83 +38,77 @@ func main() {
 }
 
 func run() error {
-	cfg, err := config.Load()
+	cfg, err := config.Load(os.LookupEnv)
 	if err != nil {
 		return err
 	}
-
-	level := slog.LevelInfo
-	if os.Getenv("LOG_LEVEL") == "debug" {
-		level = slog.LevelDebug
-	}
-	var handler slog.Handler = slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: level})
+	var handler slog.Handler = slog.NewTextHandler(os.Stderr, nil)
 	if cfg.Production() {
-		handler = slog.NewJSONHandler(os.Stderr, &slog.HandlerOptions{Level: level})
+		handler = slog.NewJSONHandler(os.Stderr, nil)
 	}
-	logger := slog.New(handler)
-	slog.SetDefault(logger)
-
-	if defaults := cfg.DefaultsInUse(); len(defaults) > 0 {
-		logger.Warn("configuration still uses placeholder defaults", "vars", strings.Join(defaults, ","))
-	}
-	if !cfg.ContactEnabled() {
-		logger.Warn("SMTP is not configured: the contact form is hidden and only the email link is shown")
+	log := slog.New(handler)
+	slog.SetDefault(log)
+	if d := cfg.DefaultsInUse(); len(d) > 0 {
+		log.Warn("placeholder or development defaults in use", "vars", strings.Join(d, ","))
 	}
 
 	srv, err := server.New(server.Options{
 		Config:    cfg,
-		Logger:    logger,
+		Logger:    log,
 		Templates: web.Templates(),
 		Static:    web.Static(),
 	})
 	if err != nil {
 		return err
 	}
-
-	httpServer := &http.Server{
-		Addr:              ":" + cfg.Port,
-		Handler:           srv.Handler(),
-		ReadHeaderTimeout: 5 * time.Second,
-		ReadTimeout:       15 * time.Second,
-		WriteTimeout:      45 * time.Second, // covers SMTP delivery of the contact form
-		IdleTimeout:       120 * time.Second,
-		MaxHeaderBytes:    16 << 10, // the site needs no large headers
-		// Answer "OPTIONS *" through the handler (404) instead of Go's
-		// built-in reply.
-		DisableGeneralOptionsHandler: true,
-		ErrorLog:                     slog.NewLogLogger(handler, slog.LevelWarn),
-	}
+	hs := srv.HTTPServer(net.JoinHostPort("", strconv.Itoa(cfg.Port)))
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
-
 	errc := make(chan error, 1)
 	go func() {
-		logger.Info("listening", "addr", httpServer.Addr, "env", cfg.Env, "site", cfg.SiteURL, "contact_form", cfg.ContactEnabled())
-		errc <- httpServer.ListenAndServe()
+		log.Info("listening", "config", cfg)
+		errc <- hs.ListenAndServe()
 	}()
-
 	select {
 	case err := <-errc:
 		return err
 	case <-ctx.Done():
 	}
-	logger.Info("shutting down")
-	shutdownCtx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+	log.Info("shutting down")
+	sctx, cancel := context.WithTimeout(context.Background(), server.ShutdownTimeout)
 	defer cancel()
-	if err := httpServer.Shutdown(shutdownCtx); err != nil && !errors.Is(err, http.ErrServerClosed) {
+	if err := hs.Shutdown(sctx); err != nil && !errors.Is(err, http.ErrServerClosed) {
 		return err
 	}
 	return nil
 }
 
 func healthcheck() int {
-	port := os.Getenv("PORT")
-	if port == "" {
-		port = "8080"
+	// The probe only ever talks to the loopback interface; the port is the
+	// only input and must be a plain number.
+	port := 8080
+	if v := os.Getenv("PORT"); v != "" {
+		p, err := strconv.Atoi(v)
+		if err != nil || p < 1 || p > 65535 {
+			fmt.Fprintln(os.Stderr, "healthcheck: invalid PORT")
+			return 1
+		}
+		port = p
 	}
-	client := &http.Client{Timeout: 3 * time.Second}
-	res, err := client.Get("http://127.0.0.1:" + port + "/healthz")
+	// The URL is constant; the dialer alone decides the port.
+	addr := net.JoinHostPort("127.0.0.1", strconv.Itoa(port))
+	client := &http.Client{
+		Timeout: 3 * time.Second,
+		Transport: &http.Transport{
+			Proxy: nil,
+			DialContext: func(ctx context.Context, network, _ string) (net.Conn, error) {
+				var d net.Dialer
+				return d.DialContext(ctx, network, addr)
+			},
+		},
+	}
+	res, err := client.Get("http://localhost/healthz")
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "healthcheck:", err)
 		return 1

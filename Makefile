@@ -2,46 +2,57 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
-BINARY      := bin/tiefer-web
-IMAGE       ?= tiefer-web
-STATICCHECK := $(shell command -v staticcheck 2>/dev/null || echo $(shell go env GOPATH)/bin/staticcheck)
+# Development tools are pinned in tools/go.mod and run with "go tool".
+TOOL    := go tool -modfile=tools/go.mod
+BIN     := bin/tiefer-web
+IMAGE   := tiefer-web:local
+LDFLAGS := -s -w -buildid=
+FUZZTIME ?= 20s
 
-.PHONY: run build test lint vuln check fmt docker clean
+.PHONY: run build test check fmt vet lint sec vuln fuzz docker placeholders clean
 
-## run: start the server on PORT (default 8080), loading .env if present
 run:
-	@set -a; [ -f .env ] && . ./.env; set +a; go run ./cmd/tiefer-web
+	go run ./cmd/tiefer-web
 
-## build: build one self-contained binary into bin/
 build:
-	CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o $(BINARY) ./cmd/tiefer-web
+	CGO_ENABLED=0 go build -trimpath -ldflags '$(LDFLAGS)' -o $(BIN) ./cmd/tiefer-web
 
-## test: run every test, including the text check
 test:
-	go test ./...
+	go test -race -count=1 ./...
 
-## lint: gofmt check, go vet, and staticcheck if it is installed
-lint:
-	@test -z "$$(gofmt -l .)" || { echo "gofmt needed:"; gofmt -l .; exit 1; }
-	go vet ./...
-	@if [ -x "$(STATICCHECK)" ]; then echo "$(STATICCHECK) ./..."; "$(STATICCHECK)" ./...; \
-	else echo "staticcheck not installed, skipped (go install honnef.co/go/tools/cmd/staticcheck@latest)"; fi
+# check runs everything a commit must pass. govulncheck needs the network
+# (vuln.go.dev), so it runs separately as "make vuln" and in CI.
+check: fmt vet lint sec test
 
-## vuln: report known vulnerabilities in the code and the Go standard library
-vuln:
-	go run golang.org/x/vuln/cmd/govulncheck@v1.8.0 ./...
-
-## check: the text check (dashes, emoji, banned words), with placeholder warnings
-check:
-	go test -count=1 -v -run 'TestTextCheck' ./...
-
-## fmt: format the Go code
 fmt:
-	gofmt -w .
+	@out="$$(gofmt -l cmd internal web)"; if [ -n "$$out" ]; then echo "gofmt needed:"; echo "$$out"; exit 1; fi
 
-## docker: build the container image
+vet:
+	go vet ./...
+
+lint:
+	$(TOOL) staticcheck ./...
+
+sec:
+	$(TOOL) gosec -quiet ./...
+
+vuln:
+	$(TOOL) govulncheck ./...
+
+# Each fuzz target runs for FUZZTIME.
+fuzz:
+	@for pkg in $$(go list ./...); do \
+	  for t in $$(go test -list '^Fuzz' $$pkg | grep '^Fuzz'); do \
+	    echo "fuzz $$pkg $$t"; go test -run '^$$' -fuzz "^$$t$$" -fuzztime $(FUZZTIME) $$pkg || exit 1; \
+	  done; \
+	done
+
 docker:
 	docker build -t $(IMAGE) .
+
+# Lists placeholders and configuration defaults still in use (warnings).
+placeholders:
+	@go test -count=1 -v -run 'TestPlaceholderReport' ./internal/server | grep WARNING || true
 
 clean:
 	rm -rf bin

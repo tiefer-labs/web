@@ -4,22 +4,22 @@
   file, You can obtain one at https://mozilla.org/MPL/2.0/.
 */ -}}
 {{define "principles" -}}
-{{with .Site.Principles -}}
+{{- $s := .Site.Principles -}}
 <section class="section principles" id="principles" aria-labelledby="principles-title">
-  <div class="wrap">
-    <div class="section-head">
-      <h2 id="principles-title">{{.Title}}</h2>
-    </div>
-    <ol class="grid grid--3 principle-list" role="list">
-      {{- range $i, $p := .Items}}
-      <li class="principle">
-        <span class="tech-label index" aria-hidden="true">{{pad2 (inc $i)}}</span>
-        <h3>{{$p.Title}}</h3>
-        <p>{{$p.Text}}</p>
+  <div class="wrap grid">
+    <p class="section-label">{{$s.Label}}</p>
+    <h2 class="principles-title" id="principles-title">{{$s.Title}}</h2>
+    <ol class="clauses" role="list">
+      {{- range $s.Items}}
+      <li>
+        <span class="clause-num">{{.Number}}</span>
+        <div>
+          <h3>{{.Statement}}</h3>
+          <p>{{.Text}}</p>
+        </div>
       </li>
       {{- end}}
     </ol>
   </div>
 </section>
-{{- end}}
 {{- end}}

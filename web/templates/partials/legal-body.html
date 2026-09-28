@@ -3,47 +3,56 @@
   License, v. 2.0. If a copy of the MPL was not distributed with this
   file, You can obtain one at https://mozilla.org/MPL/2.0/.
 */ -}}
+{{define "parts" -}}
+{{- range . -}}
+{{- if .Href}}<a href="{{.Href}}">{{.Text}}</a>{{else if .Mark}}<mark class="placeholder">{{.Text}}</mark>{{else}}{{.Text}}{{end -}}
+{{- end -}}
+{{- end}}
 {{define "legal-body" -}}
-{{- $p := .Legal -}}
-{{- $sections := .LegalSections -}}
-<article class="legal wrap" aria-labelledby="legal-title">
-  {{- if not .Cfg.LegalReviewed}}
-  <p class="legal-note" role="note">{{.Site.Legal.ReviewNote}}</p>
-  {{- end}}
-  <h1 id="legal-title">{{$p.Title}}</h1>
-  <p class="legal-intro">{{.Fill $p.Intro}}</p>
-  {{- if gt (len $sections) 3}}
-  <nav class="legal-toc" aria-labelledby="legal-toc-title">
-    <h2 class="tech-label" id="legal-toc-title">{{.Site.Legal.Contents}}</h2>
-    <ol role="list">
-      {{- range $sections}}
-      <li><a href="#{{slug .Heading}}">{{.Heading}}</a></li>
+{{- $l := .Legal -}}
+<article class="section legal" aria-labelledby="legal-title">
+  <div class="wrap grid">
+    <p class="section-label">{{.Site.UI.LegalLabel}}</p>
+    <div class="legal-body">
+      {{- if not .Cfg.LegalReviewed}}
+      <p class="legal-note" role="note">{{.Site.Legal.ReviewNote}}</p>
       {{- end}}
-    </ol>
-  </nav>
-  {{- end}}
-  {{- range $sections}}
-  <section class="legal-section" id="{{slug .Heading}}">
-    <h2>{{.Heading}}</h2>
-    {{- with .Facts}}
-    <dl class="facts">
-      {{- range .}}
-      <div class="fact"><dt>{{.Label}}</dt><dd>{{$.Fill .Value}}</dd></div>
+      <h1 id="legal-title">{{$l.Title}}</h1>
+      <p class="legal-intro">{{template "parts" $l.Intro}}</p>
+      {{- if gt (len $l.Sections) 4}}
+      <nav class="legal-toc" aria-labelledby="legal-toc-title">
+        <h2 id="legal-toc-title">{{.Site.Legal.Contents}}</h2>
+        <ol>
+          {{- range $l.Sections}}
+          <li><a href="#{{.ID}}">{{.Title}}</a></li>
+          {{- end}}
+        </ol>
+      </nav>
       {{- end}}
-    </dl>
-    {{- end}}
-    {{- range .Paras}}
-    <p>{{$.Fill .}}</p>
-    {{- end}}
-    {{- with .List}}
-    <ul>
-      {{- range .}}
-      <li>{{$.Fill .}}</li>
+      {{- range $l.Sections}}
+      <section class="legal-section" id="{{.ID}}" aria-labelledby="{{.ID}}-title">
+        <h2 id="{{.ID}}-title">{{.Title}}</h2>
+        {{- with .Facts}}
+        <dl class="facts">
+          {{- range .}}
+          <div><dt>{{.Label}}</dt><dd>{{template "parts" .Value}}</dd></div>
+          {{- end}}
+        </dl>
+        {{- end}}
+        {{- range .Paras}}
+        <p>{{template "parts" .}}</p>
+        {{- end}}
+        {{- with .List}}
+        <ul>
+          {{- range .}}
+          <li>{{template "parts" .}}</li>
+          {{- end}}
+        </ul>
+        {{- end}}
+      </section>
       {{- end}}
-    </ul>
-    {{- end}}
-  </section>
-  {{- end}}
-  <p class="legal-updated">{{.Fill $p.Updated}}</p>
+      <p class="legal-updated">{{template "parts" $l.Updated}}</p>
+    </div>
+  </div>
 </article>
 {{- end}}

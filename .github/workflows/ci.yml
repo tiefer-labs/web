@@ -4,73 +4,72 @@
 
 name: CI
 
+# Pushes to main run this workflow through deploy.yml, which deploys only
+# when it passes.
 on:
-  push:
   pull_request:
   schedule:
-    # Weekly, so newly published vulnerabilities are found without a push.
-    - cron: "17 5 * * 1"
+    - cron: "17 5 * * 1" # weekly, to catch new vulnerabilities
+  workflow_dispatch:
+  workflow_call:
 
-# Least privilege: the jobs only read the repository.
 permissions:
   contents: read
 
 jobs:
-  go:
-    runs-on: ubuntu-latest
+  check:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
     steps:
-      # Actions are pinned to full commit SHAs; Dependabot updates them.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version-file: go.mod
-
-      - name: gofmt
-        run: |
-          unformatted="$(gofmt -l .)"
-          if [ -n "$unformatted" ]; then
-            echo "These files need gofmt:"
-            echo "$unformatted"
-            exit 1
-          fi
-
-      - name: go vet
-        run: go vet ./...
-
-      - name: staticcheck
-        run: go run honnef.co/go/tools/cmd/staticcheck@v0.8.1 ./...
-
-      - name: govulncheck (known vulnerabilities in Go and the standard library)
-        run: go run golang.org/x/vuln/cmd/govulncheck@v1.8.0 ./...
-
-      - name: go test (with the race detector)
-        run: go test -race ./...
-
-      - name: Text check (dashes, emoji, banned words, placeholder warnings)
+          cache-dependency-path: tools/go.sum
+      - name: gofmt, vet, staticcheck, gosec and tests (including the text check and budgets)
         run: make check
+      - name: Placeholders and defaults still to fill (warnings only)
+        run: make placeholders
+      - name: govulncheck
+        run: make vuln
+      - name: Fuzz (short)
+        run: make fuzz FUZZTIME=10s
 
-      - name: go build
-        run: CGO_ENABLED=0 go build -trimpath -o bin/tiefer-web ./cmd/tiefer-web
-
-  docker:
-    runs-on: ubuntu-latest
+  infra:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - name: Build image
-        run: docker build -t tiefer-web .
-      - name: Smoke test the image
+      - name: Build and lint the Bicep templates (offline, nothing is deployed)
         run: |
-          docker run -d --name web -p 8080:8080 \
-            -e CONTACT_EMAIL=hello@tiefer.space \
-            -e CSRF_SECRET="$(openssl rand -hex 32)" \
-            tiefer-web
-          sleep 3
-          docker exec web /tiefer-web healthcheck
-          # Production refuses hosts other than tiefer.space.
-          test "$(curl -s -o /dev/null -w '%{http_code}' http://localhost:8080/)" = 421
-          test "$(curl -s -o /dev/null -w '%{http_code}' -H 'Host: tiefer.space' http://localhost:8080/)" = 200
+          az bicep install
+          az bicep build --file infra/main.bicep --stdout > /dev/null
+          az bicep build-params --file infra/main.bicepparam --stdout > /dev/null
+          az bicep lint --file infra/main.bicep
+
+  docker:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    needs: check
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Build the image
+        run: make docker
+      - name: Run it locked down and probe it
+        run: |
+          docker run -d --name web --read-only --cap-drop=ALL \
+            --security-opt=no-new-privileges -p 127.0.0.1:8080:8080 \
+            -e ENV=development tiefer-web:local
+          for i in $(seq 1 20); do curl -fsS http://127.0.0.1:8080/healthz && break; sleep 1; done
+          curl -fsSI http://127.0.0.1:8080/ | tee headers.txt
+          grep -qi '^content-security-policy:' headers.txt
+          test "$(docker inspect -f '{{.Config.User}}' tiefer-web:local)" = "65532:65532"
+      - name: Stop
+        if: always()
+        run: docker rm -f web || true

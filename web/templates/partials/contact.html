@@ -4,85 +4,93 @@
   file, You can obtain one at https://mozilla.org/MPL/2.0/.
 */ -}}
 {{define "contact" -}}
-{{- $c := .Site.Contact -}}
+{{- $s := .Site.Contact -}}
+{{- $f := .Form -}}
 <section class="section contact" id="contact" aria-labelledby="contact-title">
-  <svg class="contact-waves" viewBox="0 0 1440 360" preserveAspectRatio="none" aria-hidden="true" focusable="false">
-    <g fill="none" stroke="#0C003D" stroke-width="10" stroke-linecap="round">
-      <path d="M-20 60c120-40 240 40 360 0s240-40 360 0 240 40 360 0 240-40 360 0 240 40 360 0"/>
-      <path d="M-20 140c120-40 240 40 360 0s240-40 360 0 240 40 360 0 240-40 360 0 240 40 360 0"/>
-      <path d="M-20 220c120-40 240 40 360 0s240-40 360 0 240 40 360 0 240-40 360 0 240 40 360 0"/>
-      <path d="M-20 300c120-40 240 40 360 0s240-40 360 0 240 40 360 0 240-40 360 0 240 40 360 0"/>
-    </g>
+  <svg class="contact-waves" viewBox="0 0 1440 400" preserveAspectRatio="none" aria-hidden="true" focusable="false">
+    <path d="M0 150C240 110 480 110 720 150S1200 190 1440 150"/>
+    <path d="M0 200C240 160 480 160 720 200S1200 240 1440 200"/>
+    <path d="M0 250C240 210 480 210 720 250S1200 290 1440 250"/>
+    <path d="M0 300C240 260 480 260 720 300S1200 340 1440 300"/>
   </svg>
-  <div class="wrap contact-grid">
+  <div class="wrap grid">
+    <p class="section-label">{{$s.Label}}</p>
     <div class="contact-intro">
-      <h2 id="contact-title">{{$c.Title}}</h2>
-      <p class="section-intro">{{$c.Body}}</p>
+      <h2 id="contact-title">{{$s.Title}}</h2>
+      <p>{{$s.Body}}</p>
     </div>
     <div class="contact-panel">
       {{- if .Cfg.ContactEnabled}}
-      {{- $f := .Form}}
-      <div class="form-status" id="form-status" role="status" aria-live="polite" tabindex="-1" data-form-status>
-        <p class="msg msg--ok" data-msg="sent"{{if ne $f.Status "sent"}} hidden{{end}}>{{$c.Success}}</p>
-        <p class="msg msg--warn" data-msg="invalid"{{if ne $f.Status "invalid"}} hidden{{end}}>{{$c.Errors.Summary}}</p>
-        <p class="msg msg--warn" data-msg="expired"{{if ne $f.Status "expired"}} hidden{{end}}>{{$c.Errors.Expired}}</p>
-        <p class="msg msg--error" data-msg="error"{{if ne $f.Status "error"}} hidden{{end}}>{{$c.Errors.ErrorBefore}} <a href="mailto:{{.Cfg.ContactEmail}}">{{.Cfg.ContactEmail}}</a>{{$c.Errors.ErrorAfter}}</p>
+      <div class="form-status" id="form-status" role="status" aria-live="polite" tabindex="-1" data-sending="{{$s.Sending}}">
+        {{- if eq $f.Status "sent"}}
+        <p class="status status-ok">{{$s.Success}}</p>
+        {{- else if eq $f.Status "invalid"}}
+        <p class="status status-error">{{$s.Invalid}}</p>
+        {{- else if eq $f.Status "expired"}}
+        <p class="status status-error">{{$s.Expired}}</p>
+        {{- else if eq $f.Status "limited"}}
+        <p class="status status-error">{{$s.Limited}}</p>
+        {{- else if eq $f.Status "error"}}
+        <p class="status status-error">{{$s.ErrorBefore}} <a href="mailto:{{.Cfg.ContactEmail}}">{{.Cfg.ContactEmail}}</a>{{$s.ErrorAfter}}</p>
+        {{- end}}
       </div>
-      {{- if ne $f.Status "sent"}}
-      <form class="contact-form" action="{{.Href "/contact"}}#contact" method="post" aria-label="{{$c.FormLabel}}" data-contact-form>
+      <form class="contact-form" method="post" action="{{.Href "/contact"}}#contact" aria-label="{{$s.FormLabel}}" data-error-before="{{$s.ErrorBefore}}" data-error-after="{{$s.ErrorAfter}}" data-email="{{.Cfg.ContactEmail}}">
         <input type="hidden" name="t" value="{{$f.Token}}">
-        <div class="field{{if $f.Err "name"}} has-error{{end}}">
-          <label for="f-name">{{$c.NameLabel}}</label>
-          <input id="f-name" name="name" type="text" autocomplete="name" autocapitalize="words" required maxlength="100" value="{{$f.Values.Name}}" aria-describedby="f-name-err"{{if $f.Err "name"}} aria-invalid="true"{{end}}>
-          <p class="field-error" id="f-name-err"{{if not ($f.Err "name")}} hidden{{end}}>{{$f.Err "name"}}</p>
+        <div class="field">
+          <label for="f-name">{{$s.NameLabel}}</label>
+          <input id="f-name" name="name" type="text" autocomplete="name" required maxlength="100" value="{{$f.Values.Name}}"{{with $f.Err "name"}} aria-invalid="true" aria-describedby="f-name-err"{{end}}>
+          {{- with $f.Err "name"}}<p class="field-error" id="f-name-err">{{.}}</p>{{end}}
         </div>
-        <div class="field{{if $f.Err "email"}} has-error{{end}}">
-          <label for="f-email">{{$c.EmailLabel}}</label>
-          <input id="f-email" name="email" type="email" autocomplete="email" autocapitalize="off" spellcheck="false" required maxlength="254" value="{{$f.Values.Email}}" aria-describedby="f-email-err"{{if $f.Err "email"}} aria-invalid="true"{{end}}>
-          <p class="field-error" id="f-email-err"{{if not ($f.Err "email")}} hidden{{end}}>{{$f.Err "email"}}</p>
+        <div class="field">
+          <label for="f-email">{{$s.EmailLabel}}</label>
+          <input id="f-email" name="email" type="email" autocomplete="email" required maxlength="254" spellcheck="false" autocapitalize="off" value="{{$f.Values.Email}}"{{with $f.Err "email"}} aria-invalid="true" aria-describedby="f-email-err"{{end}}>
+          {{- with $f.Err "email"}}<p class="field-error" id="f-email-err">{{.}}</p>{{end}}
         </div>
-        <div class="field-row">
-          <div class="field{{if $f.Err "org"}} has-error{{end}}">
-            <label for="f-org">{{$c.OrgLabel}} <span class="optional">({{$c.OptionalLabel}})</span></label>
-            <input id="f-org" name="org" type="text" autocomplete="organization" maxlength="150" value="{{$f.Values.Org}}" aria-describedby="f-org-err"{{if $f.Err "org"}} aria-invalid="true"{{end}}>
-            <p class="field-error" id="f-org-err"{{if not ($f.Err "org")}} hidden{{end}}>{{$f.Err "org"}}</p>
-          </div>
-          <div class="field{{if $f.Err "role"}} has-error{{end}}">
-            <label for="f-role">{{$c.RoleLabel}} <span class="optional">({{$c.OptionalLabel}})</span></label>
-            <select id="f-role" name="role" aria-describedby="f-role-err"{{if $f.Err "role"}} aria-invalid="true"{{end}}>
-              <option value="">{{$c.RoleEmpty}}</option>
-              {{- range $c.Roles}}
-              <option value="{{.Value}}"{{if eq $f.Values.Role .Value}} selected{{end}}>{{.Label}}</option>
-              {{- end}}
-            </select>
-            <p class="field-error" id="f-role-err"{{if not ($f.Err "role")}} hidden{{end}}>{{$f.Err "role"}}</p>
-          </div>
+        <div class="field">
+          <label for="f-org">{{$s.OrgLabel}} <span class="optional">({{$s.Optional}})</span></label>
+          <input id="f-org" name="org" type="text" autocomplete="organization" maxlength="150" value="{{$f.Values.Org}}"{{with $f.Err "org"}} aria-invalid="true" aria-describedby="f-org-err"{{end}}>
+          {{- with $f.Err "org"}}<p class="field-error" id="f-org-err">{{.}}</p>{{end}}
         </div>
-        <div class="field{{if $f.Err "question"}} has-error{{end}}">
-          <label for="f-question">{{$c.QuestionLabel}}</label>
-          <textarea id="f-question" name="question" rows="5" required maxlength="2000" aria-describedby="f-question-hint f-question-err"{{if $f.Err "question"}} aria-invalid="true"{{end}}>{{$f.Values.Question}}</textarea>
-          <p class="field-hint" id="f-question-hint">{{$c.QuestionHint}}</p>
-          <p class="field-error" id="f-question-err"{{if not ($f.Err "question")}} hidden{{end}}>{{$f.Err "question"}}</p>
+        <div class="field">
+          <label for="f-role">{{$s.RoleLabel}} <span class="optional">({{$s.Optional}})</span></label>
+          <select id="f-role" name="role"{{with $f.Err "role"}} aria-invalid="true" aria-describedby="f-role-err"{{end}}>
+            <option value="">{{$s.RoleEmpty}}</option>
+            {{- range $s.Roles}}
+            <option value="{{.Value}}"{{if eq .Value $f.Values.Role}} selected{{end}}>{{.Label}}</option>
+            {{- end}}
+          </select>
+          {{- with $f.Err "role"}}<p class="field-error" id="f-role-err">{{.}}</p>{{end}}
         </div>
-        <div class="field field--check{{if $f.Err "consent"}} has-error{{end}}">
-          <input id="f-consent" name="consent" type="checkbox" value="yes" required{{if $f.Values.Consent}} checked{{end}} aria-describedby="f-consent-err"{{if $f.Err "consent"}} aria-invalid="true"{{end}}>
-          <label for="f-consent">{{$c.ConsentBefore}}<a href="{{.Href "/privacy"}}">{{$c.ConsentLink}}</a>{{$c.ConsentAfter}}</label>
-          <p class="field-error" id="f-consent-err"{{if not ($f.Err "consent")}} hidden{{end}}>{{$f.Err "consent"}}</p>
+        <div class="field field-wide">
+          <label for="f-message">{{$s.MessageLabel}}</label>
+          <textarea id="f-message" name="message" rows="5" required maxlength="2000" aria-describedby="f-message-hint{{with $f.Err "message"}} f-message-err{{end}}"{{with $f.Err "message"}} aria-invalid="true"{{end}}>{{$f.Values.Message}}</textarea>
+          <p class="field-hint" id="f-message-hint">{{$s.MessageHint}}</p>
+          {{- with $f.Err "message"}}<p class="field-error" id="f-message-err">{{.}}</p>{{end}}
         </div>
-        <div class="hp" aria-hidden="true">
-          <label for="f-website">{{$c.HoneypotLabel}}</label>
+        <div class="field field-trap" aria-hidden="true">
+          <label for="f-website">{{$s.HoneypotLabel}}</label>
           <input id="f-website" name="website" type="text" tabindex="-1" autocomplete="off">
         </div>
-        <button class="btn btn--primary btn--wide" type="submit" data-sending="{{$c.Sending}}">{{$c.Submit}}</button>
+        <div class="field field-wide field-check">
+          <input id="f-consent" name="consent" type="checkbox" value="yes" required{{if $f.Values.Consent}} checked{{end}}{{with $f.Err "consent"}} aria-invalid="true" aria-describedby="f-consent-err"{{end}}>
+          <label for="f-consent">{{$s.ConsentBefore}}<a href="{{.Href "/privacy"}}">{{$s.ConsentLink}}</a>{{$s.ConsentAfter}}</label>
+          {{- with $f.Err "consent"}}<p class="field-error" id="f-consent-err">{{.}}</p>{{end}}
+        </div>
+        <p class="form-actions"><button class="button button-primary" type="submit">{{$s.Submit}}</button></p>
       </form>
-      {{- end}}
-      <p class="contact-alt">{{$c.PreferEmail}} <a href="mailto:{{.Cfg.ContactEmail}}">{{.Cfg.ContactEmail}}</a></p>
       {{- else}}
-      <p><a class="btn btn--primary" href="mailto:{{.Cfg.ContactEmail}}">{{$c.EmailUs}}</a></p>
+      <p class="form-actions"><a class="button button-primary" href="mailto:{{.Cfg.ContactEmail}}">{{$s.EmailUs}}</a></p>
       {{- end}}
-      <p class="contact-alt"><a class="text-link" href="{{.Cfg.LinkedInURL}}" rel="noopener noreferrer">{{$c.LinkedIn}}</a></p>
-      {{- /* Print only: the address itself, since buttons are not printed. */}}
-      <p class="print-only"><a href="mailto:{{.Cfg.ContactEmail}}">{{.Cfg.ContactEmail}}</a></p>
+      <dl class="contact-alt">
+        <div>
+          <dt>{{$s.PreferEmail}}</dt>
+          <dd><a href="mailto:{{.Cfg.ContactEmail}}">{{.Cfg.ContactEmail}}</a></dd>
+        </div>
+        <div>
+          <dt class="visually-hidden">LinkedIn</dt>
+          <dd><a href="{{.Cfg.LinkedInURL}}" rel="noopener noreferrer">{{$s.LinkedIn}}</a></dd>
+        </div>
+      </dl>
     </div>
   </div>
 </section>

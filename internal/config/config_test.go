@@ -5,172 +5,184 @@
 package config
 
 import (
+	"bytes"
+	"fmt"
+	"log/slog"
+	"os"
 	"strings"
 	"testing"
 )
 
-func load(env map[string]string) (*Config, error) {
-	return FromLookup(func(k string) (string, bool) {
-		v, ok := env[k]
+func env(m map[string]string) func(string) (string, bool) {
+	return func(k string) (string, bool) {
+		v, ok := m[k]
 		return v, ok
-	})
+	}
+}
+
+const secret = "0123456789abcdef0123456789abcdef-test"
+
+func prodEnv() map[string]string {
+	return map[string]string{
+		"ENV":         "production",
+		"SITE_URL":    "https://tiefer.space",
+		"CSRF_SECRET": secret,
+	}
 }
 
 func TestDevelopmentDefaults(t *testing.T) {
-	c, err := load(nil)
+	c, err := Load(env(nil))
 	if err != nil {
 		t.Fatal(err)
 	}
-	if c.Env != Development || c.Port != "8080" || c.SiteURL != "http://localhost:8080" {
-		t.Errorf("unexpected defaults: %+v", c)
+	if c.Production() || c.Port != 8080 || c.Site() != "http://localhost:8080" {
+		t.Errorf("unexpected defaults: env %q port %d site %q", c.Env, c.Port, c.Site())
 	}
-	if len(c.CSRFSecret) < 32 {
-		t.Error("development must get a random CSRF secret")
+	if c.ContactEmail != "hello@tiefer.space" || c.LinkedInURL != "https://www.linkedin.com/company/tiefer/" {
+		t.Errorf("contact %q, linkedin %q", c.ContactEmail, c.LinkedInURL)
 	}
-	if c.ContactEnabled() {
-		t.Error("contact form must be off without SMTP")
+	if len(c.CSRFSecret.Reveal()) < 32 {
+		t.Error("development needs a random CSRF secret")
 	}
-	if c.Legal.Founder != "[FOUNDER_NAME]" || c.Legal.Registered() || c.Legal.Operator() != "[FOUNDER_NAME]" || c.Legal.Reviewed {
+	if c.ContactEnabled() || c.RepoURL != "" || c.LogRetentionDays != 30 {
+		t.Error("contact form must be off, REPO_URL empty and retention 30 days by default")
+	}
+	if c.Legal.Name != "[COMPANY_LEGAL_NAME]" || c.Legal.TaxID != "[VOEN]" || c.Legal.Reviewed {
 		t.Errorf("legal defaults: %+v", c.Legal)
 	}
-	if c.LinkedInURL != "https://www.linkedin.com/company/tiefer" {
-		t.Errorf("LinkedInURL = %q", c.LinkedInURL)
-	}
-	if got := strings.Join(c.DefaultsInUse(), ","); !strings.Contains(got, "LEGAL_FOUNDER") || !strings.Contains(got, "LEGAL_REVIEWED") || strings.Contains(got, "LINKEDIN_URL") {
-		t.Errorf("DefaultsInUse = %s", got)
+	got := strings.Join(c.DefaultsInUse(), ",")
+	for _, want := range []string{"SITE_URL", "LEGAL_NAME", "LEGAL_TAX_ID", "LEGAL_REVIEWED"} {
+		if !strings.Contains(got, want) {
+			t.Errorf("DefaultsInUse = %s, missing %s", got, want)
+		}
 	}
 }
 
-func TestProductionRequiresValues(t *testing.T) {
-	_, err := load(map[string]string{"ENV": "production"})
+func TestProductionRequires(t *testing.T) {
+	_, err := Load(env(map[string]string{"ENV": "production"}))
 	if err == nil {
-		t.Fatal("production without CSRF_SECRET must fail")
+		t.Fatal("production without SITE_URL and CSRF_SECRET must fail")
 	}
-	for _, name := range []string{"CSRF_SECRET"} {
+	for _, name := range []string{"SITE_URL", "CSRF_SECRET"} {
 		if !strings.Contains(err.Error(), name) {
-			t.Errorf("error does not mention %s: %v", name, err)
+			t.Errorf("error does not name %s: %v", name, err)
 		}
 	}
-}
-
-func TestProductionDefaultsToTheRealDomain(t *testing.T) {
-	c, err := load(map[string]string{
-		"ENV":           "production",
-		"CONTACT_EMAIL": "hello@tiefer.space",
-		"CSRF_SECRET":   strings.Repeat("s", 64),
-	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	if c.SiteURL != "https://tiefer.space" || c.SiteHost() != "tiefer.space" {
-		t.Errorf("SiteURL = %q, SiteHost = %q", c.SiteURL, c.SiteHost())
-	}
-	for _, name := range c.DefaultsInUse() {
-		if name == "SITE_URL" {
-			t.Error("the production domain must not be reported as a placeholder")
-		}
+	if _, err := Load(env(prodEnv())); err != nil {
+		t.Errorf("minimal production config: %v", err)
 	}
 }
 
-func TestTieferSpaceDefaults(t *testing.T) {
-	c, err := load(map[string]string{"SMTP_HOST": "smtp.example.org"})
-	if err != nil {
-		t.Fatal(err)
-	}
-	if c.ContactEmail != "hello@tiefer.space" || c.SecurityEmail != "hello@tiefer.space" {
-		t.Errorf("contact %q, security %q", c.ContactEmail, c.SecurityEmail)
-	}
-	if !c.ContactEnabled() || c.ContactTo != "hello@tiefer.space" || c.ContactFrom != "website@tiefer.space" {
-		t.Errorf("contact form defaults: to %q, from %q", c.ContactTo, c.ContactFrom)
-	}
-	if c.RepoURL != "https://github.com/tiefer-labs/web" {
-		t.Errorf("RepoURL = %q", c.RepoURL)
-	}
-	c, err = load(map[string]string{"REPO_URL": ""})
-	if err != nil || c.RepoURL != "" {
-		t.Errorf("REPO_URL set to empty must hide the link: %q, %v", c.RepoURL, err)
-	}
-	for _, name := range c.DefaultsInUse() {
-		if name == "CONTACT_EMAIL" {
-			t.Error("hello@tiefer.space is not a placeholder")
-		}
-	}
-}
-
-func TestProductionValid(t *testing.T) {
-	c, err := load(map[string]string{
-		"ENV":           "production",
-		"SITE_URL":      "https://tiefer.example/",
-		"CONTACT_EMAIL": "hello@tiefer.example",
-		"CSRF_SECRET":   strings.Repeat("s", 64),
-		"SMTP_HOST":     "smtp.tiefer.example",
-		"SMTP_PORT":     "465",
-		"SMTP_USER":     "web",
-		"SMTP_PASS":     "secret with spaces",
-		"CONTACT_TO":    "team@tiefer.example",
-		"CONTACT_FROM":  "web@tiefer.example",
-	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	if c.SiteURL != "https://tiefer.example" {
-		t.Errorf("trailing slash not trimmed: %q", c.SiteURL)
-	}
-	if !c.ContactEnabled() || c.SMTP.Port != 465 || c.SMTP.Pass != "secret with spaces" {
-		t.Errorf("SMTP: %+v", c.SMTP)
-	}
-}
-
-func TestInvalidValues(t *testing.T) {
+func TestInvalid(t *testing.T) {
 	cases := []struct {
-		env  map[string]string
+		set  map[string]string
 		want string
 	}{
 		{map[string]string{"ENV": "staging"}, "ENV"},
 		{map[string]string{"PORT": "http"}, "PORT"},
-		{map[string]string{"SITE_URL": "tiefer.example"}, "SITE_URL"},
-		{map[string]string{"SITE_URL": "https://tiefer.example/path"}, "SITE_URL"},
-		{map[string]string{"ENV": "production", "SITE_URL": "http://tiefer.example", "CONTACT_EMAIL": "a@b.example", "CSRF_SECRET": strings.Repeat("s", 32)}, "https"},
-		{map[string]string{"CONTACT_EMAIL": "not an email"}, "CONTACT_EMAIL"},
+		{map[string]string{"PORT": "70000"}, "PORT"},
+		{map[string]string{"SITE_URL": "tiefer.space"}, "SITE_URL"},
+		{map[string]string{"SITE_URL": "https://tiefer.space/path"}, "SITE_URL"},
+		{map[string]string{"SITE_URL": "https://user@tiefer.space"}, "SITE_URL"},
+		{map[string]string{"SITE_URL": "http://tiefer.space"}, "https"},
+		{map[string]string{"CONTACT_EMAIL": "not an address"}, "CONTACT_EMAIL"},
 		{map[string]string{"CONTACT_EMAIL": "a@b.example\r\nBcc: c@d.example"}, "CONTACT_EMAIL"},
+		{map[string]string{"CONTACT_EMAIL": "Name <a@b.example>"}, "CONTACT_EMAIL"},
 		{map[string]string{"LINKEDIN_URL": "javascript:alert(1)"}, "LINKEDIN_URL"},
-		{map[string]string{"SECURITY_EMAIL": "security at tiefer"}, "SECURITY_EMAIL"},
-		{map[string]string{"REPO_URL": "ftp://example.org"}, "REPO_URL"},
+		{map[string]string{"REPO_URL": "http://example.org/repo"}, "REPO_URL"},
 		{map[string]string{"CSRF_SECRET": "short"}, "CSRF_SECRET"},
-		{map[string]string{"LEGAL_REVIEWED": "yes please"}, "LEGAL_REVIEWED"},
-		{map[string]string{"LEGAL_NAME": "Tiefer MMC"}, "LEGAL_TAX_ID is required when LEGAL_NAME is set"},
-		{map[string]string{"LEGAL_TAX_ID": "1234567890"}, "LEGAL_NAME is not"},
-		{map[string]string{"CONTACT_TO": "team@example.org"}, "SMTP_HOST"},
+		{map[string]string{"LEGAL_REVIEWED": "maybe"}, "LEGAL_REVIEWED"},
+		{map[string]string{"LOG_RETENTION_DAYS": "0"}, "LOG_RETENTION_DAYS"},
+		{map[string]string{"HSTS_PRELOAD": "yes please"}, "HSTS_PRELOAD"},
+		{map[string]string{"CONTACT_TO": "a@b.example"}, "SMTP_HOST"},
+		{map[string]string{"SMTP_HOST": "smtp.example.org"}, "CONTACT_TO"},
+		{map[string]string{"SMTP_HOST": "smtp.example.org:25", "CONTACT_TO": "a@b.example", "CONTACT_FROM": "c@d.example"}, "SMTP_HOST"},
 		{map[string]string{"SMTP_HOST": "smtp.example.org", "CONTACT_TO": "a@b.example", "CONTACT_FROM": "c@d.example", "SMTP_USER": "u"}, "SMTP_PASS"},
 		{map[string]string{"SMTP_HOST": "smtp.example.org", "CONTACT_TO": "a@b.example", "CONTACT_FROM": "c@d.example", "SMTP_PORT": "x"}, "SMTP_PORT"},
-		{map[string]string{"ENV": "production", "SITE_URL": "https://a.example", "CONTACT_EMAIL": "a@b.example", "CSRF_SECRET": strings.Repeat("s", 32), "SMTP_SKIP_VERIFY": "true"}, "SMTP_SKIP_VERIFY"},
+		{map[string]string{"BEHIND_FRONT_DOOR": "true"}, "FRONT_DOOR_ID"},
+		{map[string]string{"SMTP_SKIP_VERIFY": "true"}, "SMTP_SKIP_VERIFY"},
+		{map[string]string{"CSRF_SECRET": "@Microsoft.KeyVault(VaultName=tiefer-web-kv;SecretName=csrf-secret)"}, "unresolved Key Vault reference"},
 	}
-	for _, c := range cases {
-		_, err := load(c.env)
-		if err == nil || !strings.Contains(err.Error(), c.want) {
-			t.Errorf("%v: got %v, want an error about %s", c.env, err, c.want)
+	for _, tc := range cases {
+		set := map[string]string{}
+		if tc.want == "https" || tc.want == "FRONT_DOOR_ID" || tc.want == "SMTP_SKIP_VERIFY" {
+			set = prodEnv()
+		}
+		for k, v := range tc.set {
+			set[k] = v
+		}
+		_, err := Load(env(set))
+		if err == nil || !strings.Contains(err.Error(), tc.want) {
+			t.Errorf("%v: want error mentioning %s, got %v", tc.set, tc.want, err)
 		}
 	}
 }
 
-func TestRegisteredCompany(t *testing.T) {
-	c, err := load(map[string]string{
-		"LEGAL_NAME":         "Tiefer MMC",
-		"LEGAL_FORM":         "Limited liability company",
-		"LEGAL_ADDRESS":      "Baku",
-		"LEGAL_TAX_ID":       "1234567890",
-		"LEGAL_REGISTRATION": "Registered in Baku",
-		"LEGAL_DIRECTOR":     "A. Director",
-	})
+func TestSecretsAreRedacted(t *testing.T) {
+	set := prodEnv()
+	set["SMTP_HOST"] = "smtp.example.org"
+	set["SMTP_USER"] = "web"
+	set["SMTP_PASS"] = "smtp-password-value"
+	set["CONTACT_TO"] = "team@example.org"
+	set["CONTACT_FROM"] = "web@example.org"
+	set["BEHIND_FRONT_DOOR"] = "true"
+	set["FRONT_DOOR_ID"] = "front-door-id-value"
+	c, err := Load(env(set))
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !c.Legal.Registered() || c.Legal.Operator() != "Tiefer MMC" {
-		t.Errorf("registered = %v, operator = %q", c.Legal.Registered(), c.Legal.Operator())
+	var buf bytes.Buffer
+	log := slog.New(slog.NewJSONHandler(&buf, nil))
+	log.Info("config", "config", c, "pass", c.SMTP.Pass, "smtp", c.SMTP)
+	out := buf.String() + fmt.Sprintf("%v %+v %#v %s", c, c, c.SMTP, c.CSRFSecret)
+	for _, s := range []string{secret, "smtp-password-value", "front-door-id-value"} {
+		if strings.Contains(out, s) {
+			t.Errorf("secret %q leaked into output", s)
+		}
 	}
-	for _, name := range c.DefaultsInUse() {
-		if name == "LEGAL_FOUNDER" {
-			t.Error("LEGAL_FOUNDER is not needed once the company is registered")
+	if c.SMTP.Pass.Reveal() != "smtp-password-value" {
+		t.Error("Reveal must return the value")
+	}
+
+	// A failing configuration must not echo secrets either.
+	set["CONTACT_TO"] = "invalid"
+	_, err = Load(env(set))
+	if err == nil || strings.Contains(err.Error(), "smtp-password-value") || strings.Contains(err.Error(), secret) {
+		t.Errorf("error leaks a secret or is missing: %v", err)
+	}
+}
+
+// TestEnvExample keeps .env.example in step with the variables the code
+// reads, and makes sure it contains no real secret.
+func TestEnvExample(t *testing.T) {
+	b, err := os.ReadFile("../../.env.example")
+	if err != nil {
+		t.Fatal(err)
+	}
+	text := string(b)
+	for _, v := range Vars {
+		if !strings.Contains(text, "\n"+v.Name+"=") {
+			t.Errorf(".env.example lacks %s", v.Name)
+		}
+	}
+	for _, line := range strings.Split(text, "\n") {
+		for _, name := range []string{"SMTP_PASS=", "CSRF_SECRET=", "FRONT_DOOR_ID="} {
+			if strings.HasPrefix(line, name) && line != name {
+				t.Errorf(".env.example must leave %s empty", name)
+			}
+		}
+	}
+}
+
+func TestValidEmail(t *testing.T) {
+	for _, s := range []string{"hello@tiefer.space", "first.last+tag@example.co.uk"} {
+		if !ValidEmail(s) {
+			t.Errorf("ValidEmail(%q) = false", s)
+		}
+	}
+	for _, s := range []string{"", "a", "a@b", "a@b.c\n", "a b@c.de", "<a@b.de>", "a@b.de,c@d.de", "\"x\"@b.de", strings.Repeat("a", 250) + "@b.de"} {
+		if ValidEmail(s) {
+			t.Errorf("ValidEmail(%q) = true", s)
 		}
 	}
 }

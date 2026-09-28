@@ -2,9 +2,8 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
-// Package config loads and validates the configuration of the website
-// from environment variables. It is the only place that reads the
-// environment.
+// Package config reads the configuration from environment variables and
+// validates it once at startup. No other package reads the environment.
 package config
 
 import (
@@ -12,45 +11,68 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"log/slog"
 	"net/mail"
 	"net/url"
-	"os"
 	"strconv"
 	"strings"
 )
 
-// Environment names accepted in ENV.
+// Environments accepted in ENV.
 const (
 	Development = "development"
 	Production  = "production"
 )
 
-// Addresses of the public site at tiefer.space, used as defaults.
-const (
-	// ProductionSiteURL is the default for SITE_URL in production.
-	ProductionSiteURL = "https://tiefer.space"
-	// DefaultContactEmail is the default for CONTACT_EMAIL, and for
-	// CONTACT_TO when the contact form is set up.
-	DefaultContactEmail = "hello@tiefer.space"
-	// DefaultContactFrom is the default sender of contact form messages.
-	DefaultContactFrom = "website@tiefer.space"
-	// DefaultRepoURL is the public source repository, linked in the footer.
-	DefaultRepoURL = "https://github.com/tiefer-labs/web"
-	// DefaultLinkedInURL is the Tiefer company page on LinkedIn.
-	DefaultLinkedInURL = "https://www.linkedin.com/company/tiefer"
-)
+// Secret holds a value that must never appear in logs, errors or
+// rendered output. Its String and LogValue methods return a fixed mask;
+// the value itself is only available through Reveal.
+type Secret struct{ v string }
 
-// Legal holds the details shown on the legal pages. Tiefer is not yet
-// registered as a company, so the site is operated by its founder: Founder
-// is used until the company details, starting with LEGAL_NAME, are set.
-// Unknown values default to clearly marked placeholders, never to invented
-// data.
+// NewSecret wraps a secret value.
+func NewSecret(v string) Secret { return Secret{v: v} }
+
+// Reveal returns the secret value, for the one place that needs it.
+func (s Secret) Reveal() string { return s.v }
+
+// Set reports whether the secret has a value.
+func (s Secret) Set() bool { return s.v != "" }
+
+// String masks the value, so fmt verbs never print it.
+func (s Secret) String() string {
+	if s.v == "" {
+		return ""
+	}
+	return "[redacted]"
+}
+
+// GoString masks the value for %#v.
+func (s Secret) GoString() string { return s.String() }
+
+// LogValue masks the value for log/slog.
+func (s Secret) LogValue() slog.Value { return slog.StringValue(s.String()) }
+
+// MarshalText masks the value for encoders.
+func (s Secret) MarshalText() ([]byte, error) { return []byte(s.String()), nil }
+
+// SMTP holds the mail delivery settings of the contact form.
+type SMTP struct {
+	Host string
+	Port int
+	User string
+	Pass Secret
+	// SkipVerify accepts any TLS certificate. Development only, for a
+	// local catcher such as Mailpit; refused in production.
+	SkipVerify bool
+}
+
+// Legal holds the company details shown on the legal pages. Unset values
+// default to clearly marked placeholders, never to invented data.
 type Legal struct {
-	Founder         string // LEGAL_FOUNDER
-	Name            string // LEGAL_NAME, empty until the company is registered
+	Name            string // LEGAL_NAME
 	Form            string // LEGAL_FORM
 	Address         string // LEGAL_ADDRESS
-	TaxID           string // LEGAL_TAX_ID (VÖEN)
+	TaxID           string // LEGAL_TAX_ID (VOEN)
 	Registration    string // LEGAL_REGISTRATION
 	Director        string // LEGAL_DIRECTOR
 	HostingProvider string // LEGAL_HOSTING_PROVIDER
@@ -60,360 +82,292 @@ type Legal struct {
 	Reviewed        bool   // LEGAL_REVIEWED
 }
 
-// SMTP holds the mail delivery settings for the contact form.
-type SMTP struct {
-	Host string
-	Port int
-	User string
-	Pass string
-	// SkipVerify disables TLS certificate checks. Only allowed in
-	// development, for local SMTP catchers with self-signed certificates.
-	SkipVerify bool
-}
-
 // Config is the validated configuration.
 type Config struct {
-	Port         string
+	Port         int
 	Env          string
-	SiteURL      string // without trailing slash
+	SiteURL      *url.URL // scheme and host only
 	ContactEmail string
-	// SecurityEmail receives vulnerability reports (security.txt).
-	// It defaults to ContactEmail.
-	SecurityEmail string
-	LinkedInURL   string
-	RepoURL       string
-	TrustProxy    bool
+	LinkedInURL  string
+	RepoURL      string
 
 	SMTP        SMTP
 	ContactTo   string
 	ContactFrom string
-	CSRFSecret  []byte
+	CSRFSecret  Secret
 
-	Legal Legal
+	Legal            Legal
+	LogRetentionDays int
+
+	BehindFrontDoor bool
+	FrontDoorID     Secret
+	HSTSPreload     bool
+
+	// defaults lists the variables that still carry a development default
+	// or a placeholder, for the startup warning.
+	defaults []string
 }
 
-// Var describes one environment variable: its name and development default.
+// Var is one environment variable with its development default.
 type Var struct {
 	Name    string
 	Default string
+	Comment string
 }
 
-// Defaults lists the variables whose development defaults are placeholders
-// that must be replaced before launch. Values that are empty by default
-// (SMTP, REPO_URL) are optional and therefore not listed here.
-var Defaults = []Var{
-	{"SITE_URL", "http://localhost:8080"},
-	{"LEGAL_FOUNDER", "[FOUNDER_NAME]"},
-	{"LEGAL_HOSTING_PROVIDER", "[HOSTING_PROVIDER]"},
-	{"LEGAL_HOSTING_COUNTRY", "[HOSTING_COUNTRY]"},
-	{"LEGAL_SMTP_PROVIDER", "[SMTP_PROVIDER]"},
-	{"LEGAL_SMTP_COUNTRY", "[SMTP_COUNTRY]"},
+// Vars lists every variable the site reads, in the order of .env.example.
+// A test keeps .env.example in step with this list.
+var Vars = []Var{
+	{"PORT", "8080", "HTTP port."},
+	{"ENV", Development, "development or production."},
+	{"SITE_URL", "http://localhost:8080", "Canonical base URL. Production: https://tiefer.space"},
+	{"CONTACT_EMAIL", "hello@tiefer.space", "Public contact address and mailto link."},
+	{"LINKEDIN_URL", "https://www.linkedin.com/company/tiefer/", "LinkedIn company page."},
+	{"REPO_URL", "", "Public source repository, linked in the footer when set."},
+	{"SMTP_HOST", "", "Mail server for the contact form. Empty hides the form."},
+	{"SMTP_PORT", "587", "465 uses implicit TLS; any other port must offer STARTTLS."},
+	{"SMTP_USER", "", "SMTP user name."},
+	{"SMTP_PASS", "", "SMTP password. In production it comes from Azure Key Vault."},
+	{"CONTACT_TO", "", "Where contact form messages are delivered."},
+	{"CONTACT_FROM", "", "Sender address of contact form messages."},
+	{"SMTP_SKIP_VERIFY", "false", "Development only: accept the self-signed certificate of a local SMTP catcher such as Mailpit. Refused in production."},
+	{"CSRF_SECRET", "", "Signing key for form tokens, at least 32 characters. Required in production; random in development."},
+	{"LEGAL_NAME", "[COMPANY_LEGAL_NAME]", "Company legal name."},
+	{"LEGAL_FORM", "[LEGAL_FORM]", "Legal form, for example MMC (limited liability company under the laws of the Republic of Azerbaijan)."},
+	{"LEGAL_ADDRESS", "[REGISTERED_ADDRESS_BAKU]", "Registered address in Baku."},
+	{"LEGAL_TAX_ID", "[VOEN]", "Tax identification number (VOEN)."},
+	{"LEGAL_REGISTRATION", "[STATE_REGISTRATION_DETAILS]", "State registration details."},
+	{"LEGAL_DIRECTOR", "[MANAGING_DIRECTOR]", "Managing director."},
+	{"LEGAL_HOSTING_PROVIDER", "[HOSTING_PROVIDER]", "Hosting provider, named in the privacy notice."},
+	{"LEGAL_HOSTING_COUNTRY", "[HOSTING_COUNTRY]", "Country where the site is hosted."},
+	{"LEGAL_SMTP_PROVIDER", "[SMTP_PROVIDER]", "Email provider, named in the privacy notice."},
+	{"LEGAL_SMTP_COUNTRY", "[SMTP_COUNTRY]", "Country of the email provider."},
+	{"LEGAL_REVIEWED", "false", "true only after a lawyer has reviewed the legal pages."},
+	{"LOG_RETENTION_DAYS", "30", "Shown on the privacy page; must match the Azure log retention."},
+	{"BEHIND_FRONT_DOOR", "false", "true on Azure: requests must carry the Front Door ID, and the client address comes from Front Door."},
+	{"FRONT_DOOR_ID", "", "The Front Door profile ID. Required when BEHIND_FRONT_DOOR=true in production."},
+	{"HSTS_PRELOAD", "false", "Adds preload to Strict-Transport-Security. Founder decision."},
 }
 
 func defaultOf(name string) string {
-	for _, v := range Defaults {
+	for _, v := range Vars {
 		if v.Name == name {
 			return v.Default
 		}
 	}
-	return ""
+	panic("config: unknown variable " + name)
 }
 
-// Load reads the configuration from the process environment.
-func Load() (*Config, error) {
-	return FromLookup(os.LookupEnv)
-}
-
-// FromLookup reads the configuration through lookup, which has the
-// signature of os.LookupEnv. Tests pass a map-backed function.
-func FromLookup(lookup func(string) (string, bool)) (*Config, error) {
+// Load reads the configuration through lookup, which has the signature
+// of os.LookupEnv. All problems are reported together.
+func Load(lookup func(string) (string, bool)) (*Config, error) {
 	var errs []error
+	c := &Config{}
 	get := func(name string) string {
-		v, _ := lookup(name)
+		v, ok := lookup(name)
+		if !ok || strings.TrimSpace(v) == "" {
+			return ""
+		}
 		return strings.TrimSpace(v)
 	}
-	c := &Config{}
-	c.Env = get("ENV")
-	if c.Env == "" {
-		c.Env = Development
+	// value returns the variable or its default, and remembers defaults
+	// that are placeholders or development values.
+	value := func(name string) string {
+		if v := get(name); v != "" {
+			return v
+		}
+		d := defaultOf(name)
+		if strings.HasPrefix(d, "[") {
+			c.defaults = append(c.defaults, name)
+		}
+		return d
 	}
+	boolean := func(name string) bool {
+		s := value(name)
+		b, err := strconv.ParseBool(s)
+		if err != nil {
+			errs = append(errs, fmt.Errorf("%s must be true or false, got %q", name, s))
+		}
+		return b
+	}
+
+	c.Env = value("ENV")
 	if c.Env != Development && c.Env != Production {
 		errs = append(errs, fmt.Errorf("ENV must be %q or %q, got %q", Development, Production, c.Env))
 	}
 	prod := c.Env == Production
-	// orDefault returns the value or its development default. In
-	// production, required variables get no default.
-	orDefault := func(name string, required bool) string {
-		v := get(name)
-		if v != "" {
-			return v
-		}
-		if prod && required {
-			errs = append(errs, fmt.Errorf("%s is required in production", name))
-			return ""
-		}
-		return defaultOf(name)
-	}
 
-	c.Port = get("PORT")
-	if c.Port == "" {
-		c.Port = "8080"
+	port, err := strconv.Atoi(value("PORT"))
+	if err != nil || port < 1 || port > 65535 {
+		errs = append(errs, fmt.Errorf("PORT must be a number from 1 to 65535"))
 	}
-	if p, err := strconv.Atoi(c.Port); err != nil || p < 1 || p > 65535 {
-		errs = append(errs, fmt.Errorf("PORT must be a number between 1 and 65535, got %q", c.Port))
-	}
+	c.Port = port
 
-	c.SiteURL = strings.TrimRight(get("SITE_URL"), "/")
-	if c.SiteURL == "" {
-		c.SiteURL = defaultOf("SITE_URL")
+	site := get("SITE_URL")
+	if site == "" {
 		if prod {
-			c.SiteURL = ProductionSiteURL
+			errs = append(errs, errors.New("SITE_URL is required in production (https://tiefer.space)"))
 		}
+		site = defaultOf("SITE_URL")
+		c.defaults = append(c.defaults, "SITE_URL")
 	}
-	if c.SiteURL != "" {
-		u, err := url.Parse(c.SiteURL)
-		switch {
-		case err != nil || u.Host == "" || (u.Scheme != "http" && u.Scheme != "https"):
-			errs = append(errs, fmt.Errorf("SITE_URL must be an absolute http or https URL, got %q", c.SiteURL))
-		case u.Path != "" || u.RawQuery != "" || u.Fragment != "":
-			errs = append(errs, fmt.Errorf("SITE_URL must not contain a path, query or fragment, got %q", c.SiteURL))
-		case prod && u.Scheme != "https":
-			errs = append(errs, fmt.Errorf("SITE_URL must use https in production, got %q", c.SiteURL))
-		}
+	u, err := url.Parse(strings.TrimRight(site, "/"))
+	switch {
+	case err != nil || u.Host == "" || (u.Scheme != "http" && u.Scheme != "https"):
+		errs = append(errs, fmt.Errorf("SITE_URL must be an absolute http or https URL, got %q", site))
+	case u.Path != "" || u.RawQuery != "" || u.Fragment != "" || u.User != nil:
+		errs = append(errs, fmt.Errorf("SITE_URL must contain only a scheme and a host, got %q", site))
+	case prod && u.Scheme != "https":
+		errs = append(errs, errors.New("SITE_URL must use https in production"))
 	}
+	c.SiteURL = u
 
-	c.ContactEmail = get("CONTACT_EMAIL")
-	if c.ContactEmail == "" {
-		c.ContactEmail = DefaultContactEmail
+	c.ContactEmail = value("CONTACT_EMAIL")
+	if !ValidEmail(c.ContactEmail) {
+		errs = append(errs, fmt.Errorf("CONTACT_EMAIL is not a valid address: %q", c.ContactEmail))
 	}
-	if c.ContactEmail != "" && !validEmail(c.ContactEmail) {
-		errs = append(errs, fmt.Errorf("CONTACT_EMAIL is not a valid email address: %q", c.ContactEmail))
-	}
-	c.SecurityEmail = get("SECURITY_EMAIL")
-	if c.SecurityEmail == "" {
-		c.SecurityEmail = c.ContactEmail
-	} else if !validEmail(c.SecurityEmail) {
-		errs = append(errs, fmt.Errorf("SECURITY_EMAIL is not a valid email address: %q", c.SecurityEmail))
-	}
-	c.LinkedInURL = get("LINKEDIN_URL")
-	if c.LinkedInURL == "" {
-		c.LinkedInURL = DefaultLinkedInURL
-	}
-	if err := checkHTTPURL("LINKEDIN_URL", c.LinkedInURL); err != nil {
+	c.LinkedInURL = value("LINKEDIN_URL")
+	if err := checkLink("LINKEDIN_URL", c.LinkedInURL); err != nil {
 		errs = append(errs, err)
 	}
-	// The repository is public, so the footer links to it unless REPO_URL is
-	// set, including set to empty to hide the link.
-	if v, ok := lookup("REPO_URL"); ok {
-		c.RepoURL = strings.TrimSpace(v)
-	} else {
-		c.RepoURL = DefaultRepoURL
-	}
+	c.RepoURL = get("REPO_URL")
 	if c.RepoURL != "" {
-		if err := checkHTTPURL("REPO_URL", c.RepoURL); err != nil {
+		if err := checkLink("REPO_URL", c.RepoURL); err != nil {
 			errs = append(errs, err)
 		}
 	}
-	var err error
-	if c.TrustProxy, err = parseBool("TRUST_PROXY", get("TRUST_PROXY")); err != nil {
-		errs = append(errs, err)
-	}
 
-	// Contact form delivery. SMTP_HOST turns it on; messages go to
-	// CONTACT_EMAIL from website@tiefer.space unless CONTACT_TO and
-	// CONTACT_FROM say otherwise.
+	// Contact form delivery. SMTP_HOST switches it on; then every
+	// setting it needs must be valid.
 	c.SMTP.Host = get("SMTP_HOST")
 	c.SMTP.User = get("SMTP_USER")
-	c.SMTP.Pass, _ = lookup("SMTP_PASS") // passwords may contain spaces
+	if v, ok := lookup("SMTP_PASS"); ok {
+		c.SMTP.Pass = NewSecret(v) // not trimmed: passwords may contain spaces
+	}
 	c.ContactTo = get("CONTACT_TO")
 	c.ContactFrom = get("CONTACT_FROM")
-	if c.SMTP.Host != "" {
-		if c.ContactTo == "" {
-			c.ContactTo = c.ContactEmail
-		}
-		if c.ContactFrom == "" {
-			c.ContactFrom = DefaultContactFrom
-		}
+	c.SMTP.Port, err = strconv.Atoi(value("SMTP_PORT"))
+	if err != nil || c.SMTP.Port < 1 || c.SMTP.Port > 65535 {
+		errs = append(errs, errors.New("SMTP_PORT must be a number from 1 to 65535"))
 	}
-	if c.SMTP.Host != "" || c.ContactTo != "" || c.ContactFrom != "" {
-		if c.SMTP.Host == "" {
-			errs = append(errs, errors.New("SMTP_HOST is required when CONTACT_TO or CONTACT_FROM is set"))
+	if c.SMTP.Host != "" {
+		if strings.ContainsAny(c.SMTP.Host, "/: \t") {
+			errs = append(errs, errors.New("SMTP_HOST must be a host name without scheme or port"))
 		}
-		if !validEmail(c.ContactTo) {
-			errs = append(errs, fmt.Errorf("CONTACT_TO must be a valid email address when SMTP is configured, got %q", c.ContactTo))
+		if !ValidEmail(c.ContactTo) {
+			errs = append(errs, errors.New("CONTACT_TO must be a valid address when SMTP_HOST is set"))
 		}
-		if !validEmail(c.ContactFrom) {
-			errs = append(errs, fmt.Errorf("CONTACT_FROM must be a valid email address when SMTP is configured, got %q", c.ContactFrom))
+		if !ValidEmail(c.ContactFrom) {
+			errs = append(errs, errors.New("CONTACT_FROM must be a valid address when SMTP_HOST is set"))
 		}
-		port := get("SMTP_PORT")
-		if port == "" {
-			port = "587"
-		}
-		if c.SMTP.Port, err = strconv.Atoi(port); err != nil || c.SMTP.Port < 1 || c.SMTP.Port > 65535 {
-			errs = append(errs, fmt.Errorf("SMTP_PORT must be a port number, got %q", port))
-		}
-		if (c.SMTP.User == "") != (c.SMTP.Pass == "") {
+		if (c.SMTP.User == "") != !c.SMTP.Pass.Set() {
 			errs = append(errs, errors.New("SMTP_USER and SMTP_PASS must be set together"))
 		}
+	} else if c.ContactTo != "" || c.ContactFrom != "" || c.SMTP.User != "" || c.SMTP.Pass.Set() {
+		errs = append(errs, errors.New("SMTP_HOST is required when other SMTP or CONTACT_ settings are set"))
 	}
-	if c.SMTP.SkipVerify, err = parseBool("SMTP_SKIP_VERIFY", get("SMTP_SKIP_VERIFY")); err != nil {
-		errs = append(errs, err)
-	}
+
+	c.SMTP.SkipVerify = boolean("SMTP_SKIP_VERIFY")
 	if prod && c.SMTP.SkipVerify {
 		errs = append(errs, errors.New("SMTP_SKIP_VERIFY is not allowed in production"))
 	}
 
-	secret := get("CSRF_SECRET")
-	switch {
-	case secret == "" && prod:
-		errs = append(errs, errors.New("CSRF_SECRET is required in production (at least 32 characters, for example: openssl rand -hex 32)"))
-	case secret == "":
-		b := make([]byte, 32)
-		_, _ = rand.Read(b)
-		c.CSRFSecret = []byte(hex.EncodeToString(b))
-	case len(secret) < 32:
-		errs = append(errs, errors.New("CSRF_SECRET must be at least 32 characters"))
-	default:
-		c.CSRFSecret = []byte(secret)
-	}
-
-	c.Legal = Legal{
-		Founder:         orDefault("LEGAL_FOUNDER", false),
-		Name:            get("LEGAL_NAME"),
-		Form:            get("LEGAL_FORM"),
-		Address:         get("LEGAL_ADDRESS"),
-		TaxID:           get("LEGAL_TAX_ID"),
-		Registration:    get("LEGAL_REGISTRATION"),
-		Director:        get("LEGAL_DIRECTOR"),
-		HostingProvider: orDefault("LEGAL_HOSTING_PROVIDER", false),
-		HostingCountry:  orDefault("LEGAL_HOSTING_COUNTRY", false),
-		SMTPProvider:    orDefault("LEGAL_SMTP_PROVIDER", false),
-		SMTPCountry:     orDefault("LEGAL_SMTP_COUNTRY", false),
-	}
-	if c.Legal.Reviewed, err = parseBool("LEGAL_REVIEWED", get("LEGAL_REVIEWED")); err != nil {
-		errs = append(errs, err)
-	}
-	// Once the company is registered, the legal notice must show all of
-	// its details, not a mix of company and founder.
-	company := []struct{ name, value string }{
-		{"LEGAL_FORM", c.Legal.Form},
-		{"LEGAL_ADDRESS", c.Legal.Address},
-		{"LEGAL_TAX_ID", c.Legal.TaxID},
-		{"LEGAL_REGISTRATION", c.Legal.Registration},
-		{"LEGAL_DIRECTOR", c.Legal.Director},
-	}
-	for _, v := range company {
-		switch {
-		case c.Legal.Registered() && v.value == "":
-			errs = append(errs, fmt.Errorf("%s is required when LEGAL_NAME is set", v.name))
-		case !c.Legal.Registered() && v.value != "":
-			errs = append(errs, fmt.Errorf("%s is set but LEGAL_NAME is not: set LEGAL_NAME once the company is registered", v.name))
+	// An unresolved Key Vault reference reaches the app as its literal
+	// text. For CSRF_SECRET that text would be a public, known key.
+	for _, name := range []string{"CSRF_SECRET", "SMTP_PASS"} {
+		if v, _ := lookup(name); strings.HasPrefix(strings.TrimSpace(v), "@Microsoft.KeyVault(") {
+			errs = append(errs, fmt.Errorf("%s is an unresolved Key Vault reference: check the web app identity and the secret in Key Vault", name))
 		}
 	}
 
+	switch secret := get("CSRF_SECRET"); {
+	case secret == "" && prod:
+		errs = append(errs, errors.New("CSRF_SECRET is required in production (at least 32 characters: openssl rand -hex 32)"))
+	case secret == "":
+		b := make([]byte, 32)
+		_, _ = rand.Read(b)
+		c.CSRFSecret = NewSecret(hex.EncodeToString(b))
+	case len(secret) < 32:
+		errs = append(errs, errors.New("CSRF_SECRET must be at least 32 characters"))
+	default:
+		c.CSRFSecret = NewSecret(secret)
+	}
+
+	c.Legal = Legal{
+		Name:            value("LEGAL_NAME"),
+		Form:            value("LEGAL_FORM"),
+		Address:         value("LEGAL_ADDRESS"),
+		TaxID:           value("LEGAL_TAX_ID"),
+		Registration:    value("LEGAL_REGISTRATION"),
+		Director:        value("LEGAL_DIRECTOR"),
+		HostingProvider: value("LEGAL_HOSTING_PROVIDER"),
+		HostingCountry:  value("LEGAL_HOSTING_COUNTRY"),
+		SMTPProvider:    value("LEGAL_SMTP_PROVIDER"),
+		SMTPCountry:     value("LEGAL_SMTP_COUNTRY"),
+		Reviewed:        boolean("LEGAL_REVIEWED"),
+	}
+	if !c.Legal.Reviewed {
+		c.defaults = append(c.defaults, "LEGAL_REVIEWED")
+	}
+	days, err := strconv.Atoi(value("LOG_RETENTION_DAYS"))
+	if err != nil || days < 1 || days > 3650 {
+		errs = append(errs, errors.New("LOG_RETENTION_DAYS must be a number of days from 1 to 3650"))
+	}
+	c.LogRetentionDays = days
+
+	c.BehindFrontDoor = boolean("BEHIND_FRONT_DOOR")
+	c.FrontDoorID = NewSecret(get("FRONT_DOOR_ID"))
+	if c.BehindFrontDoor && prod && !c.FrontDoorID.Set() {
+		errs = append(errs, errors.New("FRONT_DOOR_ID is required when BEHIND_FRONT_DOOR=true in production"))
+	}
+	c.HSTSPreload = boolean("HSTS_PRELOAD")
+
 	if len(errs) > 0 {
-		return nil, fmt.Errorf("invalid configuration:\n  %w", joinLines(errs))
+		return nil, fmt.Errorf("invalid configuration: %w", errors.Join(errs...))
 	}
 	return c, nil
-}
-
-// Registered reports whether the company details are set, that is,
-// whether Tiefer is registered as a company.
-func (l Legal) Registered() bool { return l.Name != "" }
-
-// Operator returns who operates the website: the company once it is
-// registered, the founder until then.
-func (l Legal) Operator() string {
-	if l.Registered() {
-		return l.Name
-	}
-	return l.Founder
-}
-
-// SiteHost returns the host name of SITE_URL, including a port if it has
-// one, for example tiefer.space or localhost:8080.
-func (c *Config) SiteHost() string {
-	u, err := url.Parse(c.SiteURL)
-	if err != nil {
-		return ""
-	}
-	return u.Host
-}
-
-// ContactEnabled reports whether the contact form can deliver mail.
-func (c *Config) ContactEnabled() bool {
-	return c.SMTP.Host != "" && c.ContactTo != "" && c.ContactFrom != ""
 }
 
 // Production reports whether ENV is production.
 func (c *Config) Production() bool { return c.Env == Production }
 
-// DefaultsInUse returns the names of variables that still carry their
-// development placeholder value.
-func (c *Config) DefaultsInUse() []string {
-	values := map[string]string{
-		"SITE_URL":               c.SiteURL,
-		"LEGAL_FOUNDER":          c.Legal.Founder,
-		"LEGAL_HOSTING_PROVIDER": c.Legal.HostingProvider,
-		"LEGAL_HOSTING_COUNTRY":  c.Legal.HostingCountry,
-		"LEGAL_SMTP_PROVIDER":    c.Legal.SMTPProvider,
-		"LEGAL_SMTP_COUNTRY":     c.Legal.SMTPCountry,
-	}
-	var out []string
-	for _, v := range Defaults {
-		if v.Name == "SITE_URL" && c.Production() {
-			continue // the production default is the real domain
-		}
-		if v.Name == "LEGAL_FOUNDER" && c.Legal.Registered() {
-			continue // the company operates the site
-		}
-		if values[v.Name] == v.Default {
-			out = append(out, v.Name)
-		}
-	}
-	if !c.Legal.Reviewed {
-		out = append(out, "LEGAL_REVIEWED")
-	}
-	return out
+// ContactEnabled reports whether the contact form can deliver mail.
+func (c *Config) ContactEnabled() bool { return c.SMTP.Host != "" }
+
+// Site returns SITE_URL without a trailing slash.
+func (c *Config) Site() string { return c.SiteURL.String() }
+
+// DefaultsInUse returns the variables that still carry a placeholder or
+// development default.
+func (c *Config) DefaultsInUse() []string { return append([]string(nil), c.defaults...) }
+
+// LogValue describes the configuration for the startup log line without
+// any secret or personal value.
+func (c *Config) LogValue() slog.Value {
+	return slog.GroupValue(
+		slog.String("env", c.Env),
+		slog.Int("port", c.Port),
+		slog.String("site", c.Site()),
+		slog.Bool("contact_form", c.ContactEnabled()),
+		slog.Bool("behind_front_door", c.BehindFrontDoor),
+		slog.Bool("legal_reviewed", c.Legal.Reviewed),
+	)
 }
 
-func validEmail(s string) bool {
-	if s == "" || len(s) > 254 || strings.ContainsAny(s, "\r\n") {
+// ValidEmail reports whether s is a single plain address, without a
+// display name and without characters that could inject mail headers.
+func ValidEmail(s string) bool {
+	if s == "" || len(s) > 254 || strings.ContainsAny(s, "\r\n<>\"(),;: \t") {
 		return false
 	}
 	a, err := mail.ParseAddress(s)
-	return err == nil && a.Address == s && a.Name == ""
+	return err == nil && a.Name == "" && a.Address == s && strings.Contains(s[strings.LastIndexByte(s, '@')+1:], ".")
 }
 
-func checkHTTPURL(name, v string) error {
-	u, err := url.Parse(v)
-	if err != nil || u.Host == "" || (u.Scheme != "http" && u.Scheme != "https") {
-		return fmt.Errorf("%s must be an absolute http or https URL, got %q", name, v)
+func checkLink(name, s string) error {
+	u, err := url.Parse(s)
+	if err != nil || u.Scheme != "https" || u.Host == "" || u.User != nil {
+		return fmt.Errorf("%s must be an absolute https URL, got %q", name, s)
 	}
 	return nil
 }
-
-func parseBool(name, v string) (bool, error) {
-	if v == "" {
-		return false, nil
-	}
-	b, err := strconv.ParseBool(v)
-	if err != nil {
-		return false, fmt.Errorf("%s must be true or false, got %q", name, v)
-	}
-	return b, nil
-}
-
-type lines []error
-
-func (l lines) Error() string {
-	s := make([]string, len(l))
-	for i, e := range l {
-		s[i] = e.Error()
-	}
-	return strings.Join(s, "\n  ")
-}
-
-func (l lines) Unwrap() []error { return l }
-
-func joinLines(errs []error) error { return lines(errs) }

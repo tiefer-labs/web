@@ -3,7 +3,6 @@
   License, v. 2.0. If a copy of the MPL was not distributed with this
   file, You can obtain one at https://mozilla.org/MPL/2.0/.
 */ -}}
-{{define "layout" -}}
 <!doctype html>
 <html lang="{{.Site.Locale.Code}}">
 <head>
@@ -11,41 +10,45 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{{.Title}}</title>
 <meta name="description" content="{{.Description}}">
+{{- if .NoIndex}}
+<meta name="robots" content="noindex">
+{{- else}}
 <link rel="canonical" href="{{.Canonical}}">
 {{- range .Alternates}}
 <link rel="alternate" hreflang="{{.Lang}}" href="{{.Href}}">
 {{- end}}
-{{- if .NoIndex}}
-<meta name="robots" content="noindex">
 {{- end}}
-<meta name="theme-color" content="#0C003D">
+<meta name="theme-color" content="{{.Site.Meta.ThemeColor}}">
 <meta name="color-scheme" content="light">
-<link rel="preload" href="{{asset "fonts/MozillaHeadline-VF.woff2"}}" as="font" type="font/woff2" crossorigin>
-<link rel="preload" href="{{asset "fonts/MozillaText-VF.woff2"}}" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="{{asset "css/site.css"}}" integrity="{{integrity "css/site.css"}}">
-<script src="{{asset "js/site.js"}}" integrity="{{integrity "js/site.js"}}" defer></script>
-<link rel="icon" href="/favicon.ico" sizes="16x16 32x32 48x48">
-<link rel="icon" href="{{asset "favicon.svg"}}" type="image/svg+xml">
-<link rel="apple-touch-icon" href="/apple-touch-icon.png">
-<link rel="manifest" href="/site.webmanifest">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="{{.Site.Meta.SiteName}}">
 <meta property="og:title" content="{{.Title}}">
 <meta property="og:description" content="{{.Description}}">
+{{- if .Canonical}}
 <meta property="og:url" content="{{.Canonical}}">
-<meta property="og:locale" content="{{.Site.Locale.OGLocale}}">
+{{- end}}
 <meta property="og:image" content="{{.OGImage}}">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta property="og:image:alt" content="{{.Site.Meta.OGImageAlt}}">
+<meta property="og:locale" content="{{.Site.Locale.Code}}">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="{{.Title}}">
 <meta name="twitter:description" content="{{.Description}}">
 <meta name="twitter:image" content="{{.OGImage}}">
 <meta name="twitter:image:alt" content="{{.Site.Meta.OGImageAlt}}">
+<link rel="icon" href="/favicon.ico" sizes="16x16 32x32 48x48">
+<link rel="icon" href="{{asset "favicon.svg"}}" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="manifest" href="/site.webmanifest">
+<link rel="stylesheet" href="{{asset "css/site.css"}}">
+{{- template "fonts" .}}
+<script src="{{asset "js/site.js"}}" defer></script>
+{{- if and .JSONLD (eq .Name "index")}}
 {{.JSONLD}}
+{{- end}}
 </head>
-<body id="top">
+<body class="page-{{.Name}}">
 <a class="skip-link" href="#main">{{.Site.UI.SkipLink}}</a>
 {{template "header" .}}
 <main id="main" tabindex="-1">
@@ -54,4 +57,3 @@
 {{template "footer" .}}
 </body>
 </html>
-{{end}}

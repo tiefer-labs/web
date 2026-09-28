@@ -1,0 +1,242 @@
+# Progress
+
+This file records the rebuild, phase by phase, so the work can resume if a
+session is restarted. The specification is `docs/START.md` and
+`docs/PROMPT.md`.
+
+## Kit status
+
+The kit named in `docs/START.md` phase 0 was only partly available:
+
+- Present: `LICENSE`, `web/static/brand/`, `web/static/fonts/` (the original
+  `MozillaHeadline-VF.ttf`, `MozillaText-VF.ttf` and their `OFL-*.txt`),
+  the favicons, the app icons and `og-image.png`.
+- Added from the brief as given in the session: `docs/START.md` and
+  `docs/PROMPT.md` (the new brief, replacing the earlier one).
+- Not available: `CLAUDE.md`, `.claude/settings.json`, `docs/HARDENING.md`,
+  `docs/AZURE.md` and the current `docs/Tiefer_2026_az.md`. The founder
+  decided to go ahead with the brief alone. Where the brief points to
+  `HARDENING.md` or `AZURE.md`, the choices made are recorded in
+  `docs/SECURITY-DECISIONS.md` and must be checked against those documents
+  once they exist.
+
+## Removed
+
+Files tracked on `main` before the rebuild (`git ls-files`). All were
+removed except the kit files listed above; the old site stays in the history
+of `main`.
+
+- `.dockerignore`
+- `.editorconfig`
+- `.env.example`
+- `.github/dependabot.yml`
+- `.github/workflows/ci.yml`
+- `.github/workflows/codeql.yml`
+- `.gitignore`
+- `CONTRIBUTING.md`
+- `Dockerfile`
+- `LICENSE`
+- `Makefile`
+- `NOTICE.md`
+- `README.md`
+- `SECURITY.md`
+- `cmd/tiefer-web/main.go`
+- `deploy/Caddyfile`
+- `deploy/README.md`
+- `deploy/docker-compose.yml`
+- `docs/PROMPT.md`
+- `go.mod`
+- `internal/config/config.go`
+- `internal/config/config_test.go`
+- `internal/contact/contact.go`
+- `internal/contact/contact_test.go`
+- `internal/contact/mail.go`
+- `internal/contact/token.go`
+- `internal/content/content.go`
+- `internal/content/en.go`
+- `internal/content/text_test.go`
+- `internal/render/assets.go`
+- `internal/render/templates.go`
+- `internal/render/templates_test.go`
+- `internal/server/contact.go`
+- `internal/server/files.go`
+- `internal/server/helpers_test.go`
+- `internal/server/hosts.go`
+- `internal/server/hosts_test.go`
+- `internal/server/middleware.go`
+- `internal/server/pages.go`
+- `internal/server/ratelimit.go`
+- `internal/server/ratelimit_test.go`
+- `internal/server/server.go`
+- `internal/server/server_test.go`
+- `internal/server/text_test.go`
+- `internal/textcheck/extpict.go`
+- `internal/textcheck/textcheck.go`
+- `internal/textcheck/textcheck_test.go`
+- `web/embed.go`
+- `web/static/apple-touch-icon.png`
+- `web/static/brand/tiefer-logo-black.svg`
+- `web/static/brand/tiefer-logo-gray.svg`
+- `web/static/brand/tiefer-logo-white.svg`
+- `web/static/brand/tiefer-logo.svg`
+- `web/static/brand/tiefer-mark-black.svg`
+- `web/static/brand/tiefer-mark-gray.svg`
+- `web/static/brand/tiefer-mark-white.svg`
+- `web/static/brand/tiefer-mark.svg`
+- `web/static/css/site.css`
+- `web/static/favicon.ico`
+- `web/static/favicon.svg`
+- `web/static/fonts/MozillaHeadline-VF.woff2`
+- `web/static/fonts/MozillaText-VF.woff2`
+- `web/static/fonts/OFL-MozillaHeadline.txt`
+- `web/static/fonts/OFL-MozillaText.txt`
+- `web/static/icon-192.png`
+- `web/static/icon-512.png`
+- `web/static/icons/alert.svg`
+- `web/static/icons/chevron-down.svg`
+- `web/static/js/site.js`
+- `web/static/og-image.png`
+- `web/templates/layout.html`
+- `web/templates/pages/404.html`
+- `web/templates/pages/acceptable-use.html`
+- `web/templates/pages/ai-policy.html`
+- `web/templates/pages/index.html`
+- `web/templates/pages/legal.html`
+- `web/templates/pages/privacy.html`
+- `web/templates/partials/contact.html`
+- `web/templates/partials/demo.html`
+- `web/templates/partials/faq.html`
+- `web/templates/partials/footer.html`
+- `web/templates/partials/header.html`
+- `web/templates/partials/hero.html`
+- `web/templates/partials/how.html`
+- `web/templates/partials/legal-body.html`
+- `web/templates/partials/limits.html`
+- `web/templates/partials/name.html`
+- `web/templates/partials/principles.html`
+- `web/templates/partials/problem.html`
+- `web/templates/partials/product.html`
+- `web/templates/partials/question.html`
+- `web/templates/partials/roadmap.html`
+- `web/templates/partials/use-cases.html`
+
+## Phase log
+
+- **Phase 0** (done): previous site removed on `site-v1`; kit kept; brief
+  saved as `docs/PROMPT.md` and `docs/START.md`.
+- **Phase 1** (done): Go module (standard library only), `tools/go.mod`
+  with staticcheck v0.8.1, gosec v2.29.0 and govulncheck v1.8.0 as `go tool`
+  entries; config with validation and redacted secrets; server limits,
+  method, URL and body rules, Front Door ID check, security headers on every
+  response, `/healthz`; Makefile, Dockerfile (digests pinned), CI, CodeQL and
+  Dependabot (actions pinned by SHA). Next: the text check. Open:
+  `vuln.go.dev` is blocked in this environment, so `make vuln` runs in CI.
+- **Phase 2** (done): `internal/textcheck` finds long dashes, U+FE0F,
+  Extended_Pictographic (Unicode 15.0 table, generated by `gen.go`) and
+  decorative symbol blocks; banned words in visible copy. Tests scan the
+  whole repository, the content files (per string literal), the templates
+  (text outside actions) and every rendered page (per section).
+  `make placeholders` reports placeholders and defaults as warnings. Next:
+  content and templates. Open: unicode.org is blocked here, so the table
+  comes from rivo/uniseg v0.4.7 (Unicode 15.0); regenerate from the
+  official file when reachable.
+- **Phase 3** (done): all copy in `internal/content/en.go` (typed structs,
+  locale prefix ready for `/az/`), layout plus one partial per section,
+  content-hashed assets with CSS `url()` rewriting and precompressed gzip,
+  gzip for HTML, 404 page. Tests: every content string appears on the page,
+  template safety (allowed functions only, no inline scripts, styles,
+  handlers or third-party URLs) and no unsafe `template.*` conversions.
+  Next: design, fonts and performance.
+- **Phase 4** (done): `docs/DESIGN.md`; stylesheet with the colour tokens,
+  12-column grid, one composition per section, hero orbit drawn for the
+  site with one short satellite motion (none with reduced motion);
+  WOFF2 fonts built by `scripts/fonts.py` (subset to Latin, Headline `wdth`
+  pinned to 100, 24.6 KB + 25.5 KB) with metric-matched local fallbacks;
+  2.9 KB script; budget tests (index 6.8 KB gzipped, first view about 84 KB
+  in 10 requests, render p99 about 2.6 ms). Next: the contact form. Open:
+  the fonts have no `tnum` feature, so tabular figures are not available.
+- **Phase 5** (done): contact form with signed single-use tokens,
+  cross-origin protection, honeypot, 3 s minimum fill time, per-client and
+  global rate limits (IPv6 per /64), validation with localised messages,
+  SMTP only over TLS, JSON answers for the script and Post/Redirect/Get
+  without it. Tested with a fake mailer, a local TLS SMTP server, fuzz
+  targets and end to end against Mailpit (with and without JavaScript).
+  Next: legal pages and security.txt.
+- **Phase 6** (done): `/legal`, `/privacy` (with the Azure Front Door, WAF
+  and App Service paragraph and the log retention from `LOG_RETENTION_DAYS`)
+  and `/acceptable-use`, rendered from content with `{tokens}` from the
+  configuration and highlighted `[PLACEHOLDERS]`; the review note shows
+  until `LEGAL_REVIEWED=true`; `/.well-known/security.txt` with a fixed
+  Expires date and a test that fails 30 days before it. Next: SEO and
+  metadata.
+- **Phase 7** (done): title, description, canonical, Open Graph and
+  Twitter tags; JSON-LD Organization (name, url, logo, sameAs) allowed by
+  its SHA-256 hash in the CSP; sitemap from the page list and `SITE_URL`;
+  robots.txt (crawlers kept out outside production); manifest; 404 page.
+  Tests check the hash, heading order and that every sitemap URL answers
+  200. Next: Azure infrastructure.
+- **Phase 8** (done): `infra/` Bicep (monitoring, identities with a GitHub
+  federated credential, registry, Key Vault, App Service locked to Front
+  Door, Front Door Premium with WAF, www and HTTP redirects), parameters
+  file, runbook `infra/README.md`, `deploy.yml` with OIDC. Built and linted
+  with Bicep CLI 0.47.16 (downloaded to a scratch folder, not installed);
+  nothing deployed. API versions and role IDs looked up in the Azure
+  specifications and documentation. Next: licence, notices, README.
+- **Phase 9** (done): MPL 2.0 header on every source file (a test checks
+  it, and the full text in `LICENSE`), `NOTICE.md` (brand assets, fonts,
+  Unicode data, tools, images), `docs/SECURITY-DECISIONS.md` completed,
+  full `README.md`. Next: verification and the design review rounds.
+- **Phase 10** (verification):
+  - `make check` and `make fuzz` pass (four targets, 20 s each). The
+    container runs read-only, without capabilities, as UID 65532. It has no
+    shell and reports healthy. Every route over real HTTP carries all 11
+    security headers and no `Server` header. Unknown methods get 405, a
+    foreign host 421.
+  - Headless Chromium at 360, 390, 768, 1024, 1280 and 1440 px on every
+    page:
+    - 234 requests, none to another origin;
+    - no CSP violations and no console errors (apart from the 404 status
+      of the deliberate 404 page);
+    - no horizontal scroll and one h1 per page;
+    - the menu closes on Escape and returns focus;
+    - no motion with reduced motion; the skip link is the first tab stop;
+    - axe (WCAG 2.2 AA and best practice): 0 violations.
+  - Lighthouse 12.8.2 on mobile (development server): Performance 100,
+    Accessibility 100, Best Practices 100. SEO 69 because robots.txt keeps
+    crawlers out outside production by design; every other SEO audit
+    passes. LCP 1.35 s, TBT 0 ms, CLS 0.
+  - ZAP could not run: ghcr.io blobs are blocked here and Docker Hub
+    answered 429.
+
+## Design review
+
+Checked against "Not a template" in `docs/PROMPT.md` section 3.
+
+**Round 1** (390 and 1440 px, every page):
+
+- Hero: orbital drawing, left-aligned text, one solid button. Passes.
+- Problem, Product, Alert packet, Use cases, Principles, Roadmap, Contact,
+  footer and legal pages: no cards with icons, no gradients, no pills, no
+  centred blocks; neighbouring layouts differ. Pass.
+- How it works: precise but close to a generic five-step timeline. Fix:
+  a dashed branch at Filter labelled `KEPT ON BOARD`, the same telemetry
+  label as in the hero, so the diagram shows what Tiefer does with a
+  filtered frame.
+- Name: the headline ran into the four-wave mark. Fix: headline in columns
+  3 to 8 (two lines), mark 280 px, clear of the text.
+- The Name mark and the footer logo were missing from full-page
+  screenshots (lazy loading; the capture does not scroll). Fix: both small
+  SVGs load eagerly. The first view stays within budget: 87 KB in 12
+  requests.
+- Fonts narrowed to the two weights used per family (46 KB for both),
+  and the stylesheet now loads before the font preloads. LCP went from
+  1.50 s to 1.35 s.
+
+**Round 2** (every page at 390 and 1440 px after the fixes):
+
+- At 390 px the four-wave mark sat behind the body text of the Name
+  section and lowered its contrast. Fix: on narrow screens the mark is
+  small (64 px), in the label row, clear of the text.
+- Everything else passes: no section could be swapped with another
+  company's, the page is calm, and the only motion is the one-time
+  satellite pass.

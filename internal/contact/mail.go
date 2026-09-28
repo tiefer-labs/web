@@ -15,159 +15,152 @@ import (
 	"mime"
 	"mime/quotedprintable"
 	"net"
-	"net/mail"
 	"net/smtp"
 	"strconv"
 	"strings"
 	"time"
 )
 
-// Mailer delivers a message.
+// Message is one mail to send. Every header value has been validated
+// before it gets here; Build checks again.
+type Message struct {
+	From    string
+	To      string
+	ReplyTo string
+	Subject string
+	Body    string
+	Date    time.Time
+	Domain  string // domain for the Message-ID
+}
+
+// Mailer delivers messages. Tests use a fake.
 type Mailer interface {
-	Send(ctx context.Context, from string, to []string, msg []byte) error
+	Send(ctx context.Context, m Message) error
 }
 
-// Envelope holds everything needed to build the notification email.
-type Envelope struct {
-	From      string // CONTACT_FROM
-	To        string // CONTACT_TO
-	SiteURL   string
-	RoleLabel string // human readable role, or empty
-	Now       time.Time
-}
+// ErrHeader reports a header value that could inject further headers.
+var ErrHeader = errors.New("contact: header value contains a line break")
 
-// BuildMessage renders a submission as a plain text email with Reply-To
-// set to the sender. All header values are encoded, and Parse has already
-// rejected line breaks in single-line fields.
-func BuildMessage(e Envelope, s Submission) []byte {
-	var b bytes.Buffer
-	host := "localhost"
-	if i := strings.LastIndexByte(e.From, '@'); i >= 0 {
-		host = e.From[i+1:]
-	}
-	id := make([]byte, 12)
-	_, _ = rand.Read(id)
-
-	from := mail.Address{Name: "Tiefer website", Address: e.From}
-	reply := mail.Address{Name: s.Name, Address: s.Email}
-	header := [][2]string{
-		{"From", from.String()},
-		{"To", e.To},
-		{"Reply-To", reply.String()},
-		{"Subject", mime.QEncoding.Encode("utf-8", "Access request from "+s.Name)},
-		{"Date", e.Now.Format(time.RFC1123Z)},
-		{"Message-ID", "<" + hex.EncodeToString(id) + "@" + host + ">"},
-		{"MIME-Version", "1.0"},
-		{"Content-Type", "text/plain; charset=utf-8"},
-		{"Content-Transfer-Encoding", "quoted-printable"},
-		{"Auto-Submitted", "auto-generated"},
-	}
-	for _, h := range header {
-		fmt.Fprintf(&b, "%s: %s\r\n", h[0], h[1])
-	}
-	b.WriteString("\r\n")
-
-	orEmpty := func(v string) string {
-		if v == "" {
-			return "(not given)"
+// Build renders a message as RFC 5322 bytes with a quoted-printable UTF-8
+// body. It refuses header values with line breaks.
+func Build(m Message) ([]byte, error) {
+	for _, v := range []string{m.From, m.To, m.ReplyTo, m.Subject, m.Domain} {
+		if strings.ContainsAny(v, "\r\n\x00") {
+			return nil, ErrHeader
 		}
-		return v
 	}
-	var body bytes.Buffer
-	fmt.Fprintf(&body, "Name: %s\n", s.Name)
-	fmt.Fprintf(&body, "Work email: %s\n", s.Email)
-	fmt.Fprintf(&body, "Organisation: %s\n", orEmpty(s.Org))
-	fmt.Fprintf(&body, "Role: %s\n\n", orEmpty(e.RoleLabel))
-	fmt.Fprintf(&body, "The first question they would ask Tiefer:\n\n%s\n\n", s.Question)
-	fmt.Fprintf(&body, "The sender agreed that we may use these details to reply.\n")
-	fmt.Fprintf(&body, "Sent from the contact form at %s. Reply to this email to answer.\n", e.SiteURL)
-
+	id := make([]byte, 16)
+	_, _ = rand.Read(id)
+	var b bytes.Buffer
+	header := func(k, v string) { fmt.Fprintf(&b, "%s: %s\r\n", k, v) }
+	header("From", m.From)
+	header("To", m.To)
+	if m.ReplyTo != "" {
+		header("Reply-To", m.ReplyTo)
+	}
+	header("Subject", mime.QEncoding.Encode("utf-8", m.Subject))
+	header("Date", m.Date.UTC().Format(time.RFC1123Z))
+	header("Message-ID", "<"+hex.EncodeToString(id)+"@"+m.Domain+">")
+	header("MIME-Version", "1.0")
+	header("Content-Type", "text/plain; charset=utf-8")
+	header("Content-Transfer-Encoding", "quoted-printable")
+	header("Auto-Submitted", "auto-generated")
+	b.WriteString("\r\n")
 	qp := quotedprintable.NewWriter(&b)
-	_, _ = qp.Write(bytes.ReplaceAll(body.Bytes(), []byte("\n"), []byte("\r\n")))
+	_, _ = qp.Write([]byte(strings.ReplaceAll(m.Body, "\n", "\r\n")))
 	_ = qp.Close()
-	return b.Bytes()
+	return b.Bytes(), nil
 }
 
-// SMTPMailer sends mail through an SMTP server. TLS is required: port 465
-// uses implicit TLS, every other port must offer STARTTLS.
+// SMTPMailer sends through an SMTP server with TLS: implicit TLS on port
+// 465, STARTTLS on any other port. It never sends without TLS.
 type SMTPMailer struct {
-	Host       string
-	Port       int
-	User       string
-	Pass       string
-	SkipVerify bool   // development only, enforced by config
-	LocalName  string // name sent in EHLO
-	Timeout    time.Duration
+	Host      string
+	Port      int
+	User      string
+	Pass      string
+	LocalName string // name used in EHLO
+	Timeout   time.Duration
+	// SkipVerify accepts any certificate (development only; the
+	// configuration refuses it in production).
+	SkipVerify bool
+	// TLSConfig is for tests only; nil means verified TLS 1.2 or later.
+	TLSConfig *tls.Config
 }
 
-// Send delivers msg. It honours ctx cancellation and the Timeout.
-func (m *SMTPMailer) Send(ctx context.Context, from string, to []string, msg []byte) error {
-	timeout := m.Timeout
+// Send delivers m. The whole exchange is bounded by the context and by
+// Timeout.
+func (s *SMTPMailer) Send(ctx context.Context, m Message) error {
+	raw, err := Build(m)
+	if err != nil {
+		return err
+	}
+	timeout := s.Timeout
 	if timeout == 0 {
 		timeout = 20 * time.Second
 	}
 	ctx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
-
-	addr := net.JoinHostPort(m.Host, strconv.Itoa(m.Port))
-	tlsConf := &tls.Config{ServerName: m.Host, MinVersion: tls.VersionTLS12, InsecureSkipVerify: m.SkipVerify}
-	dialer := &net.Dialer{}
-	var conn net.Conn
-	var err error
-	if m.Port == 465 {
-		conn, err = (&tls.Dialer{NetDialer: dialer, Config: tlsConf}).DialContext(ctx, "tcp", addr)
-	} else {
-		conn, err = dialer.DialContext(ctx, "tcp", addr)
+	cfg := s.TLSConfig
+	if cfg == nil {
+		cfg = &tls.Config{ServerName: s.Host, MinVersion: tls.VersionTLS12, InsecureSkipVerify: s.SkipVerify} // #nosec G402 -- SkipVerify is development only, refused in production by config
 	}
+	addr := net.JoinHostPort(s.Host, strconv.Itoa(s.Port))
+	var d net.Dialer
+	conn, err := d.DialContext(ctx, "tcp", addr)
 	if err != nil {
-		return fmt.Errorf("smtp dial: %w", err)
+		return err
 	}
-	deadline, _ := ctx.Deadline()
-	_ = conn.SetDeadline(deadline)
-	stop := context.AfterFunc(ctx, func() { _ = conn.Close() })
-	defer stop()
-
-	c, err := smtp.NewClient(conn, m.Host)
+	if dl, ok := ctx.Deadline(); ok {
+		_ = conn.SetDeadline(dl)
+	}
+	if s.Port == 465 {
+		tc := tls.Client(conn, cfg)
+		if err := tc.HandshakeContext(ctx); err != nil {
+			_ = conn.Close()
+			return err
+		}
+		conn = tc
+	}
+	c, err := smtp.NewClient(conn, s.Host)
 	if err != nil {
 		_ = conn.Close()
-		return fmt.Errorf("smtp greeting: %w", err)
+		return err
 	}
 	defer c.Close()
-	if m.LocalName != "" {
-		if err := c.Hello(m.LocalName); err != nil {
-			return fmt.Errorf("smtp hello: %w", err)
+	if s.LocalName != "" {
+		if err := c.Hello(s.LocalName); err != nil {
+			return err
 		}
 	}
-	if m.Port != 465 {
+	if s.Port != 465 {
 		if ok, _ := c.Extension("STARTTLS"); !ok {
-			return errors.New("smtp: server does not offer STARTTLS, and TLS is required")
+			return errors.New("contact: SMTP server does not offer STARTTLS")
 		}
-		if err := c.StartTLS(tlsConf); err != nil {
-			return fmt.Errorf("smtp starttls: %w", err)
-		}
-	}
-	if m.User != "" {
-		if err := c.Auth(smtp.PlainAuth("", m.User, m.Pass, m.Host)); err != nil {
-			return fmt.Errorf("smtp auth: %w", err)
+		if err := c.StartTLS(cfg); err != nil {
+			return err
 		}
 	}
-	if err := c.Mail(from); err != nil {
-		return fmt.Errorf("smtp mail from: %w", err)
-	}
-	for _, rcpt := range to {
-		if err := c.Rcpt(rcpt); err != nil {
-			return fmt.Errorf("smtp rcpt to: %w", err)
+	if s.User != "" {
+		if err := c.Auth(smtp.PlainAuth("", s.User, s.Pass, s.Host)); err != nil {
+			return err
 		}
+	}
+	if err := c.Mail(m.From); err != nil {
+		return err
+	}
+	if err := c.Rcpt(m.To); err != nil {
+		return err
 	}
 	w, err := c.Data()
 	if err != nil {
-		return fmt.Errorf("smtp data: %w", err)
+		return err
 	}
-	if _, err := w.Write(msg); err != nil {
-		return fmt.Errorf("smtp write: %w", err)
+	if _, err := w.Write(raw); err != nil {
+		return err
 	}
 	if err := w.Close(); err != nil {
-		return fmt.Errorf("smtp data end: %w", err)
+		return err
 	}
 	return c.Quit()
 }

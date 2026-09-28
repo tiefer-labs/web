@@ -2,77 +2,72 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+/* Progressive enhancement only: the site works without this file. */
 (() => {
-  const d = document;
-  const header = d.querySelector("[data-header]");
-  const toggle = d.querySelector(".menu-toggle");
-  const hero = d.querySelector(".hero");
+  const d = document, $ = (s) => d.querySelector(s);
 
-  // Mobile menu: a disclosure button for the navigation.
-  if (header && toggle) {
-    const label = toggle.querySelector(".menu-label");
+  // Mobile menu: a disclosure button that Escape closes.
+  const btn = $(".menu-toggle");
+  if (btn) {
     const set = (open) => {
-      header.classList.toggle("is-open", open);
-      toggle.setAttribute("aria-expanded", open);
-      label.textContent = toggle.dataset[open ? "close" : "open"];
+      btn.setAttribute("aria-expanded", open);
+      btn.firstElementChild.textContent = open ? btn.dataset.close : btn.dataset.open;
     };
-    toggle.addEventListener("click", () => set(toggle.getAttribute("aria-expanded") != "true"));
+    btn.onclick = () => set(btn.ariaExpanded !== "true");
     d.addEventListener("keydown", (e) => {
-      if (e.key == "Escape" && header.classList.contains("is-open")) {
-        set(false);
-        toggle.focus();
-      }
+      if (e.key === "Escape" && btn.ariaExpanded === "true") set(false), btn.focus();
     });
-    header.querySelector("nav").addEventListener("click", (e) => e.target.closest("a") && set(false));
+    $("#nav-list").addEventListener("click", (e) => e.target.closest("a") && set(false));
   }
 
-  // The header is dark while it overlaps the dark hero.
-  if (header && hero) {
-    const update = () => header.classList.toggle("is-dark", hero.getBoundingClientRect().bottom > header.offsetHeight);
-    addEventListener("scroll", update, { passive: true });
-    update();
-  }
-
-  // Contact form: send with fetch and show the result without a reload.
-  const form = d.querySelector("[data-contact-form]");
-  const status = d.querySelector("[data-form-status]");
-  if (!form || !status) return;
-  const button = form.querySelector("[type=submit]");
-
-  form.addEventListener("submit", async (e) => {
+  // Contact form: post with fetch and show the answer in place.
+  const form = $(".contact-form"), box = $("#form-status");
+  if (!form) return;
+  const say = (text, ok, mail) => {
+    const p = d.createElement("p");
+    p.className = "status status-" + (ok ? "ok" : "error");
+    p.append(text);
+    if (mail) {
+      const a = d.createElement("a");
+      a.href = "mailto:" + mail;
+      a.textContent = mail;
+      p.append(" ", a, form.dataset.errorAfter);
+    }
+    box.replaceChildren(p);
+    box.focus();
+  };
+  form.onsubmit = async (e) => {
     e.preventDefault();
-    const text = button.textContent;
-    button.disabled = true;
-    button.textContent = button.dataset.sending;
-    let reply;
+    const b = form.querySelector("button"), label = b.textContent;
+    b.disabled = true;
+    b.textContent = box.dataset.sending;
     try {
-      const res = await fetch(form.action, {
+      const r = await (await fetch(form.action, {
         method: "POST",
-        body: new URLSearchParams(new FormData(form)),
         headers: { Accept: "application/json" },
+        body: new URLSearchParams(new FormData(form)),
+      })).json();
+      form.querySelectorAll(".field-error").forEach((p) => p.remove());
+      form.querySelectorAll("[aria-invalid]").forEach((el) => {
+        el.removeAttribute("aria-invalid");
+        el.setAttribute("aria-describedby", el.id === "f-message" ? "f-message-hint" : "");
       });
-      reply = await res.json();
+      form.elements.t.value = r.token || form.elements.t.value;
+      if (r.status === "sent") form.reset();
+      for (const [name, msg] of Object.entries(r.errors || {})) {
+        const el = form.elements[name], p = d.createElement("p");
+        p.className = "field-error";
+        p.id = el.id + "-err";
+        p.textContent = msg;
+        el.closest(".field").append(p);
+        el.setAttribute("aria-invalid", "true");
+        el.setAttribute("aria-describedby", ((el.getAttribute("aria-describedby") || "") + " " + p.id).trim());
+      }
+      say(r.message, r.status === "sent", r.status === "error" && form.dataset.email);
     } catch {
-      reply = { status: "error" };
+      say(form.dataset.errorBefore, false, form.dataset.email);
     }
-    button.disabled = false;
-    button.textContent = text;
-    if (reply.token) form.elements.t.value = reply.token;
-
-    const errors = reply.errors || {};
-    let first;
-    for (const field of form.querySelectorAll(".field")) {
-      const input = field.querySelector("input, select, textarea");
-      const out = field.querySelector(".field-error");
-      const msg = errors[input.name] || "";
-      field.classList.toggle("has-error", !!msg);
-      msg ? input.setAttribute("aria-invalid", "true") : input.removeAttribute("aria-invalid");
-      out.textContent = msg;
-      out.hidden = !msg;
-      if (msg && !first) first = input;
-    }
-    for (const m of status.children) m.hidden = m.dataset.msg != reply.status;
-    if (reply.status == "sent") form.remove();
-    (first || status).focus();
-  });
+    b.disabled = false;
+    b.textContent = label;
+  };
 })();

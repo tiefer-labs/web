@@ -4,27 +4,23 @@
   file, You can obtain one at https://mozilla.org/MPL/2.0/.
 */ -}}
 {{define "roadmap" -}}
-{{with .Site.Roadmap -}}
+{{- $s := .Site.Roadmap -}}
 <section class="section roadmap" id="roadmap" aria-labelledby="roadmap-title">
-  <div class="wrap">
-    <div class="section-head">
-      <h2 id="roadmap-title">{{.Title}}</h2>
-    </div>
+  <div class="wrap grid">
+    <p class="section-label">{{$s.Label}}</p>
+    <h2 class="roadmap-title" id="roadmap-title">{{$s.Title}}</h2>
     <ol class="track" role="list">
-      {{- $now := .NowLabel}}
-      {{- range .Items}}
-      <li class="milestone{{if .Now}} is-now{{end}}"{{if .Now}} aria-current="step"{{end}}>
-        <span class="milestone-node" aria-hidden="true"></span>
-        {{- if .Now}}<span class="now-tag tech-label">{{$now}}</span>{{end}}
-        <h3>{{.Title}}</h3>
-        {{- with .When}}
-        <p class="milestone-when tech-label">{{.}}</p>
+      {{- range $s.Items}}
+      <li{{if .Now}} class="is-now" aria-current="step"{{end}}>
+        <svg class="track-node" viewBox="0 0 12 12" width="12" height="12" aria-hidden="true" focusable="false"><rect x="1" y="1" width="10" height="10"/></svg>
+        {{- if .Now}}
+        <p class="track-now">{{$s.NowLabel}}</p>
         {{- end}}
+        <h3>{{.Title}}</h3>
         <p>{{.Text}}</p>
       </li>
       {{- end}}
     </ol>
   </div>
 </section>
-{{- end}}
 {{- end}}

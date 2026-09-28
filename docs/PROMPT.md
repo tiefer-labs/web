@@ -1,37 +1,48 @@
 # Build the Tiefer website
 
-You are building the first public website for **Tiefer**, an early-stage B2B startup. This is a business-card website: one main page plus two legal pages, served by a small **Go** backend. There is no product dashboard and no login yet. Build it so it is fast, accessible, easy to edit and easy to extend later with more languages and a product area (the future dashboard will live in the same Go codebase).
+You are rebuilding, from zero, the public website for **Tiefer**, an early-stage B2B startup. Nothing from any earlier version is reused. This is a business-card website: one main page plus two legal pages, served by a small **Go** backend. There is no product dashboard and no login yet. Build it so it is fast, accessible, easy to edit and easy to extend later with more languages and a product area (the future dashboard will live in the same Go codebase).
 
 The repository is licensed under the **Mozilla Public License 2.0** (see section 13).
 
 Read this whole brief before you start. Where the brief gives exact copy, use it word for word. Do not invent claims, customers, partners, numbers or testimonials.
 
+Two companion documents are part of this specification and are equally binding:
+
+- `docs/HARDENING.md`: security requirements, threat model and security tests. On any security question it wins over this brief.
+- `docs/AZURE.md`: hosting on Microsoft Azure (App Service, Front Door with WAF, Key Vault, Container Registry, GitHub OIDC deployment, Bicep).
+
+Three qualities matter more than features: **secure, fast, calm**. When in doubt, remove rather than add.
+
 ---
 
 ## 1. Context: what Tiefer does
 
-Tiefer is a **space technology startup** based in **Baku, Azerbaijan**. It builds an **AI analyst for satellite data**: a user asks a question in plain language, and Tiefer finds and fuses optical, radar (SAR), thermal and night-light satellite data, runs change and object detection, tasks new commercial imagery when the archive is not enough, and returns a structured, sourced intelligence brief.
+Tiefer is a **space technology startup** based in **Baku, Azerbaijan**. It builds **AI software that runs on Earth observation satellites** (edge AI in orbit). Instead of storing every image and sending gigabytes of raw data to the ground hours later, the satellite analyses its own images in orbit: it filters out cloudy and empty frames, detects events such as wildfires, oil spills, vessels and floods, and sends a small alert packet (tens of kilobytes: coordinates, event type, confidence, a small image chip) through the first available link.
 
-Example questions:
+Tiefer does not build hardware. Its software runs on the onboard compute that operators already fly (for example NVIDIA Jetson, Intel Movidius or FPGA-based processors).
 
-- "Which ports on the eastern Caspian coast saw more vessel activity in the last 14 days?"
-- "Map flooded buildings in this district after last week's storm."
-- "Find new clearings in this forest area in the last 10 days and rank them by risk."
+The onboard pipeline has four stages, matching the four lines in the logo:
 
-How it works, in five steps: **Ask** (understand the question), **Plan** (pick sensors, use radar when it is cloudy), **Fuse** (find, clean and combine imagery, run models), **Task** (order new imagery within budget rules, human approval beyond them), **Brief** (map, findings, sources, confidence, and what could not be seen).
+1. **Filter**: check each frame for cloud and quality the moment it is captured. Frames that are not useful are compressed and kept on board, not sent.
+2. **Detect**: run computer vision models for specific events on the useful frames.
+3. **Alert**: turn a detection into a small alert packet and send it to the ground through the first available channel.
+4. **Update**: replace or add models in orbit with small, signed update packages.
 
-Customers, in order: commodity traders and analysts, then insurers, then governments (sovereign, on-premise deployments). Sales start in the Caspian, Caucasus, Black Sea and Central Asia region, with interfaces in English, Azerbaijani, Turkish and Russian; the product itself works worldwide.
+Two ground products complete the system: **Tiefer Lab** (train, quantise and test models in a "virtual orbit" simulator and on flight-like hardware) and **Tiefer Ground** (the same models running at the ground station, so operators get value before any satellite carries Tiefer).
+
+Customers: satellite operators and space agencies (starting with Azerbaijan and the region), satellite manufacturers and integrators, and hosted-compute platforms that run third-party apps in orbit. End users (emergency services, environmental agencies, energy and maritime authorities) benefit through the operators.
 
 Product principles that the site must reflect:
 
-1. Observed and inferred are always labelled separately.
-2. Generated pixels are never shown as evidence. If it is cloudy, the brief says so.
-3. Every finding links to its source image, sensor, date and processing steps.
-4. Spending decisions (tasking) stay under human control.
-5. Limits are stated openly.
-6. Tiefer is not used to track individuals.
+1. Nothing is deleted blindly. Filtered frames are compressed and kept; the operator sets the rules.
+2. Observed and inferred are always labelled separately, with a confidence value.
+3. Generated pixels are never sent as evidence.
+4. Every model update is signed, versioned and reversible.
+5. Performance claims are measured and published with their method.
+6. Alerts support human decisions; they do not replace them.
+7. Tiefer is not used to track individuals. Customers are screened; export control and sanctions rules are followed.
 
-"Tiefer" is German for "deeper". Brand face: **See deeper.** Product promise: **Space intelligence you can ask.** Visitors will be traders, risk analysts, investors, accelerator reviewers and potential partners, mostly reading in English.
+The domain is **tiefer.space** (production URL `https://tiefer.space`; redirect `www.tiefer.space` to it). "Tiefer" is German for "deeper". Brand face: **See deeper.** Product promise: **AI that runs on the satellite.** Pitch line: **From passive cameras to orbital analysts.** Visitors will be satellite operators, space agency engineers, integrators, investors and accelerator reviewers, mostly reading in English.
 
 ---
 
@@ -47,8 +58,12 @@ Product principles that the site must reflect:
 7a. **Glyph coverage.** Both Mozilla fonts cover Latin including Turkish, Polish, Czech, Hungarian and Romanian, but they do **not** contain the Azerbaijani letters `Ə ə` and have **no Cyrillic or Greek**. The site is English now, but Azerbaijani and Russian versions are planned. Prepare a self-hosted fallback font with a calm, neutral style and full Latin Extended, Cyrillic and `Ə ə` coverage (for example IBM Plex Sans or Noto Sans, both open licence), declared with `unicode-range` so it only loads for characters the Mozilla fonts lack. Do not ship the fallback files until a non-English locale exists; document the plan in the README.
 8. **No trackers, no cookies, no third-party scripts, no third-party requests from the browser.** Therefore no cookie banner is needed. Do not add analytics. Do not add reCAPTCHA or any other third-party anti-spam service.
 9. **Honesty in copy:** no customer logos, no "trusted by", no partner names, no "ESA-backed", no "certified", no usage statistics, no testimonials, no claims of accuracy percentages. No hype words: "revolutionary", "cutting-edge", "game-changing", "AI-powered", "seamless", "unlock", "leverage", "empower", "magic".
-11. **No real sensitive locations.** Demo visuals use abstract or clearly fictional places. Never show real military sites, real borders in dispute, or real people.
 10. Do not use logos, names or images of real energy companies or real facilities.
+11. **No real sensitive locations.** Demo visuals use abstract or clearly fictional places. Never show real military sites, real borders in dispute, or real people.
+12. **No unmeasured performance numbers.** Do not print accuracy, latency, bandwidth savings or cost reductions as facts. Where the brief shows numbers, they sit in a card labelled as illustrative.
+13. **Restraint in design.** The site must look quiet and expensive, never loud. See "Design restraint" in section 3. If an effect draws attention to itself, remove it.
+14. **Not a template, not AI-looking.** The site must look designed by a person for this company, not generated. See "Not a template" in section 3. This is an acceptance criterion, not a preference.
+15. **Rebuild from zero.** Any earlier site in the repository is removed and nothing from it is reused (see `docs/START.md`, phase 0).
 
 ---
 
@@ -68,29 +83,75 @@ Define all colours as CSS custom properties on `:root`. Start from these and adj
 | `--paper` | `#FFFFFF` | Page background |
 | `--on-ink` | `#FFFFFF` | Text on `--ink` |
 | `--on-ink-muted` | `#B9B4D1` | Secondary text on `--ink` |
-| `--observed` | `#FFFFFF` on dark, `--ink` on light | Label for observed facts in the demo brief |
-| `--inferred` | `#9A6400` | Label for model inferences in the demo brief |
+| `--observed` | `#FFFFFF` on dark, `--ink` on light | Label for observed facts in the demo alert |
+| `--inferred` | `#9A6400` | Label for model inferences in the demo alert |
 
-All text must meet WCAG 2.2 AA contrast. Do not introduce other accent colours. The brand is calm and precise: an intelligence briefing, not a sci-fi poster.
+All text must meet WCAG 2.2 AA contrast. Do not introduce other accent colours. The brand is calm and precise: flight software, not a sci-fi poster.
 
 ### Typography
 
 - Headings: Mozilla Headline. Body, UI and captions: Mozilla Text.
 - Fluid type scale with `clamp()`. H1 roughly 40px on mobile to 72px on wide screens. Body 17-18px, line height about 1.55, measure 60-72 characters.
-- Numbers in tables and the demo brief should use tabular figures if the font supports them.
+- Numbers in tables and the demo alert should use tabular figures if the font supports them.
 
 ### Logo and motif
 
-- The logo is a mark of four parallel wave lines plus the wordmark "Tiefer". The four lines stand for the four data layers Tiefer fuses: optical, radar, thermal and night lights. Use this meaning in the product section. Use the SVG files provided (section 7). Never redraw, recolour (other than the dark and white versions provided), stretch or add effects.
+- The logo is a mark of four parallel wave lines plus the wordmark "Tiefer". The four lines stand for the four onboard stages: Filter, Detect, Alert, Update. Use this meaning in the product section. Use the SVG files provided (section 7). Never redraw, recolour (other than the versions provided), stretch or add effects.
 - Minimum clear space around the logo: the height of one wave line.
 - The four-wave motif may be used as a subtle, very low-contrast background element in the contact section (for example, long horizontal waves at 4-8% opacity).
-- **Orbital motif (space identity).** Dark sections (`--ink`) carry a restrained orbital visual language, drawn as inline SVG: thin dashed orbit arcs, a small satellite glyph, a narrow observation swath (a thin wedge from the satellite to a ground point), the curve of the Earth's limb at the bottom edge, and at most a few dozen tiny static star points at low opacity. Lines 1-1.5 px in `--on-ink-muted` at 15-45% opacity. No glow, no gradients, no lens flares, no rockets, no planets other than Earth, no stock photography.
-- Small technical labels in uppercase with letter spacing (for example `SAR`, `OPTICAL`, `CLOUD 82%`, `PASS 034`, `BAKU 40.41 N 49.87 E`) may annotate these visuals, like an instrument readout. Never use them for claims or real facility data.
+- **Orbital motif (space identity).** The hero (and only the hero) carries a restrained orbital visual language, drawn as inline SVG: thin dashed orbit arcs, a small satellite glyph, a narrow observation swath (a thin wedge from the satellite to a ground point), the curve of the Earth's limb at the bottom edge, and at most a few dozen tiny static star points at low opacity. Lines 1-1.5 px in `--on-ink-muted` at 15-45% opacity. No glow, no gradients, no lens flares, no rockets, no planets other than Earth, no stock photography.
+- Small technical labels in uppercase with letter spacing (for example `FRAME 0412`, `CLOUD 82%`, `KEPT ON BOARD`, `ALERT 48 KB`, `BAKU 40.41 N 49.87 E`) may annotate these visuals, like telemetry. Never use them for claims or real facility data.
 - Motion: at most one slow, subtle animation in the hero (for example the satellite glyph moving a short distance along its orbit arc once, then resting). No animation that loops forever. Respect `prefers-reduced-motion` (no motion at all).
+
+### Design restraint
+
+The audience is engineers at space agencies and satellite operators. They trust sites that look like good technical documentation, not like a launch event. Rules:
+
+- White and `--tint` backgrounds carry most of the page. At most three dark (`--ink`) bands: the hero, the product stages and the name section.
+- The orbital motif appears in the hero only, plus the quiet four-wave mark in the name section and the waves in the contact section. Nowhere else.
+- One accent colour (`--ink`) and its tints. No gradients, glows, blurs, glass effects, neon, shadows (except a 1 px border or a very soft shadow on the demo alert card), noise textures or background videos.
+- No parallax, no scroll-triggered reveal animations, no scroll hijacking, no animated counters, no carousels, no marquee, no typewriter effects, no custom cursors, no particles, no 3D, no globe.
+- Motion: only the single hero animation from the motif rules, and hover or focus transitions of colour, opacity or underline under 200 ms.
+- Corners: square or at most 4 px radius. Borders 1 px in `--line`.
+- Buttons: one primary style (solid `--ink`, white text) and one secondary style (text link with underline or 1 px outline). Never more than one primary button in view.
+- Type does the work: large Mozilla Headline headings with generous spacing, body in Mozilla Text at a comfortable measure. Use at most two weights per family on the page (for example Headline 500 and 600, Text 400 and 500).
+- Spacing on an 8 px grid. Section padding generous (roughly 96 to 144 px on desktop, 64 to 88 px on mobile). Content width at most 1,120 px, text columns at most 72 characters.
+- Icons: none, or simple 1.5 px line icons drawn in inline SVG, one size, one colour.
+- No stock photos, no illustrations of people, no AI-generated imagery.
+
+### Not a template
+
+Visitors from space agencies have seen hundreds of generated startup sites. The moment a page looks like one, it loses their trust. Avoid every pattern below, and review the screenshots against this list.
+
+**Patterns that make a site look AI-generated (never use):**
+
+- Purple or blue gradients, gradient text, glowing orbs, blurred colour blobs, aurora or mesh backgrounds, dotted or grid backgrounds.
+- Glass cards, cards with large radius and soft drop shadow everywhere, gradient borders, bento grids.
+- The repeated block "centred heading, grey subtitle, three cards with an icon in a rounded square". Any section that could be swapped with another site's section without anyone noticing.
+- Pill badges ("New", "Beta", "Now in orbit"), sparkles, stars as decoration, emoji or icon bullets.
+- Everything centred. Every section with the same height, padding and layout rhythm.
+- Generic icon sets used as decoration. Icons that only repeat what the label says.
+- Hover effects that scale, lift or glow. Animated gradients. Buttons with arrows that slide.
+- Stats bars ("10x faster"), logo walls, testimonial sliders, "How it works" as three numbered circles.
+- Stock phrases in UI text: "Get started", "Learn more", "Discover", "Transform", "Next-generation", "Built for the future". Use the copy in section 5 only.
+- Inter, system UI fonts or any font other than the two Mozilla fonts for visible text.
+
+**What to do instead:**
+
+- Think of a well-made mission document or a precision instrument manual, not a SaaS landing page. International Typographic Style: a strict grid, strong type hierarchy, hairline rules, generous white space, left-aligned text.
+- A 12-column grid on desktop. Use asymmetry on purpose: for example a heading in columns 1 to 5 and body text in columns 7 to 12, a narrow label column for section numbers, content that does not always start at the same column.
+- Give each section its own composition that fits its content: the problem as one strong statement in large type, the four stages as a precise table-like sequence, how it works as a single technical diagram, the alert card as a real data object, principles as a numbered list set like a specification, the roadmap as a timeline on hairlines. No two neighbouring sections share a layout.
+- Section labels like a document: small uppercase labels with a number (`02 / PRODUCT`), aligned to the grid.
+- Real details carry the identity: tabular figures, precise units, telemetry labels on the hero visual, careful line lengths, optical alignment of the logo, consistent 1 px hairlines in `--line`.
+- Typography does the heavy lifting. Big headlines set tight (line height about 1.05, slight negative tracking), body text relaxed. Hanging punctuation where the browser supports it. No orphans in headlines (use `text-wrap: balance` for headings and `text-wrap: pretty` for paragraphs).
+- Colour: mostly white, `--tint` and `--ink`. Contrast comes from scale and weight, not from colour.
+- Every visual (hero orbit, capture-to-alert flow, size comparison bars) is drawn for this site in inline SVG, and the alert card (HTML and CSS) uses the same label style, so they read as one system with one line weight.
+
+**Review question for every screenshot:** could this section appear unchanged on another company's site? If yes, redesign it.
 
 ### Tone of voice
 
-Like an intelligence briefing: calm, precise, sourced. Short sentences. Space vocabulary where it is accurate (orbit, pass, revisit, tasking, SAR), never where it would exaggerate. Never imply that Tiefer operates its own satellites, and never promise that the AI sees everything.
+Like a flight software engineer: calm, precise, measurable. Short sentences. Space vocabulary where it is accurate (orbit, pass, downlink, onboard, payload), never where it would exaggerate. Never imply that Tiefer builds or operates satellites, and never promise real-time alerts without saying they depend on the communication link.
 
 ---
 
@@ -113,7 +174,7 @@ One language, one binary, no Node toolchain. The backend is Go, and the frontend
 
 ### Frontend
 
-- Server-rendered HTML with Go `html/template`. Split into a base layout and one partial per section (header, hero, question box, problem, product layers, how, demo brief, use cases, principles, roadmap, name, contact, footer).
+- Server-rendered HTML with Go `html/template`. Split into a base layout and one partial per section (header, hero, problem, product stages, how it works, demo alert, use cases, principles, roadmap, name, contact, footer).
 - Plain CSS with custom properties in one stylesheet (`web/static/css/site.css`). No Tailwind, no CSS framework, no build step for CSS.
 - Vanilla JavaScript only where required: the mobile navigation toggle and progressive enhancement of the contact form. Under 3 KB total. Everything must work with JavaScript disabled.
 - Static files served with long cache headers and content-hashed file names (compute the hash at startup from the embedded file and expose a template function such as `{{ asset "css/site.css" }}`).
@@ -125,16 +186,16 @@ One language, one binary, no Node toolchain. The backend is Go, and the frontend
 
 ### HTTP and security
 
-- Security headers on every response: a strict `Content-Security-Policy` (`default-src 'self'`; no inline scripts; no external origins), `Strict-Transport-Security`, `X-Content-Type-Options: nosniff`, `Referrer-Policy: strict-origin-when-cross-origin`, `Permissions-Policy` disabling unused features, `X-Frame-Options: DENY`.
-- Gzip or Brotli compression for HTML, CSS, JS and SVG.
+- Everything in `docs/HARDENING.md`: server limits, exact security headers and CSP, routing rules, template safety, contact form defences, proxy trust, secrets, logging, supply chain, container and security tests. Treat it as part of this section.
+- Gzip compression from the Go server (standard library `compress/gzip`) for HTML, CSS, JS, SVG, XML, JSON and plain text. Precompress embedded static text files once at startup and serve the stored bytes; compress rendered HTML per response. Do not add a Brotli module.
 - Custom 404 page in the site design.
 - `robots.txt`, `sitemap.xml` and `site.webmanifest` served by Go (sitemap generated from the route list and `SITE_URL`).
 
 ### Build and run
 
-- `Makefile` with: `make run`, `make build`, `make test`, `make lint` (`go vet` plus `staticcheck` if available), `make check` (runs the text check in section 10), `make docker`.
-- Multi-stage `Dockerfile`: build with the official Go image, run on a minimal image (distroless static or scratch) as a non-root user, exposing one port from the `PORT` variable.
-- The binary must run anywhere a container runs, on a host in Azerbaijan or in the EU. The code must not depend on any provider. In the README, list both options neutrally and note that the hosting choice (and whether personal data from the contact form may be processed abroad) must be confirmed with a local lawyer, because Azerbaijan's Law on Personal Data has registration and cross-border transfer rules.
+- `Makefile` with the targets in `docs/HARDENING.md` section 13, plus `make run` and `make build`.
+- Multi-stage `Dockerfile` as specified in `docs/HARDENING.md` section 12.
+- Production hosting is **Microsoft Azure** as specified in `docs/AZURE.md`. The code itself stays provider neutral: Azure behaviour is enabled only through configuration, and the container runs on any host. In the README, note that the hosting region (and whether personal data from the contact form may be processed outside Azerbaijan) must be confirmed with a local lawyer, because Azerbaijan's Law on Personal Data has registration and cross-border transfer rules.
 
 ### Suggested structure
 
@@ -156,6 +217,11 @@ One language, one binary, no Node toolchain. The backend is Go, and the frontend
       brand/          (logo SVGs)
       favicon.svg, favicon.ico, apple-touch-icon.png, icon-192.png, icon-512.png, og-image.png
     embed.go          (//go:embed directives)
+  infra/              (Bicep, see docs/AZURE.md)
+  tools/go.mod        (pinned development tools, see docs/HARDENING.md section 11)
+  .github/workflows/  (ci.yml, codeql.yml, deploy.yml)
+  .github/dependabot.yml
+  docs/SECURITY-DECISIONS.md
   scripts/            (only if something cannot live in Go tests)
   LICENSE
   NOTICE.md
@@ -169,118 +235,126 @@ One language, one binary, no Node toolchain. The backend is Go, and the frontend
 
 ## 5. Page structure and copy (index page)
 
-Single scrolling page. Sticky header. Sections in this order. Use the copy exactly.
+Single scrolling page. Sections in this order. Use the copy exactly.
 
 ### 5.1 Header
 
-- Left: logo (`tiefer-logo.svg` on light, `tiefer-logo-white.svg` while over the dark hero), links to top.
+- Left: logo, links to top. Keep the header simple: it sits on the dark hero at the top of the page (white logo, `tiefer-logo-white.svg`) and is not sticky; a sticky, colour-changing header needs scroll scripts and adds visual noise. Legal pages use a light header with `tiefer-logo.svg`.
 - Right navigation: `Product` (#product), `How it works` (#how), `Use cases` (#use-cases), `Principles` (#principles), `Contact` (#contact).
-- Primary button: `Request access` (links to #contact).
+- Primary button: `Talk to us` (links to #contact).
 - On mobile: logo plus a menu button that opens an accessible disclosure menu.
 
 ### 5.2 Hero (dark)
 
-- Background `--ink` with the orbital motif (section 3): an orbit arc across the upper right, a small satellite glyph, a thin observation swath down to the Earth's limb along the bottom edge, sparse static stars. Text on the left, fully legible over the visual.
+- Background `--ink` with the orbital motif (section 3): an orbit arc across the upper right, a small satellite glyph, a thin observation swath down to the Earth's limb along the bottom edge, sparse static stars. Near the satellite glyph, a tiny label `ALERT 48 KB` travelling down a thin dashed line to the Earth's limb (static, or one short animation that respects reduced motion). Text on the left, fully legible over the visual.
 - Small technical label, top right on desktop only: `BAKU 40.41 N 49.87 E`
-- Eyebrow: `Space intelligence you can ask`
+- Eyebrow: `Edge AI in orbit`
 - H1: `See deeper.`
-- Lead: `Ask a question about any place on Earth in plain language. Tiefer finds and fuses optical, radar, thermal and night-light satellite data, tasks new imagery when the archive is not enough, and returns a sourced intelligence brief.`
-- Below the lead, a **question box** styled like a real prompt field but not interactive (a `<figure>` with a caption, not an `<input>`), with this example typed in: `Which ports on the eastern Caspian coast saw more vessel activity in the last 14 days?` and a small caption under it: `Example question`.
-- Primary button: `Request access` (#contact). Secondary link: `See how it works` (#how).
+- Lead: `Tiefer builds AI software that runs on Earth observation satellites. It filters out useless pixels in orbit, detects events on board, and sends kilobyte-sized alerts to the ground instead of gigabytes of raw imagery.`
+- Primary button: `Talk to us` (#contact). Secondary link: `See how it works` (#how).
 
 ### 5.3 Problem
 
-- H2: `Satellite data is everywhere. Answers are not.`
-- Intro: `Getting one answer from space still takes days: find the right images, buy them, clean them, align optical, radar and thermal layers by hand, look for change, write it up. The people who need the answer rarely have the specialists to do it.`
-- Four items (grid of 4 on desktop, 2 on tablet, 1 on mobile):
-  1. `Scattered catalogues` / `Every satellite has its own archive, format, resolution and revisit.`
-  2. `Clouds and darkness` / `Optical images fail under cloud and at night. Radar and thermal fill the gap, but few teams can combine them.`
-  3. `Specialist work` / `Cleaning, aligning and analysing imagery needs remote sensing experts most teams do not have.`
-  4. `Slow tasking` / `When no recent image exists, ordering a new one is a manual process that takes days.`
+- H2: `Satellites see more than they can send.`
+- Intro: `An Earth observation satellite stores what it captures and sends it down only when it passes over a ground station. By the time the image is processed, a fire has spread or a spill has drifted. And about two thirds of Earth's surface is under cloud at any moment, so much of what is sent is never useful.`
+- The intro is the section's one strong statement, set larger than body text across most of the grid width.
+- Below it, three items as three narrow text columns under a single hairline, each starting with its number; stacked on mobile. Plain typography: no cards, no boxes, no icons. (The product section below uses rows, so the two neighbours differ.)
+  1. `Hours of delay` / `Images wait on board for the next ground contact, then wait again for processing.`
+  2. `Wasted downlink` / `Cloudy and empty frames use the same scarce bandwidth as the ones that matter.`
+  3. `Passive cameras` / `The satellite captures everything and understands nothing until humans look.`
 
 ### 5.4 Product (id `product`, dark)
 
-- H2: `Four layers. One answer.`
-- Body: `The four lines in our logo are the four layers Tiefer fuses. Each keeps its own source. Together they answer the question.`
-- Four columns (2 by 2 on mobile), each with a thin line icon drawn in inline SVG and a label in the technical label style:
-  1. `OPTICAL` / `What the surface looks like. Sentinel-2, Landsat and commercial imagery.`
-  2. `RADAR` / `Sees through cloud and at night. Sentinel-1 and commercial SAR.`
-  3. `THERMAL` / `Heat: fires, industrial activity, surface temperature.`
-  4. `NIGHT LIGHTS` / `Where light appears or disappears after dark.`
+- H2: `Four stages. One onboard system.`
+- Body: `The four lines in our logo are the four stages Tiefer runs on the satellite. Each can be tested on its own. Together they turn a camera into an analyst.`
+- Four rows set like a specification table, separated by 1 px hairlines: a number (`01` to `04`), the stage name in the technical label style, and the sentence. On wide screens the rows sit in the right-hand columns of the grid, with the H2 and body on the left. No icons, no cards:
+  1. `FILTER` / `Checks every frame for cloud and quality as it is captured. Useless frames are compressed and kept, not sent.`
+  2. `DETECT` / `Runs computer vision models for the events that matter: fires, oil spills, vessels, floods.`
+  3. `ALERT` / `Sends a small packet with location, event type, confidence and an image chip through the first available link.`
+  4. `UPDATE` / `New or better models reach orbit as small, signed updates. No new satellite needed.`
+- Under the rows, one line: `Tiefer is software. It runs on the onboard compute operators already fly: GPU, VPU or FPGA.`
 - Keep these entries in `internal/content/en.go`.
 
 ### 5.5 How it works (id `how`)
 
-- H2: `From question to brief in five steps`
-- Five numbered steps, visually connected left to right on desktop (a simple line, not arrows made of characters), vertical on mobile:
-  1. `Ask` / `Tiefer turns your question into a place, a time window and the signs to look for. If something is unclear, it asks.`
-  2. `Plan` / `It picks the sensors that can answer. Cloudy area? Radar first.`
-  3. `Fuse` / `It finds, cleans and aligns the imagery, then runs change and object detection.`
-  4. `Task` / `No recent image? It prepares an order for a commercial satellite, within your budget rules. Anything beyond them waits for your approval.`
-  5. `Brief` / `You get a map, the findings, a confidence level for each, the source images, and what could not be seen.`
+- H2: `From capture to alert, on board`
+- A horizontal flow (vertical on mobile) with five nodes connected by a thin line, drawn in inline SVG, not ASCII:
+  1. `Capture` / `The sensor takes a frame.`
+  2. `Filter` / `Cloudy or empty? Compress and keep on board.`
+  3. `Detect` / `Useful frame? Run the event models.`
+  4. `Alert` / `Event found? Build a small alert packet.`
+  5. `Downlink` / `Send it through the first available channel to the operator.`
+- Note under the flow: `How fast an alert reaches the ground depends on the communication link: the next ground station pass, a relay, or a wider ground network. Tiefer makes the alert small enough to use whichever comes first.`
+- Then a short sub-block, `On the ground too`, as two text columns divided by a vertical hairline (stacked with a horizontal hairline on mobile). No card boxes:
+  1. `Tiefer Lab` / `Train, quantise and test models in a virtual orbit simulator and on flight-like hardware before anything flies.`
+  2. `Tiefer Ground` / `Run the same models at the ground station today. When your satellites carry Tiefer, the same code moves to orbit.`
 
-### 5.6 Demo brief
+### 5.6 Demo alert
 
-- H2: `Every finding shows its source.`
-- Body: `An answer you cannot check is not intelligence. Tiefer labels what a satellite observed separately from what a model inferred, links every finding to its source image, and never presents generated pixels as evidence.`
-- Next to the text, an **illustrative brief card** built in HTML and CSS (not an image). Visible label at the top: `Illustrative example. Not real data.` Content:
+- H2: `An alert, not an archive.`
+- Body: `When Tiefer finds an event, the satellite does not send the whole scene. It sends what an operator needs to act, and keeps the rest on board until someone asks for it. Every packet says what was observed and what was inferred.`
+- Next to the text, an **illustrative alert packet card** built in HTML and CSS (not an image). Visible label at the top: `Illustrative example. Not real data.` Content:
 
 | Field | Value |
 |---|---|
-| Question | `Vessel activity at Port A, last 14 days` |
-| Sensors | `Radar (SAR), optical` |
-| Passes used | `9 radar, 3 optical (4 optical rejected: cloud)` |
-| Finding 1 | `Observed` / `Vessels at berth rose from 6 to 11 between day 1 and day 14.` |
-| Finding 2 | `Inferred` / `Likely increase in loading activity. Confidence: medium.` |
-| Not seen | `No optical view on days 5 to 9 (cloud). Radar only.` |
+| Event | `Wildfire` |
+| Location | `Sector 12` (fictional) |
+| Detected | `On board, seconds after capture` |
+| Confidence | `High` |
+| Packet size | `48 KB` (image chip and metadata) |
+| Full scene | `Kept on board. Downlink on request.` |
+| Cloud in frame | `12%` |
+| Observed | `Active fire front, about 1.2 km long.` |
+| Inferred | `Likely spread to the north-east. Confidence: medium.` |
 
-  Style the `Observed` and `Inferred` labels as small pills (`--observed` and `--inferred` tokens). Under the table, a thin 14-day strip of small marks: filled for radar passes, outlined for optical passes, crossed for rejected cloudy passes. Decorative only (`aria-hidden="true"`); the table carries the information. `Port A` is fictional; do not name or map any real port.
+  Style `Observed` and `Inferred` as small square-cornered data labels (`--observed` and `--inferred` tokens), like field tags on a technical form, not rounded pills. Beside or under the table, a simple size comparison drawn as two bars: a long bar labelled `Full scene` and a tiny bar labelled `Alert`, with no numbers on the full-scene bar. Decorative only (`aria-hidden="true"`); the table carries the information. `Sector 12` is fictional; do not map any real place.
 
 ### 5.7 Use cases (id `use-cases`)
 
-- H2: `Built for people who decide on what happens on the ground`
-- Three cards:
-  1. `Commodity traders` / `Ports, terminals, storage and crops: see supply move before the statistics do.` / example question in small text: `How full are the tanks at this terminal compared with last month?`
-  2. `Insurers` / `Floods, fires and damage mapped in hours, with the images to back each claim.` / example: `Which insured sites in this district were under water on Tuesday?`
-  3. `Governments` / `Sovereign deployments that keep sensitive questions and data inside the country.` / example: `What changed at this infrastructure site since January?`
-- Under the cards, one line: `We start in the Caspian, Caucasus, Black Sea and Central Asia region. Tiefer answers in English, Azerbaijani, Turkish and Russian.`
+- H2: `Built for events where hours matter`
+- Four text blocks in a 2 by 2 arrangement on desktop (1 column on mobile), divided by hairlines that form a cross, each with a small label (`EVENT 01` to `EVENT 04`) above its title. No card boxes, no icons, no images:
+  1. `Wildfires` / `Spot active fires in forests and grasslands and alert emergency services while the fire is still small.`
+  2. `Oil spills` / `Flag slicks around offshore platforms and shipping lanes for rapid response.`
+  3. `Maritime awareness` / `Detect vessels at sea; match them with AIS on the ground to find ships that are not broadcasting.`
+  4. `Floods and reservoirs` / `Track rising water and reservoir levels during flood season.`
+- Under the blocks, one line: `We start with operators in Azerbaijan and the wider region, and work in English, Azerbaijani, Turkish and Russian.`
 
 ### 5.8 Principles (id `principles`)
 
-- H2: `How we work`
-- Six short statements in a 3 by 2 grid (1 column on mobile):
-  1. `Observed is not inferred.` / `Every brief labels the two separately.`
-  2. `No invented pixels.` / `Generated imagery is never shown as evidence. If it was cloudy, we say so.`
-  3. `Every finding is traceable.` / `Sensor, date, source image and processing steps travel with it.`
-  4. `You control the spend.` / `Automatic tasking runs only within your rules. Anything else waits for approval.`
-  5. `Limits are stated.` / `Every brief says what could not be seen.`
+- H2: `How we build flight software`
+- Six statements set like clauses in a specification: labels `P1` to `P6` in a narrow left column, the statement in Mozilla Headline, the explanation below it in Mozilla Text. Two columns of clauses on wide screens, one on mobile. No cards, no icons:
+  1. `Nothing is deleted blindly.` / `Filtered frames are compressed and kept. The operator sets the rules.`
+  2. `Observed is not inferred.` / `Every alert labels the two separately, with a confidence value.`
+  3. `No invented pixels.` / `Generated imagery is never sent as evidence.`
+  4. `Signed updates only.` / `Every model in orbit is signed, versioned and can be rolled back.`
+  5. `Measured, not claimed.` / `We publish accuracy, latency and power figures with the method behind them.`
   6. `People are not targets.` / `Tiefer is not used to track individuals. Customers are screened.`
 
 ### 5.9 Roadmap
 
-- H2: `Where we are`
+- H2: `Ground first. Then orbit.`
 - A horizontal track (vertical on mobile) with five nodes; the first marked `Now`:
-  1. `Demo` / `Three question types on free satellite data: port activity, flood mapping, land change.`
-  2. `Pilots` / `First paying teams, watchlists and weekly briefs.`
-  3. `Tasking` / `Commercial imagery ordered by Tiefer, with human approval first.`
-  4. `Sovereign` / `On-premise deployments for governments and large companies.`
-  5. `More regions` / `The same analyst, new places and new sensors.`
+  1. `Benchmark` / `Cloud filter and three event models, measured on flight-like hardware in a virtual orbit.`
+  2. `Ground pilot` / `Tiefer Ground at an operator's ground segment.`
+  3. `First flight` / `Tiefer models running in orbit on a hosted compute platform.`
+  4. `National satellites` / `Tiefer on board operator satellites, agreed with the manufacturer.`
+  5. `Region` / `More operators, more events, radar data on board.`
 
 ### 5.10 Name
 
 - Dark section (`--ink` background, white text), short, with a quiet Earth-limb curve along the bottom.
 - Large line: `Tiefer is German for deeper.`
-- Body: `We look past the surface of an image to what is actually happening on the ground, and we show you how we know.`
+- Body: `A camera records the surface. An analyst looks deeper. We are putting the analyst in orbit.`
 - The four-wave mark (white) may appear here, large and quiet.
 
 ### 5.11 Contact (id `contact`)
 
 - H2: `We are early, and we are listening.`
-- Body: `We are looking for our first pilot teams: traders, insurers, analysts and public institutions with questions about the physical world. Tell us the question you would ask first.`
+- Body: `We are looking for our first partners: satellite operators, space agencies, integrators and hosted-compute platforms. Tell us which events you need to catch first.`
 - A short contact form handled by the Go backend (`POST /contact`):
-  - Fields: `Name` (required), `Work email` (required), `Organisation` (optional), `Your role` (optional select: `Trader or analyst`, `Insurer`, `Public sector`, `Investor`, `Other`), `The first question you would ask Tiefer` (required, max 2,000 characters).
+  - Fields: `Name` (required), `Work email` (required), `Organisation` (optional), `Your role` (optional select: `Satellite operator`, `Space agency`, `Manufacturer or integrator`, `Hosted compute platform`, `Investor`, `Other`), `What would you want your satellite to detect first?` (required, max 2,000 characters).
   - Checkbox (required): `I agree that Tiefer may use these details to reply to my message. See the privacy notice.` with a link to `/privacy`.
-  - Submit button: `Request access`.
+  - Submit button: `Send message`.
   - Success message: `Thank you. We will reply within two working days.`
   - Error message: `Something went wrong. Please email us at` followed by the contact email as a link.
 - The form must work without JavaScript (normal POST, then redirect to `/?sent=1#contact` using the Post/Redirect/Get pattern). With JavaScript, submit via `fetch` and show the message inline without reloading.
@@ -301,7 +375,7 @@ Single scrolling page. Sticky header. Sections in this order. Use the copy exact
 The company is registered in Azerbaijan and serves EU customers. Create `/legal`, `/privacy` and `/acceptable-use` with a clean text layout that uses the same header and footer. Do not use German-specific terms such as "Impressum" or references to German law.
 
 - **Legal notice (`/legal`):** company information that EU business visitors expect: legal name and legal form (for example `[COMPANY_LEGAL_NAME] MMC`, a limited liability company under the laws of the Republic of Azerbaijan), registered address in Baku, tax identification number (VÖEN), state registration details, managing director, contact email. Fill every value from config, with clearly marked placeholders like `[COMPANY_LEGAL_NAME]` as defaults. Do not invent any data.
-- **Privacy (`/privacy`):** a short, plain-English privacy notice that is true for this site as built: server-rendered site, no cookies, no analytics, no third-party requests, fonts self-hosted, server logs without full IP addresses, the contact form (which fields, purpose, that data is sent by email and not stored in a database, retention placeholder), the SMTP provider and hosting provider (with their country) as placeholders. Structure it so it can satisfy both Azerbaijan's Law on Personal Data (11 May 2010) and, because the site is aimed at people in the EU, the GDPR: controller identity and contact, purposes, legal basis placeholder, recipients, international transfers placeholder, retention, data subject rights, and how to complain. Do not write legal conclusions; use placeholders where a lawyer must decide.
+- **Privacy (`/privacy`):** a short, plain-English privacy notice that is true for this site as built: server-rendered site, no cookies, no analytics, no third-party requests from the browser, fonts self-hosted, application logs without IP addresses. Be honest about the hosting layer: Microsoft Azure (Front Door, its web application firewall and App Service) processes visitors' IP addresses to deliver the site and protect it from attacks, and firewall logs are kept for `[LOG_RETENTION_DAYS]` days (placeholder, default 30), with the legal basis as a placeholder. Then cover the contact form (which fields, purpose, that data is sent by email and not stored in a database, retention placeholder), the SMTP provider and hosting provider (with their country) as placeholders. Structure it so it can satisfy both Azerbaijan's Law on Personal Data (11 May 2010) and, because the site is aimed at people in the EU, the GDPR: controller identity and contact, purposes, legal basis placeholder, recipients, international transfers placeholder, retention, data subject rights, and how to complain. Do not write legal conclusions; use placeholders where a lawyer must decide.
 - **Acceptable use (`/acceptable-use`):** a short, plain-English policy based on the product principles: no tracking or identifying individuals, no use that violates human rights or applicable sanctions and export controls, customer screening, the right to suspend accounts. Placeholders where a lawyer must decide.
 - Add a visible note at the top of all three pages: `Placeholder text. To be reviewed before launch.` Render this note whenever `LEGAL_REVIEWED` is not `true`, so it cannot go live unnoticed.
 
@@ -333,12 +407,12 @@ Always give the logo an accessible name ("Tiefer"). Decorative uses of the mark 
 
 ## 8. SEO and metadata
 
-- `<title>`: `Tiefer | Space intelligence you can ask`
-- Meta description: `Tiefer is an AI analyst for satellite data. Ask a question in plain language and get a sourced intelligence brief from optical, radar, thermal and night-light imagery. Built in Baku.`
+- `<title>`: `Tiefer | Edge AI in orbit`
+- Meta description: `Tiefer builds AI software that runs on Earth observation satellites: it filters useless pixels in orbit, detects events on board and sends kilobyte-sized alerts instead of gigabytes of raw imagery. Built in Baku.`
 - Open Graph and Twitter card tags using `og-image.png`.
-- `lang="en"`, canonical URL built from `SITE_URL`.
+- `lang="en"`, canonical URL built from `SITE_URL` (`https://tiefer.space` in production). Redirect `http://` and `www.` to `https://tiefer.space` at the hosting or proxy level, and document this in the README.
 - `sitemap.xml`, `robots.txt`, `site.webmanifest` (theme colour `#0C003D`), all served by Go.
-- JSON-LD `Organization` with name, url, logo and `sameAs` (LinkedIn). Serve it as a `<script type="application/ld+json">` block that is allowed by the CSP (use a hash or nonce, not `unsafe-inline`). No invented fields.
+- JSON-LD `Organization` with name, url, logo and `sameAs` (`https://www.linkedin.com/company/tiefer/`). Serve it as a `<script type="application/ld+json">` block that is allowed by the CSP (use a hash or nonce, not `unsafe-inline`). No invented fields.
 - One H1 per page, logical heading order.
 
 ---
@@ -349,9 +423,30 @@ Always give the logo an accessible name ("Tiefer"). Decorative uses of the mark 
 - Respect `prefers-reduced-motion`. Any motion is subtle and short.
 - Light theme is the default and the only required theme. Do not add a dark mode toggle.
 - Test at 360, 390, 768, 1024, 1280 and 1440 px widths. No horizontal scrolling at any width. Side padding at least 16 px on mobile.
-- Lighthouse targets on mobile: Performance 95+, Accessibility 100, Best Practices 100, SEO 100.
-- Preload the two main font files. Use `font-display: swap`. Subset only if it does not remove characters needed for "Türkiye" and other copy.
-- Total page weight for the index page under 300 KB excluding fonts. Time to first byte from the Go server under 50 ms locally.
+- Lighthouse targets on mobile: Performance 100 (at least 98), Accessibility 100, Best Practices 100, SEO 100.
+- Core Web Vitals on Lighthouse mobile: LCP under 1.5 s, CLS under 0.02, TBT 0 ms.
+
+### Performance budgets (enforced by Go tests where possible)
+
+| Item | Budget |
+|---|---|
+| Index HTML, gzip | 30 KB or less |
+| CSS, one file, gzip | 12 KB or less |
+| JavaScript, one file, raw | 3 KB or less (and the page works without it) |
+| Fonts, both WOFF2 files together | 110 KB or less |
+| Images and SVGs loaded on first view, compressed | 40 KB or less |
+| Total first view transfer | 200 KB or less |
+| Requests on first view | 12 or fewer, all to the same origin |
+| Server render time of the index page | p99 under 5 ms on a laptop (Go benchmark) |
+
+Techniques:
+
+- Fonts: convert to WOFF2 and subset to Basic Latin, Latin-1 Supplement, Latin Extended-A and the punctuation used (keeps "Türkiye", Czech, Polish and similar names). Keep the `wght` axis. Pin the `wdth` axis of Mozilla Headline to 100 with `fonttools varLib.instancer` unless the design uses it. Preload both files with `crossorigin`. Use `font-display: swap` and a metric-matched local fallback (`size-adjust`, `ascent-override`, `descent-override`) so swapping does not shift the layout.
+- Give every image explicit `width` and `height`. The hero has no image files; its visual is inline SVG.
+- No render-blocking resources except the single stylesheet. The script uses `defer`.
+- Templates are parsed once. Precompute everything that does not depend on the request (hashed asset names, JSON-LD, CSP header value, sitemap).
+- Static files: hashed names, `Cache-Control: public, max-age=31536000, immutable`, `ETag`, gzip precompressed.
+- Measure, do not guess: run Lighthouse against the local container in the verification phase (with `npx lighthouse` only if Node is already installed on the machine; never add Node to the repository), and report the numbers.
 
 ---
 
@@ -375,9 +470,9 @@ Load and validate in `internal/config`. Provide `.env.example` with every variab
 |---|---|---|
 | `PORT` | `8080` | HTTP port |
 | `ENV` | `development` | `development` or `production` |
-| `SITE_URL` | `http://localhost:8080` | Canonical base URL |
-| `CONTACT_EMAIL` | `hello@example.com` | Public contact address and `mailto:` link |
-| `LINKEDIN_URL` | `https://www.linkedin.com/company/tiefer` | LinkedIn page |
+| `SITE_URL` | `http://localhost:8080` | Canonical base URL. Production value: `https://tiefer.space` |
+| `CONTACT_EMAIL` | `hello@tiefer.space` | Public contact address and `mailto:` link |
+| `LINKEDIN_URL` | `https://www.linkedin.com/company/tiefer/` | LinkedIn company page (final value) |
 | `REPO_URL` | empty | Public source repository, footer link |
 | `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS` | empty | Mail delivery for the contact form (TLS required) |
 | `CONTACT_TO` | empty | Where form messages are delivered |
@@ -385,16 +480,23 @@ Load and validate in `internal/config`. Provide `.env.example` with every variab
 | `CSRF_SECRET` | random in dev | Signing key for form tokens, required in production |
 | `LEGAL_*` | placeholders | Company legal name, legal form, address in Baku, VÖEN (tax ID), state registration, managing director, hosting provider and country, SMTP provider and country |
 | `LEGAL_REVIEWED` | `false` | Hides the placeholder warning on legal pages when `true` |
+| `LOG_RETENTION_DAYS` | `30` | Shown on the privacy page; must match the Azure log retention |
+| `BEHIND_FRONT_DOOR` | `false` | `true` on Azure: enables the Front Door check and client IP rules in `docs/HARDENING.md` section 8 |
+| `FRONT_DOOR_ID` | empty | The Front Door profile ID; required when `BEHIND_FRONT_DOOR=true` in production |
+| `HSTS_PRELOAD` | `false` | Adds `preload` to HSTS; founder decision, see `docs/HARDENING.md` section 16 |
+
+In production, `CSRF_SECRET` and `SMTP_PASS` come from Azure Key Vault references (see `docs/AZURE.md`). They never appear in the repository, in logs or in error messages.
 
 ---
 
 ## 12. Repository hygiene
 
 - `go.mod` with module path from a `MODULE_PATH` you ask me for, or use `github.com/tiefer-labs/web`.
-- `gofmt`, `go vet` and `staticcheck` clean.
-- Tests for: config validation, contact form validation (valid, missing fields, header injection, honeypot, too fast, rate limit), CSRF token round trip, security headers present on every route, 404 page, every page renders with status 200, and the text check.
-- GitHub Actions workflow `.github/workflows/ci.yml`: run `gofmt` check, `go vet`, `staticcheck`, `go test ./...`, and `go build` on every push and pull request.
-- `.gitignore`, `.editorconfig`, `.env.example`.
+- `gofmt`, `go vet`, `staticcheck`, `gosec` and `govulncheck` clean.
+- Tests: config validation, every page renders with status 200, 404 page, the text check, the performance budgets from section 9, and every security test listed in `docs/HARDENING.md` section 14. Fuzz targets as listed there.
+- Workflows `ci.yml`, `codeql.yml` and `deploy.yml`, plus `dependabot.yml`, exactly as described in `docs/HARDENING.md` section 13 and `docs/AZURE.md` section 5.
+- `.gitignore`, `.dockerignore`, `.editorconfig`, `.env.example`.
+- `docs/SECURITY-DECISIONS.md`: every accepted risk, suppressed finding and trade-off, with the reason and when to revisit it.
 
 ---
 
@@ -421,7 +523,7 @@ Load and validate in `internal/config`. Provide `.env.example` with every variab
 
 When you finish:
 
-1. `make run`, `make build`, `make test`, `make lint`, `make check` and `make docker` all work with no errors.
+1. `make run`, `make build`, `make check`, `make fuzz` and `make docker` all work with no errors, and `gosec`, `govulncheck` and `staticcheck` report zero findings.
 2. `go build` produces one binary that serves the whole site with no files on disk next to it.
 3. The index page, `/legal`, `/privacy`, `/acceptable-use` and the 404 page render correctly at all widths listed in section 9.
 4. The contact form works with and without JavaScript against a local SMTP catcher (document how to test it, for example with Mailpit in Docker).
@@ -429,6 +531,10 @@ When you finish:
 6. Fonts are self-hosted, the licence files are present, and there are zero browser requests to third-party domains (verify with a headless browser).
 7. All copy comes from `internal/content/en.go`; changing a sentence there changes the site.
 8. `LICENSE` contains the full MPL 2.0 text, every source file has the MPL header, and `NOTICE.md` covers brand assets, fonts and dependencies.
-9. `README.md` explains: what the project is, how to run it, how to edit copy, how to update the example questions and the roadmap, how to add another language, how to configure SMTP, how to deploy with Docker (Azerbaijani or EU host), the licence, and the list of placeholders still to fill.
-10. Take screenshots of the index page at 390 px and 1440 px and review them yourself before telling me you are done. Fix anything that looks unbalanced, cramped or off-brand.
+9. `README.md` explains: what the project is, how to run it, how to edit copy, how to update the use cases and the roadmap, how to add another language, how to configure SMTP, how the Azure deployment works (short, linking to `infra/README.md`), the licence, and the list of placeholders still to fill.
+9a. Every security test in `docs/HARDENING.md` section 14 exists and passes. Every header in section 4 of that document is present on every route.
+9b. The performance budgets in section 9 pass as Go tests, and the Lighthouse results are reported.
+9c. `infra/` builds with the Bicep CLI (or the report says the CLI was not available), and nothing was deployed.
+9d. The design follows "Design restraint" in section 3.
+10. Take full-page screenshots of every page at 390 px and 1440 px and review them against "Not a template" in section 3 for at least two rounds before telling me you are done. No section may look like it could belong to another company's site. Fix anything unbalanced, cramped, loud or generic.
 11. At the end, give me a short list of anything you could not do (for example, fonts you could not download) and exactly what I need to provide.

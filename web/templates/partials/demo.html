@@ -4,54 +4,36 @@
   file, You can obtain one at https://mozilla.org/MPL/2.0/.
 */ -}}
 {{define "demo" -}}
-{{with .Site.Demo -}}
-<section class="section demo" id="demo" aria-labelledby="demo-title">
-  <div class="wrap demo-grid">
+{{- $s := .Site.Demo -}}
+<section class="section demo" id="alert" aria-labelledby="demo-title">
+  <div class="wrap grid">
+    <p class="section-label">{{$s.Label}}</p>
     <div class="demo-text">
-      <h2 id="demo-title">{{.Title}}</h2>
-      <p class="section-intro">{{.Body}}</p>
-      {{- with .Contents}}
-      <h3 class="tech-label brief-contents-title">{{$.Site.Demo.ContentsTitle}}</h3>
-      <ul class="brief-contents" role="list">
-        {{- range .}}
-        <li>{{.}}</li>
-        {{- end}}
-      </ul>
-      {{- end}}
+      <h2 id="demo-title">{{$s.Title}}</h2>
+      <p>{{$s.Body}}</p>
     </div>
-    <div class="brief-card">
-      <table class="brief-table">
-        <caption class="brief-flag">{{.CardLabel}}</caption>
+    <figure class="packet">
+      <figcaption class="packet-head">
+        <span class="packet-title">{{$s.CardTitle}}</span>
+        <span class="packet-note">{{$s.CardLabel}}</span>
+      </figcaption>
+      <table class="packet-table">
         <tbody>
-          {{- range .Rows}}
-          <tr>
-            <th scope="row">{{.Label}}</th>
-            <td>{{if .Tag}}<span class="pill pill--{{.Tag}}">{{.TagLabel}}</span> {{end}}{{.Value}}</td>
+          {{- range $s.Fields}}
+          <tr{{if .Kind}} class="is-{{.Kind}}"{{end}}>
+            <th scope="row">{{if .Kind}}<span class="tag tag-{{.Kind}}">{{.Name}}</span>{{else}}{{.Name}}{{end}}</th>
+            <td>{{.Value}}</td>
           </tr>
           {{- end}}
         </tbody>
       </table>
-      {{- with .Strip}}
-      <div class="strip" aria-hidden="true">
-        <ol class="strip-days">
-          {{- range .Days}}
-          <li class="strip-day">
-            {{- range .Radar}}<span class="mark mark--radar"></span>{{end -}}
-            {{- range .Optical}}<span class="mark mark--optical"></span>{{end -}}
-            {{- range .Rejected}}<span class="mark mark--rejected"></span>{{end -}}
-          </li>
-          {{- end}}
-        </ol>
-        <div class="strip-scale tech-label"><span>{{.FirstDay}}</span><span>{{.LastDay}}</span></div>
-        <ul class="strip-legend">
-          <li><span class="mark mark--radar"></span>{{.LegendRadar}}</li>
-          <li><span class="mark mark--optical"></span>{{.LegendOptical}}</li>
-          <li><span class="mark mark--rejected"></span>{{.LegendRejected}}</li>
-        </ul>
-      </div>
-      {{- end}}
-    </div>
+      <svg class="packet-bars" viewBox="0 0 400 56" aria-hidden="true" focusable="false">
+        <text class="bar-label" x="0" y="11">{{$s.SceneLabel}}</text>
+        <rect class="bar bar-scene" x="0" y="17" width="400" height="8"/>
+        <text class="bar-label" x="0" y="43">{{$s.AlertLabel}}</text>
+        <rect class="bar bar-alert" x="0" y="49" width="3" height="8"/>
+      </svg>
+    </figure>
   </div>
 </section>
-{{- end}}
 {{- end}}

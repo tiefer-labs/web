@@ -1,84 +1,71 @@
 # Notices
 
-This repository contains the source code of the Tiefer website. Different
-parts of it are under different terms. This file explains which is which,
-in plain English. It is not legal advice.
-
 ## Code: Mozilla Public License 2.0
 
-The Go code, templates, stylesheet, JavaScript and build files are licensed
-under the Mozilla Public License, version 2.0 (SPDX identifier `MPL-2.0`).
-The full text is in [`LICENSE`](LICENSE). Each source file carries the
-standard MPL 2.0 header.
-
-In short: you may use, change and redistribute the code. If you distribute a
-changed version of an MPL-licensed file, you must make the source of that
-file available under the MPL too.
+The source code of this website is licensed under the Mozilla Public
+License, v. 2.0 (`MPL-2.0`); the full text is in [`LICENSE`](LICENSE). Every
+source file carries the MPL 2.0 header, and a test checks this.
 
 ## Website copy
 
-The text content in `internal/content/` (the website copy and the legal page
-drafts) is also covered by the MPL 2.0, unless the company decides otherwise.
-This is an open decision for the founder; see the README.
+The text content in `internal/content/` is also covered by MPL 2.0, unless
+the founder decides otherwise. This is an open decision.
 
-## The Tiefer name and logo are not covered
+## The Tiefer name and logo
 
-The MPL 2.0 does not grant any rights to trademarks (section 2.3 of the
-licence). The following are **not** licensed under the MPL and remain the
-property of the company that operates Tiefer:
+The MPL does not grant trademark rights (section 2.3 of the licence). The
+Tiefer name, the logos and the four-wave mark in `web/static/brand/`, the
+favicons (`favicon.svg`, `favicon.ico`, `apple-touch-icon.png`,
+`icon-192.png`, `icon-512.png`) and the social image (`og-image.png`) are
+not covered by the MPL. They are trademarks and brand assets of the
+company. You may not use them to suggest endorsement by Tiefer, or to
+brand a fork or a modified version of this website.
 
-- the name "Tiefer" as a brand, and the slogans used on the site;
-- the logos and marks in `web/static/brand/`;
-- the favicons and app icons (`web/static/favicon.svg`, `favicon.ico`,
-  `apple-touch-icon.png`, `icon-192.png`, `icon-512.png`);
-- the social preview image `web/static/og-image.png`.
+## Fonts
 
-You may not use them to suggest that Tiefer endorses you or your product,
-and you may not use them to brand a fork of this code. If you publish a
-fork, replace the name, logos, icons and social image with your own.
-
-## Fonts: SIL Open Font License 1.1
-
-The site uses two typefaces by Mozilla, self-hosted in `web/static/fonts/`:
-
-| Font | Files | Licence |
-|---|---|---|
-| Mozilla Headline | `MozillaHeadline-VF.woff2` | SIL Open Font License 1.1, see `OFL-MozillaHeadline.txt` |
-| Mozilla Text | `MozillaText-VF.woff2` | SIL Open Font License 1.1, see `OFL-MozillaText.txt` |
-
-The WOFF2 files were converted, unchanged in glyphs and features, from the
-variable TTF files (version 1.000) distributed by the Mozilla Headline and
-Mozilla Text projects (`github.com/mozilla/mozilla-headline-type`,
-`github.com/mozilla/mozilla-text-type`). The fonts stay under the OFL; the
-MPL does not apply to them.
-
-## Third-party Go modules
-
-None. The website uses only the Go standard library. The Go standard
-library is compiled into the binary and is licensed under the BSD 3-Clause
-licence (Copyright The Go Authors).
-
-Development tools that are not part of the binary:
-
-| Tool | Used for | Licence |
-|---|---|---|
-| staticcheck (`honnef.co/go/tools`) | `make lint` and CI | MIT |
-| govulncheck (`golang.org/x/vuln`) | `make vuln` and CI | BSD 3-Clause |
-
-## Deployment components
-
-These are downloaded when the site is built or deployed; they are not part
-of this repository and keep their own licences:
-
-| Component | Used for | Licence |
-|---|---|---|
-| `golang` Docker image | building the binary (build stage only) | BSD 3-Clause (Go); Debian packages under their own licences |
-| `gcr.io/distroless/static-debian12` | runtime base image | Apache 2.0 (distroless); Debian packages such as `ca-certificates` and `tzdata` under their own licences |
-| Caddy (`caddy` Docker image) | TLS and reverse proxy in `deploy/` | Apache 2.0 |
+Mozilla Headline and Mozilla Text are licensed under the SIL Open Font
+License 1.1 (Copyright 2025 The Mozilla Headline Project Authors and The
+Mozilla Text Project Authors). The licences are next to the fonts:
+`web/static/fonts/OFL-MozillaHeadline.txt` and
+`web/static/fonts/OFL-MozillaText.txt`. The variable TTF files are the
+originals from the Google Fonts repository; the served WOFF2 files are
+subsets built from them with `scripts/fonts.py` (Latin only, the Headline
+width axis fixed at 100). Neither font declares a Reserved Font Name, so
+the subsets keep their names.
 
 ## Unicode data
 
-`internal/textcheck/extpict.go` contains the list of code points with the
-Unicode property Extended_Pictographic, derived from `emoji-data.txt` of
-Unicode 15.0.0. Unicode data files are provided under the Unicode License V3
-(Copyright Unicode, Inc.), see https://www.unicode.org/license.txt.
+`internal/textcheck/extpict.go` lists the code points with the Unicode
+property Extended_Pictographic from `emoji-data.txt` of Unicode 15.0.0,
+generated by `internal/textcheck/gen.go`. The ranges were read from the
+table in `github.com/rivo/uniseg` v0.4.7 (MIT licence), which is generated
+from the same file. Unicode data files are provided under the Unicode
+License V3 (Copyright Unicode, Inc.), https://www.unicode.org/license.txt.
+
+## Go modules
+
+The website binary uses the Go standard library only; there are no
+third-party modules at runtime. The standard library is licensed under the
+BSD 3-Clause licence (Copyright The Go Authors).
+
+Development tools, pinned in `tools/go.mod` and not part of the binary:
+
+| Tool | Version | Licence |
+|---|---|---|
+| staticcheck (`honnef.co/go/tools`) | v0.8.1 | MIT |
+| gosec (`github.com/securego/gosec/v2`) | v2.29.0 | Apache 2.0 |
+| govulncheck (`golang.org/x/vuln`) | v1.8.0 | BSD 3-Clause |
+
+Their own dependencies are listed in `tools/go.sum`.
+
+## Build and deployment components
+
+Downloaded when the site is built or deployed; not part of this
+repository:
+
+| Component | Used for | Licence |
+|---|---|---|
+| `golang` Docker image | build stage only | BSD 3-Clause (Go); Debian packages under their own licences |
+| `gcr.io/distroless/static-debian12` | runtime image | Apache 2.0; Debian packages such as `ca-certificates` and `tzdata` under their own licences |
+| GitHub Actions in `.github/workflows/` | CI and deployment | each under its own licence, pinned by commit |
+| fontTools and brotli (Python) | building the WOFF2 files | MIT |

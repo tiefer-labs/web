@@ -4,12 +4,13 @@
   file, You can obtain one at https://mozilla.org/MPL/2.0/.
 */ -}}
 {{define "content" -}}
-{{with .Site.NotFound -}}
-<section class="not-found wrap" aria-labelledby="nf-title">
-  <p class="tech-label">{{.Label}}</p>
-  <h1 id="nf-title">{{.Title}}</h1>
-  <p>{{.Body}}</p>
-  <p><a class="btn btn--primary" href="{{$.Href "/"}}">{{.Home}}</a></p>
+{{- $n := .Site.NotFound -}}
+<section class="section not-found" aria-labelledby="nf-title">
+  <div class="wrap grid">
+    <p class="section-label">{{$n.Code}}</p>
+    <h1 class="nf-title" id="nf-title">{{$n.Title}}</h1>
+    <p class="nf-body">{{$n.Body}}</p>
+    <p class="nf-home"><a class="text-link" href="{{.Href "/"}}">{{$n.Home}}</a></p>
+  </div>
 </section>
-{{- end}}
 {{- end}}

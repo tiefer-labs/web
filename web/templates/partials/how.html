@@ -4,28 +4,40 @@
   file, You can obtain one at https://mozilla.org/MPL/2.0/.
 */ -}}
 {{define "how" -}}
-{{with .Site.How -}}
+{{- $s := .Site.How -}}
 <section class="section how" id="how" aria-labelledby="how-title">
-  <div class="wrap">
-    <div class="section-head">
-      <h2 id="how-title">{{.Title}}</h2>
+  <div class="wrap grid">
+    <p class="section-label">{{$s.Label}}</p>
+    <h2 class="how-title" id="how-title">{{$s.Title}}</h2>
+    <div class="flow">
+      <svg class="flow-rail" viewBox="0 0 100 2" preserveAspectRatio="none" aria-hidden="true" focusable="false">
+        <path d="M0 1H100"/>
+      </svg>
+      <ol class="flow-steps numbered">
+        {{- range $i, $step := $s.Steps}}
+        <li>
+          <svg class="flow-mark" viewBox="0 0 12 12" width="12" height="12" aria-hidden="true" focusable="false"><rect x="1" y="1" width="10" height="10"/></svg>
+          <h3>{{$step.Title}}</h3>
+          <p>{{$step.Text}}</p>
+          {{- if eq $i 1}}
+          <p class="flow-branch" aria-hidden="true">{{$s.Branch}}</p>
+          {{- end}}
+        </li>
+        {{- end}}
+      </ol>
     </div>
-    <ol class="steps" role="list">
-      {{- range $i, $s := .Steps}}
-      <li class="step">
-        <span class="step-num" aria-hidden="true">{{pad2 (inc $i)}}</span>
-        <h3>{{$s.Title}}</h3>
-        <p>{{$s.Text}}</p>
-      </li>
-      {{- end}}
-    </ol>
-    {{- with .Note}}
-    <aside class="how-note" aria-label="{{.Title}}">
-      <p class="tech-label">{{.Title}}</p>
-      <p>{{.Text}}</p>
-    </aside>
-    {{- end}}
+    <p class="how-note">{{$s.Note}}</p>
+    <div class="ground">
+      <h3 class="ground-title">{{$s.GroundTitle}}</h3>
+      <dl class="ground-cols">
+        {{- range $s.Ground}}
+        <div>
+          <dt>{{.Title}}</dt>
+          <dd>{{.Text}}</dd>
+        </div>
+        {{- end}}
+      </dl>
+    </div>
   </div>
 </section>
-{{- end}}
 {{- end}}

@@ -1,7 +1,9 @@
-.git
-.github
-bin
-.env
-*.md
-!web/**/*.md
-docs
+# Only what the build needs goes into the build context.
+*
+!go.mod
+!cmd/
+!internal/
+!web/
+web/static/fonts/*.ttf
+**/*_test.go
+**/testdata/

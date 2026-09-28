@@ -3,10 +3,15 @@
 /dist/
 /tiefer-web
 
-# Local configuration, never commit secrets
+# Local configuration: never commit secrets
 .env
 .env.*
 !.env.example
+
+# Fuzzing and test output
+testdata/fuzz/*/corpus-tmp/
+*.test
+*.out
 
 # Editors and OS
 .DS_Store

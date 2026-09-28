@@ -2,19 +2,19 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
-// Package render loads the embedded templates and static assets, gives
-// every asset a content-hashed URL, and renders pages.
+// Package render loads the embedded templates and static assets once at
+// startup: it hashes asset names, precompresses text assets and parses
+// every page template.
 package render
 
 import (
 	"bytes"
 	"compress/gzip"
 	"crypto/sha256"
-	"crypto/sha512"
-	"encoding/base64"
 	"encoding/hex"
 	"fmt"
 	"io/fs"
+	"mime"
 	"path"
 	"regexp"
 	"sort"
@@ -24,44 +24,33 @@ import (
 // StaticPrefix is the URL path under which assets are served.
 const StaticPrefix = "/static/"
 
-// Asset is one static file, held in memory.
+// Asset is one embedded static file, ready to serve.
 type Asset struct {
-	Path        string // relative to web/static, for example css/site.css
-	URL         string // content-hashed URL, for example /static/css/site.0123456789.css
+	Path        string // path inside the static tree, for example css/site.css
+	URL         string // hashed URL, for example /static/css/site.3f2a9c1d.css
 	ContentType string
 	Body        []byte
-	Gzip        []byte // gzip-compressed body, nil when compression does not help
-	ETag        string
-	Integrity   string // Subresource Integrity value, sha384-...
+	Gzip        []byte // precompressed body, nil when compression does not pay
+	ETag        string // strong ETag from the content hash
 }
 
-// Assets is the set of static files.
+// Assets holds every static file by path and by hashed URL.
 type Assets struct {
 	byPath map[string]*Asset
 	byURL  map[string]*Asset
 }
 
-var contentTypes = map[string]string{
-	".css":         "text/css; charset=utf-8",
-	".js":          "text/javascript; charset=utf-8",
-	".svg":         "image/svg+xml",
-	".png":         "image/png",
-	".ico":         "image/x-icon",
-	".woff2":       "font/woff2",
-	".txt":         "text/plain; charset=utf-8",
-	".md":          "text/markdown; charset=utf-8",
-	".json":        "application/json",
-	".webmanifest": "application/manifest+json",
+// compressible lists the content types worth compressing.
+var compressible = map[string]bool{
+	".css": true, ".js": true, ".svg": true, ".txt": true, ".json": true, ".xml": true, ".webmanifest": true,
 }
 
-var compressible = map[string]bool{".css": true, ".js": true, ".svg": true, ".txt": true, ".md": true, ".json": true, ".ico": true}
+// cssURL matches url() references in a stylesheet.
+var cssURL = regexp.MustCompile(`url\(\s*["']?([^"')]+)["']?\s*\)`)
 
-// cssURL matches url(...) references in stylesheets.
-var cssURL = regexp.MustCompile(`url\(\s*(['"]?)([^'")]+)(['"]?)\s*\)`)
-
-// LoadAssets reads every file of fsys. Stylesheets are processed last:
-// their relative url(...) references are rewritten to the hashed URLs of
-// the files they point to, so fonts and images are cached forever too.
+// LoadAssets reads every file of fsys (the static tree). Stylesheets are
+// loaded last, with their url() references rewritten to hashed URLs, so a
+// changed font also changes the stylesheet's hash.
 func LoadAssets(fsys fs.FS) (*Assets, error) {
 	a := &Assets{byPath: map[string]*Asset{}, byURL: map[string]*Asset{}}
 	var css []string
@@ -73,108 +62,112 @@ func LoadAssets(fsys fs.FS) (*Assets, error) {
 			css = append(css, p)
 			return nil
 		}
-		body, err := fs.ReadFile(fsys, p)
+		b, err := fs.ReadFile(fsys, p)
 		if err != nil {
 			return err
 		}
-		return a.add(p, body)
+		return a.add(p, b)
 	})
 	if err != nil {
 		return nil, err
 	}
 	sort.Strings(css)
 	for _, p := range css {
-		body, err := fs.ReadFile(fsys, p)
+		b, err := fs.ReadFile(fsys, p)
 		if err != nil {
 			return nil, err
 		}
 		var missing error
-		body = cssURL.ReplaceAllFunc(body, func(m []byte) []byte {
-			ref := string(cssURL.FindSubmatch(m)[2])
-			if strings.Contains(ref, ":") || strings.HasPrefix(ref, "/") || strings.HasPrefix(ref, "#") {
+		b = cssURL.ReplaceAllFunc(b, func(m []byte) []byte {
+			ref := string(cssURL.FindSubmatch(m)[1])
+			if strings.HasPrefix(ref, "data:") || strings.Contains(ref, "://") || strings.HasPrefix(ref, "#") {
+				missing = fmt.Errorf("render: %s: only local url() references are allowed, got %q", p, ref)
 				return m
 			}
 			target, ok := a.byPath[path.Join(path.Dir(p), ref)]
 			if !ok {
-				missing = fmt.Errorf("render: %s references missing file %q", p, ref)
+				missing = fmt.Errorf("render: %s references missing asset %q", p, ref)
 				return m
 			}
-			return []byte(`url("` + target.URL + `")`)
+			return []byte("url(" + target.URL + ")")
 		})
 		if missing != nil {
 			return nil, missing
 		}
-		if err := a.add(p, body); err != nil {
+		if err := a.add(p, b); err != nil {
 			return nil, err
 		}
 	}
 	return a, nil
 }
 
-func (a *Assets) add(p string, body []byte) error {
+func (a *Assets) add(p string, b []byte) error {
+	sum := sha256.Sum256(b)
+	hash := hex.EncodeToString(sum[:])[:12]
 	ext := path.Ext(p)
-	ct, ok := contentTypes[ext]
-	if !ok {
+	ctype := mime.TypeByExtension(ext)
+	switch ext {
+	case ".woff2":
+		ctype = "font/woff2"
+	case ".ico":
+		ctype = "image/x-icon"
+	case ".webmanifest":
+		ctype = "application/manifest+json"
+	}
+	if ctype == "" {
 		return fmt.Errorf("render: no content type for %s", p)
 	}
-	sri := sha512.Sum384(body)
-	sum := sha256.Sum256(body)
-	hash := hex.EncodeToString(sum[:])[:10]
-	asset := &Asset{
+	if strings.HasPrefix(ctype, "text/") && !strings.Contains(ctype, "charset") {
+		ctype += "; charset=utf-8"
+	}
+	as := &Asset{
 		Path:        p,
 		URL:         StaticPrefix + strings.TrimSuffix(p, ext) + "." + hash + ext,
-		ContentType: ct,
-		Body:        body,
+		ContentType: ctype,
+		Body:        b,
 		ETag:        `"` + hash + `"`,
-		Integrity:   "sha384-" + base64.StdEncoding.EncodeToString(sri[:]),
 	}
 	if compressible[ext] {
 		var buf bytes.Buffer
 		zw, _ := gzip.NewWriterLevel(&buf, gzip.BestCompression)
-		_, _ = zw.Write(body)
+		_, _ = zw.Write(b)
 		_ = zw.Close()
-		if buf.Len() < len(body)*9/10 {
-			asset.Gzip = buf.Bytes()
+		if buf.Len() < len(b) {
+			as.Gzip = buf.Bytes()
 		}
 	}
-	a.byPath[p] = asset
-	a.byURL[asset.URL] = asset
+	a.byPath[p] = as
+	a.byURL[as.URL] = as
 	return nil
 }
 
-// URL returns the hashed URL of the asset at path p (relative to
-// web/static). It fails for unknown files, so a typo in a template is
-// caught when the page is rendered in tests.
+// ByPath returns the asset at a path of the static tree.
+func (a *Assets) ByPath(p string) (*Asset, bool) {
+	as, ok := a.byPath[p]
+	return as, ok
+}
+
+// ByURL returns the asset served at a hashed URL.
+func (a *Assets) ByURL(u string) (*Asset, bool) {
+	as, ok := a.byURL[u]
+	return as, ok
+}
+
+// URL returns the hashed URL of the asset at path p.
 func (a *Assets) URL(p string) (string, error) {
-	asset, ok := a.byPath[strings.TrimPrefix(p, "/")]
+	as, ok := a.byPath[p]
 	if !ok {
 		return "", fmt.Errorf("render: unknown asset %q", p)
 	}
-	return asset.URL, nil
+	return as.URL, nil
 }
 
-// Integrity returns the Subresource Integrity value of the asset at p.
-func (a *Assets) Integrity(p string) (string, error) {
-	asset, ok := a.byPath[strings.TrimPrefix(p, "/")]
-	if !ok {
-		return "", fmt.Errorf("render: unknown asset %q", p)
+// All returns every asset, sorted by path.
+func (a *Assets) All() []*Asset {
+	out := make([]*Asset, 0, len(a.byPath))
+	for _, as := range a.byPath {
+		out = append(out, as)
 	}
-	return asset.Integrity, nil
-}
-
-// Get returns the asset at path p (relative to web/static), or nil.
-func (a *Assets) Get(p string) *Asset { return a.byPath[p] }
-
-// Lookup finds the asset for a request path under StaticPrefix. Hashed
-// URLs are immutable; plain paths (for example /static/icon-512.png) are
-// also served, with a short cache lifetime, for links that must stay
-// stable.
-func (a *Assets) Lookup(urlPath string) (asset *Asset, immutable bool) {
-	if asset, ok := a.byURL[urlPath]; ok {
-		return asset, true
-	}
-	if p, ok := strings.CutPrefix(urlPath, StaticPrefix); ok {
-		return a.byPath[p], false
-	}
-	return nil, false
+	sort.Slice(out, func(i, j int) bool { return out[i].Path < out[j].Path })
+	return out
 }

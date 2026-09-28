@@ -4,23 +4,20 @@
   file, You can obtain one at https://mozilla.org/MPL/2.0/.
 */ -}}
 {{define "problem" -}}
-{{with .Site.Problem -}}
+{{- $s := .Site.Problem -}}
 <section class="section problem" id="problem" aria-labelledby="problem-title">
-  <div class="wrap">
-    <div class="section-head section-head--split">
-      <h2 id="problem-title">{{.Title}}</h2>
-      <p class="section-intro">{{.Intro}}</p>
-    </div>
-    <ul class="grid grid--4 problem-list" role="list">
-      {{- range $i, $item := .Items}}
-      <li class="problem-item">
-        <span class="tech-label index">{{pad2 (inc $i)}}</span>
-        <h3>{{$item.Title}}</h3>
-        <p>{{$item.Text}}</p>
+  <div class="wrap grid">
+    <p class="section-label">{{$s.Label}}</p>
+    <h2 class="problem-title" id="problem-title">{{$s.Title}}</h2>
+    <p class="statement">{{$s.Intro}}</p>
+    <ol class="problem-items numbered">
+      {{- range $s.Items}}
+      <li>
+        <h3>{{.Title}}</h3>
+        <p>{{.Text}}</p>
       </li>
       {{- end}}
-    </ul>
+    </ol>
   </div>
 </section>
-{{- end}}
 {{- end}}
