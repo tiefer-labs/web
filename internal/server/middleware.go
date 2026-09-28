@@ -6,9 +6,11 @@ package server
 
 import (
 	"crypto/subtle"
+	"log/slog"
 	"net"
 	"net/http"
 	"net/netip"
+	"regexp"
 	"strings"
 
 	"github.com/tiefer-labs/web/internal/config"
@@ -85,6 +87,10 @@ func (s *Server) limitRequests(next http.Handler) http.Handler {
 			plainError(w, http.StatusRequestURITooLong)
 			return
 		}
+		if headerSize(r) > MaxHeaderBytes {
+			plainError(w, http.StatusRequestHeaderFieldsTooLarge)
+			return
+		}
 		if r.Method != http.MethodPost {
 			if r.ContentLength > 0 || len(r.TransferEncoding) > 0 {
 				plainError(w, http.StatusBadRequest)
@@ -99,6 +105,17 @@ func (s *Server) limitRequests(next http.Handler) http.Handler {
 		}
 		next.ServeHTTP(w, r)
 	})
+}
+
+// headerSize approximates the size of the request header as sent.
+func headerSize(r *http.Request) int {
+	n := len(r.Method) + len(r.RequestURI) + len(r.Host) + 16
+	for k, vs := range r.Header {
+		for _, v := range vs {
+			n += len(k) + len(v) + 4
+		}
+	}
+	return n
 }
 
 // frontDoor admits requests only from the configured Azure Front Door
@@ -131,10 +148,11 @@ func (s *Server) frontDoor(next http.Handler) http.Handler {
 
 // clientAddr returns the address used for rate limiting. Behind Front
 // Door it is the X-Azure-ClientIP header, which Front Door sets and which
-// can only be trusted because frontDoor has checked the profile ID. It is
-// kept in memory only and never logged.
+// can only be trusted because frontDoor has checked the profile ID; without
+// a configured ID the header is ignored. It is kept in memory only and
+// never logged.
 func (s *Server) clientAddr(r *http.Request) netip.Addr {
-	if s.cfg.BehindFrontDoor {
+	if s.cfg.BehindFrontDoor && s.cfg.FrontDoorID.Set() {
 		if a, err := netip.ParseAddr(strings.TrimSpace(r.Header.Get("X-Azure-ClientIP"))); err == nil {
 			return a.Unmap()
 		}
@@ -213,4 +231,18 @@ func (s *Server) recoverPanics(next http.Handler) http.Handler {
 		}()
 		next.ServeHTTP(w, r)
 	})
+}
+
+// Addresses in log text: IPv4 and IPv6, with an optional port.
+var addressPattern = regexp.MustCompile(`\[[0-9A-Fa-f:.%a-z]+\](?::\d+)?|\b(?:\d{1,3}\.){3}\d{1,3}(?::\d+)?\b|\b[0-9A-Fa-f]{0,4}(?::[0-9A-Fa-f]{0,4}){2,7}(?:%[0-9A-Za-z]+)?\b`)
+
+// redactingWriter receives the messages of net/http's own error log (for
+// example "http: panic serving 198.51.100.7:5555") and logs them without
+// client addresses.
+type redactingWriter struct{ log *slog.Logger }
+
+func (w redactingWriter) Write(p []byte) (int, error) {
+	msg := addressPattern.ReplaceAllString(strings.TrimSpace(string(p)), "[address]")
+	w.log.Warn("http server", "msg", msg)
+	return len(p), nil
 }

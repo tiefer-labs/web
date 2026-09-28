@@ -11,6 +11,8 @@ import (
 	"bytes"
 	"compress/gzip"
 	"crypto/sha256"
+	"crypto/sha512"
+	"encoding/base64"
 	"encoding/hex"
 	"fmt"
 	"io/fs"
@@ -32,6 +34,7 @@ type Asset struct {
 	Body        []byte
 	Gzip        []byte // precompressed body, nil when compression does not pay
 	ETag        string // strong ETag from the content hash
+	Integrity   string // Subresource Integrity value (sha384)
 }
 
 // Assets holds every static file by path and by hashed URL.
@@ -104,6 +107,7 @@ func LoadAssets(fsys fs.FS) (*Assets, error) {
 func (a *Assets) add(p string, b []byte) error {
 	sum := sha256.Sum256(b)
 	hash := hex.EncodeToString(sum[:])[:12]
+	sri := sha512.Sum384(b)
 	ext := path.Ext(p)
 	ctype := mime.TypeByExtension(ext)
 	switch ext {
@@ -126,6 +130,7 @@ func (a *Assets) add(p string, b []byte) error {
 		ContentType: ctype,
 		Body:        b,
 		ETag:        `"` + hash + `"`,
+		Integrity:   "sha384-" + base64.StdEncoding.EncodeToString(sri[:]),
 	}
 	if compressible[ext] {
 		var buf bytes.Buffer
@@ -160,6 +165,17 @@ func (a *Assets) URL(p string) (string, error) {
 		return "", fmt.Errorf("render: unknown asset %q", p)
 	}
 	return as.URL, nil
+}
+
+// Integrity returns the Subresource Integrity value of the asset at path
+// p. A cached copy altered on the way (for example at the edge) is then
+// refused by the browser.
+func (a *Assets) Integrity(p string) (string, error) {
+	as, ok := a.byPath[p]
+	if !ok {
+		return "", fmt.Errorf("render: unknown asset %q", p)
+	}
+	return as.Integrity, nil
 }
 
 // All returns every asset, sorted by path.

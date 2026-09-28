@@ -11,10 +11,10 @@ Chosen without `HARDENING.md` sections 3 and 4: **check against
 HARDENING.md**.
 
 - **One header set on every response**, applied before the handler runs,
-  so errors (400, 404, 405, 413, 414), redirects and panics carry it too.
-  The one exception is 431 (oversized headers), which `net/http` answers
-  before any handler runs; it has no body worth protecting. Revisit if a
-  proxy in front can add headers.
+  so errors (400, 404, 405, 413, 414, 431), redirects and panics carry it
+  too. The 8 KB header limit is enforced in the middleware; `net/http`'s
+  own limit (32 KB) only answers far larger headers, without the security
+  headers and without a body.
 - **CSP**: `default-src 'none'` and only what the site uses; the JSON-LD
   block by SHA-256 hash; `script-src-attr` and `style-src-attr 'none'`;
   Trusted Types required with no policy (the script only assigns text);
@@ -38,6 +38,27 @@ HARDENING.md**.
   on every response and cross-site posts are refused, so an attacker cannot
   collect many responses with the same secret. Revisit if a page ever
   carries a long-lived secret.
+
+## Hardening after review
+
+- **Proxy trust needs the Front Door ID.** `X-Azure-ClientIP` is used for
+  rate limiting only when `BEHIND_FRONT_DOOR=true` and `FRONT_DOOR_ID` is
+  set (so the ID check ran). Before, a development setup with
+  `BEHIND_FRONT_DOOR=true` and no ID trusted a header anyone could send.
+- **No addresses in net/http's error log.** Messages such as "http: panic
+  serving <address>" go through a writer that replaces IPv4 and IPv6
+  addresses with `[address]`.
+- **Guessable CSRF keys are refused**: fewer than 8 distinct characters or
+  placeholder words such as "changeme", even at 32 characters.
+- **Subresource Integrity** (sha384) on the stylesheet and the script.
+  Front Door caches `/static/*` at the edge; a copy altered there is refused
+  by the browser. The fonts have no integrity attribute, because `@font-face`
+  cannot carry one and a preload with it would download them twice; a
+  changed font can only change rendering, not run code.
+- **Secret scan** in the tests: private keys, cloud and GitHub tokens,
+  JWTs and secret assignments fail the build.
+- **Open redirects** tested: cleaned paths and fixed redirects stay on the
+  site.
 
 ## Suppressed findings
 

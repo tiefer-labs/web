@@ -85,7 +85,7 @@ func prod(extra map[string]string) map[string]string {
 	m := map[string]string{
 		"ENV":         "production",
 		"SITE_URL":    "https://tiefer.space",
-		"CSRF_SECRET": "0123456789abcdef0123456789abcdef-test",
+		"CSRF_SECRET": "5e8a1f07c93b24d6af10e7c58b3d92f4",
 	}
 	for k, v := range extra {
 		m[k] = v

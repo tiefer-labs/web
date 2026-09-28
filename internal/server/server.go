@@ -8,6 +8,7 @@ package server
 import (
 	"html/template"
 	"io/fs"
+	"log"
 	"log/slog"
 	"net/http"
 	"strings"
@@ -27,7 +28,8 @@ const (
 	WriteTimeout      = 30 * time.Second // covers SMTP delivery of the contact form
 	IdleTimeout       = 60 * time.Second
 	ShutdownTimeout   = 15 * time.Second
-	MaxHeaderBytes    = 8 << 10
+	MaxHeaderBytes    = 8 << 10  // enforced by limitRequests, so the 431 answer carries the security headers
+	ServerHeaderBytes = 32 << 10 // hard limit of net/http, only for far larger headers
 	MaxURLLength      = 2048
 	MaxFormBytes      = 16 << 10 // the contact form, the only request with a body
 
@@ -171,11 +173,11 @@ func (s *Server) HTTPServer(addr string) *http.Server {
 		ReadTimeout:       ReadTimeout,
 		WriteTimeout:      WriteTimeout,
 		IdleTimeout:       IdleTimeout,
-		MaxHeaderBytes:    MaxHeaderBytes,
+		MaxHeaderBytes:    ServerHeaderBytes,
 		// Answer "OPTIONS *" through the handler (405) instead of
 		// Go's built-in reply.
 		DisableGeneralOptionsHandler: true,
-		ErrorLog:                     slog.NewLogLogger(s.log.Handler(), slog.LevelWarn),
+		ErrorLog:                     log.New(redactingWriter{s.log}, "", 0),
 	}
 }
 

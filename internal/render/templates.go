@@ -21,6 +21,8 @@ func Funcs(a *Assets) template.FuncMap {
 		// asset returns the hashed URL of a static file. An unknown path
 		// fails the render, so a typo cannot ship.
 		"asset": a.URL,
+		// integrity returns the Subresource Integrity value of a file.
+		"integrity": a.Integrity,
 	}
 }
 

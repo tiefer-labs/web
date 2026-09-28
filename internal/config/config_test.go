@@ -20,7 +20,7 @@ func env(m map[string]string) func(string) (string, bool) {
 	}
 }
 
-const secret = "0123456789abcdef0123456789abcdef-test"
+const secret = "9f3c1ab7e04d52c8b61e7a0d93f4c25b"
 
 func prodEnv() map[string]string {
 	return map[string]string{
@@ -91,6 +91,8 @@ func TestInvalid(t *testing.T) {
 		{map[string]string{"LINKEDIN_URL": "javascript:alert(1)"}, "LINKEDIN_URL"},
 		{map[string]string{"REPO_URL": "http://example.org/repo"}, "REPO_URL"},
 		{map[string]string{"CSRF_SECRET": "short"}, "CSRF_SECRET"},
+		{map[string]string{"CSRF_SECRET": strings.Repeat("ab", 20)}, "guessable"},
+		{map[string]string{"CSRF_SECRET": "please-change-me-before-production-xyz"}, "guessable"},
 		{map[string]string{"LEGAL_REVIEWED": "maybe"}, "LEGAL_REVIEWED"},
 		{map[string]string{"LOG_RETENTION_DAYS": "0"}, "LOG_RETENTION_DAYS"},
 		{map[string]string{"HSTS_PRELOAD": "yes please"}, "HSTS_PRELOAD"},

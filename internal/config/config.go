@@ -289,6 +289,8 @@ func Load(lookup func(string) (string, bool)) (*Config, error) {
 		c.CSRFSecret = NewSecret(hex.EncodeToString(b))
 	case len(secret) < 32:
 		errs = append(errs, errors.New("CSRF_SECRET must be at least 32 characters"))
+	case weakSecret(secret):
+		errs = append(errs, errors.New("CSRF_SECRET looks guessable (a repeated pattern or a placeholder); generate one with: openssl rand -hex 32"))
 	default:
 		c.CSRFSecret = NewSecret(secret)
 	}
@@ -370,4 +372,24 @@ func checkLink(name, s string) error {
 		return fmt.Errorf("%s must be an absolute https URL, got %q", name, s)
 	}
 	return nil
+}
+
+// weakSecret reports secrets that are long enough but guessable: few
+// distinct characters (such as "aaaa..." or "abab..."), or an obvious
+// placeholder word. Random hex from openssl always passes.
+func weakSecret(s string) bool {
+	distinct := map[rune]bool{}
+	for _, r := range s {
+		distinct[r] = true
+	}
+	if len(distinct) < 8 {
+		return true
+	}
+	lower := strings.ToLower(s)
+	for _, w := range []string{"changeme", "change-me", "change_me", "secret", "password", "example", "placeholder", "0123456789abcdef0123"} {
+		if strings.Contains(lower, w) {
+			return true
+		}
+	}
+	return false
 }

@@ -6,6 +6,9 @@ package server
 
 import (
 	"bytes"
+	"crypto/sha512"
+	"encoding/base64"
+	"html"
 	"io"
 	"log/slog"
 	"net/http"
@@ -205,23 +208,100 @@ func TestServerLimits(t *testing.T) {
 	if hs.ReadHeaderTimeout == 0 || hs.ReadTimeout == 0 || hs.WriteTimeout == 0 || hs.IdleTimeout == 0 {
 		t.Error("every server timeout must be set")
 	}
-	if hs.MaxHeaderBytes != MaxHeaderBytes || !hs.DisableGeneralOptionsHandler {
+	if hs.MaxHeaderBytes != ServerHeaderBytes || !hs.DisableGeneralOptionsHandler {
 		t.Error("header limit and OPTIONS handling")
 	}
-	// A real server rejects oversized headers before any handler runs.
 	ts := httptest.NewUnstartedServer(hs.Handler)
-	ts.Config.MaxHeaderBytes = MaxHeaderBytes
+	ts.Config.MaxHeaderBytes = ServerHeaderBytes
 	ts.Start()
 	defer ts.Close()
-	req, _ := http.NewRequest(http.MethodGet, ts.URL+"/healthz", nil)
-	req.Header.Set("X-Big", strings.Repeat("a", 2*MaxHeaderBytes))
-	res, err := ts.Client().Do(req)
-	if err != nil {
-		t.Fatal(err)
+	get := func(size int) *http.Response {
+		req, _ := http.NewRequest(http.MethodGet, ts.URL+"/healthz", nil)
+		req.Header.Set("X-Big", strings.Repeat("a", size))
+		res, err := ts.Client().Do(req)
+		if err != nil {
+			t.Fatal(err)
+		}
+		_, _ = io.Copy(io.Discard, res.Body)
+		res.Body.Close()
+		return res
 	}
-	_, _ = io.Copy(io.Discard, res.Body)
-	res.Body.Close()
-	if res.StatusCode != http.StatusRequestHeaderFieldsTooLarge {
-		t.Errorf("oversized headers: %d, want 431", res.StatusCode)
+	// Above the application limit: 431 from the middleware, with headers.
+	res := get(2 * MaxHeaderBytes)
+	if res.StatusCode != http.StatusRequestHeaderFieldsTooLarge || res.Header.Get("Content-Security-Policy") == "" {
+		t.Errorf("oversized headers: %d, CSP %q", res.StatusCode, res.Header.Get("Content-Security-Policy"))
+	}
+	// Far above: net/http refuses before any handler.
+	if res := get(2 * ServerHeaderBytes); res.StatusCode != http.StatusRequestHeaderFieldsTooLarge {
+		t.Errorf("huge headers: %d", res.StatusCode)
+	}
+	if res := get(MaxHeaderBytes / 2); res.StatusCode != http.StatusOK {
+		t.Errorf("normal headers: %d", res.StatusCode)
+	}
+}
+
+// TestErrorLogRedaction checks that net/http's own error log never
+// carries a client address.
+func TestErrorLogRedaction(t *testing.T) {
+	var buf bytes.Buffer
+	w := redactingWriter{slog.New(slog.NewJSONHandler(&buf, nil))}
+	for _, msg := range []string{
+		"http: panic serving 198.51.100.7:5555: boom",
+		"http: TLS handshake error from [2001:db8::1]:443: EOF",
+		"http: Accept error: accept tcp 2001:db8:1:2::7: too many open files",
+		"http: TLS handshake error from 203.0.113.9:61000: remote error",
+	} {
+		_, _ = w.Write([]byte(msg + "\n"))
+	}
+	out := buf.String()
+	for _, addr := range []string{"198.51.100.7", "2001:db8::1", "2001:db8:1:2::7", "203.0.113.9"} {
+		if strings.Contains(out, addr) {
+			t.Errorf("error log contains %s: %s", addr, out)
+		}
+	}
+	if strings.Count(out, "[address]") != 4 {
+		t.Errorf("redaction markers missing: %s", out)
+	}
+}
+
+// TestClientAddrNeedsFrontDoorID: without a configured Front Door ID the
+// X-Azure-ClientIP header could be forged, so it is ignored.
+func TestClientAddrNeedsFrontDoorID(t *testing.T) {
+	h := newHarness(t, map[string]string{"BEHIND_FRONT_DOOR": "true"})
+	r := httptest.NewRequest(http.MethodGet, "/", nil)
+	r.RemoteAddr = "10.0.0.1:1234"
+	r.Header.Set("X-Azure-ClientIP", "203.0.113.7")
+	if got := h.srv.clientAddr(r).String(); got != "10.0.0.1" {
+		t.Errorf("clientAddr = %s, want the connection address", got)
+	}
+}
+
+// TestNoOpenRedirect: path cleaning and the fixed redirects never send a
+// visitor to another host.
+func TestNoOpenRedirect(t *testing.T) {
+	h := newHarness(t, nil)
+	for _, p := range []string{"//evil.example/", "//evil.example/%2e%2e", "/.//evil.example", "/static//evil.example", "/security.txt", "///evil.example"} {
+		r := httptest.NewRequest(http.MethodGet, "http://localhost"+p, nil)
+		r.RequestURI = p
+		w := h.do(r)
+		loc := w.Header().Get("Location")
+		if loc != "" && (strings.HasPrefix(loc, "//") || strings.HasPrefix(loc, "/\\") || strings.Contains(loc, "://")) {
+			t.Errorf("%s redirects to %q", p, loc)
+		}
+	}
+}
+
+// TestSubresourceIntegrity checks that the stylesheet and the script carry
+// an integrity value that matches the bytes the server sends.
+func TestSubresourceIntegrity(t *testing.T) {
+	h := newHarness(t, nil)
+	body := h.get("/").Body.String()
+	for _, p := range []string{"css/site.css", "js/site.js"} {
+		as, _ := h.srv.assets.ByPath(p)
+		sum := sha512.Sum384(h.get(as.URL).Body.Bytes())
+		want := "sha384-" + base64.StdEncoding.EncodeToString(sum[:])
+		if !strings.Contains(html.UnescapeString(body), `integrity="`+want+`"`) {
+			t.Errorf("%s: page lacks integrity %s", p, want)
+		}
 	}
 }
