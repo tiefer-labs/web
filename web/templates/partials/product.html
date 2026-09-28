@@ -1,0 +1,30 @@
+{{- /*
+  This Source Code Form is subject to the terms of the Mozilla Public
+  License, v. 2.0. If a copy of the MPL was not distributed with this
+  file, You can obtain one at https://mozilla.org/MPL/2.0/.
+*/ -}}
+{{define "product" -}}
+{{- $s := .Site.Product -}}
+<section class="section product" id="product" aria-labelledby="product-title">
+  <div class="wrap grid">
+    <p class="section-label">{{$s.Label}}</p>
+    <div class="product-intro">
+      <h2 id="product-title">{{$s.Title}}</h2>
+      <p>{{$s.Body}}</p>
+    </div>
+    <table class="stages">
+      <caption class="visually-hidden">{{$s.Title}}</caption>
+      <tbody>
+        {{- range $s.Stages}}
+        <tr>
+          <td class="stage-num">{{.Number}}</td>
+          <th class="stage-name" scope="row">{{.Name}}</th>
+          <td class="stage-text">{{.Text}}</td>
+        </tr>
+        {{- end}}
+      </tbody>
+    </table>
+    <p class="product-note">{{$s.Note}}</p>
+  </div>
+</section>
+{{- end}}

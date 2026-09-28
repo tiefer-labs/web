@@ -140,3 +140,10 @@ of `main`.
   content and templates. Open: unicode.org is blocked here, so the table
   comes from rivo/uniseg v0.4.7 (Unicode 15.0); regenerate from the
   official file when reachable.
+- **Phase 3** (done): all copy in `internal/content/en.go` (typed structs,
+  locale prefix ready for `/az/`), layout plus one partial per section,
+  content-hashed assets with CSS `url()` rewriting and precompressed gzip,
+  gzip for HTML, 404 page. Tests: every content string appears on the page,
+  template safety (allowed functions only, no inline scripts, styles,
+  handlers or third-party URLs) and no unsafe `template.*` conversions.
+  Next: design, fonts and performance.

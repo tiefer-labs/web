@@ -1,0 +1,19 @@
+{{- /*
+  This Source Code Form is subject to the terms of the Mozilla Public
+  License, v. 2.0. If a copy of the MPL was not distributed with this
+  file, You can obtain one at https://mozilla.org/MPL/2.0/.
+*/ -}}
+{{define "name" -}}
+{{- $s := .Site.Name -}}
+<section class="section name" id="name" aria-labelledby="name-title">
+  <img class="name-mark" src="{{asset "brand/tiefer-mark-white.svg"}}" alt="" width="690" height="690">
+  <div class="wrap grid">
+    <p class="section-label">{{$s.Label}}</p>
+    <h2 class="name-line" id="name-title">{{$s.Line}}</h2>
+    <p class="name-body">{{$s.Body}}</p>
+  </div>
+  <svg class="name-limb" viewBox="0 0 1440 120" preserveAspectRatio="none" aria-hidden="true" focusable="false">
+    <path d="M-20 120C320 26 1120 26 1460 120"/>
+  </svg>
+</section>
+{{- end}}

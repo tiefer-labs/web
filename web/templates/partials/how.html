@@ -1,0 +1,46 @@
+{{- /*
+  This Source Code Form is subject to the terms of the Mozilla Public
+  License, v. 2.0. If a copy of the MPL was not distributed with this
+  file, You can obtain one at https://mozilla.org/MPL/2.0/.
+*/ -}}
+{{define "how" -}}
+{{- $s := .Site.How -}}
+<section class="section how" id="how" aria-labelledby="how-title">
+  <div class="wrap grid">
+    <p class="section-label">{{$s.Label}}</p>
+    <h2 class="how-title" id="how-title">{{$s.Title}}</h2>
+    <div class="flow">
+      <svg class="flow-line flow-h" viewBox="0 0 1000 40" preserveAspectRatio="none" aria-hidden="true" focusable="false">
+        <path class="flow-rail" d="M10 12H990"/>
+        <path class="flow-branch" d="M210 12V36"/>
+        <rect class="flow-node" x="5" y="7" width="10" height="10"/>
+        <rect class="flow-node" x="205" y="7" width="10" height="10"/>
+        <rect class="flow-node" x="405" y="7" width="10" height="10"/>
+        <rect class="flow-node" x="605" y="7" width="10" height="10"/>
+        <rect class="flow-node flow-node-end" x="805" y="7" width="10" height="10"/>
+      </svg>
+      <ol class="flow-steps numbered">
+        {{- range $s.Steps}}
+        <li>
+          <svg class="flow-mark" viewBox="0 0 12 12" width="12" height="12" aria-hidden="true" focusable="false"><rect x="1" y="1" width="10" height="10"/></svg>
+          <h3>{{.Title}}</h3>
+          <p>{{.Text}}</p>
+        </li>
+        {{- end}}
+      </ol>
+    </div>
+    <p class="how-note">{{$s.Note}}</p>
+    <div class="ground">
+      <h3 class="ground-title">{{$s.GroundTitle}}</h3>
+      <dl class="ground-cols">
+        {{- range $s.Ground}}
+        <div>
+          <dt>{{.Title}}</dt>
+          <dd>{{.Text}}</dd>
+        </div>
+        {{- end}}
+      </dl>
+    </div>
+  </div>
+</section>
+{{- end}}

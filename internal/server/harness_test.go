@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/tiefer-labs/web/internal/config"
+	"github.com/tiefer-labs/web/web"
 )
 
 // harness runs the full handler with a controllable clock.
@@ -37,9 +38,11 @@ func newHarness(t *testing.T, set map[string]string) *harness {
 	}
 	h := &harness{t: t, cfg: cfg, now: time.Date(2026, 10, 1, 9, 0, 0, 0, time.UTC)}
 	h.srv, err = New(Options{
-		Config: cfg,
-		Logger: slog.New(slog.NewTextHandler(io.Discard, nil)),
-		Now:    h.clock,
+		Config:    cfg,
+		Logger:    slog.New(slog.NewTextHandler(io.Discard, nil)),
+		Now:       h.clock,
+		Templates: web.Templates(),
+		Static:    web.Static(),
 	})
 	if err != nil {
 		t.Fatal(err)

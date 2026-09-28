@@ -6,12 +6,16 @@
 package server
 
 import (
+	"html/template"
+	"io/fs"
 	"log/slog"
 	"net/http"
 	"strings"
 	"time"
 
 	"github.com/tiefer-labs/web/internal/config"
+	"github.com/tiefer-labs/web/internal/content"
+	"github.com/tiefer-labs/web/internal/render"
 )
 
 // Limits of the HTTP server. They are exported so that cmd/tiefer-web
@@ -29,20 +33,27 @@ const (
 
 // Options are the dependencies of the server.
 type Options struct {
-	Config *config.Config
-	Logger *slog.Logger
-	Now    func() time.Time
+	Config    *config.Config
+	Logger    *slog.Logger
+	Now       func() time.Time
+	Templates fs.FS           // the template tree, usually web.Templates()
+	Static    fs.FS           // the static tree, usually web.Static()
+	Locales   []*content.Site // defaults to content.Locales
 }
 
 // Server serves the website.
 type Server struct {
-	cfg     *config.Config
-	log     *slog.Logger
-	now     func() time.Time
-	headers http.Header // security headers set on every response
-	handler http.Handler
-	routes  []route
-	allow   map[string][]string // exact path to its methods, for 405 replies
+	cfg       *config.Config
+	log       *slog.Logger
+	now       func() time.Time
+	assets    *render.Assets
+	templates *render.Templates
+	locales   []*content.Site
+	jsonLD    template.HTML
+	headers   http.Header // security headers set on every response
+	handler   http.Handler
+	routes    []route
+	allow     map[string][]string // exact path to its methods, for 405 replies
 }
 
 // route is one registered endpoint. The list drives the header tests,
@@ -59,10 +70,31 @@ func New(o Options) (*Server, error) {
 	if o.Now == nil {
 		o.Now = time.Now
 	}
-	s := &Server{cfg: o.Config, log: o.Logger, now: o.Now, allow: map[string][]string{}}
+	if o.Locales == nil {
+		o.Locales = content.Locales
+	}
+	s := &Server{cfg: o.Config, log: o.Logger, now: o.Now, locales: o.Locales, allow: map[string][]string{}}
+	var err error
+	if s.assets, err = render.LoadAssets(o.Static); err != nil {
+		return nil, err
+	}
+	if s.templates, err = render.LoadTemplates(o.Templates, s.assets); err != nil {
+		return nil, err
+	}
 	s.headers = securityHeaders(s.cfg, "")
+
 	mux := http.NewServeMux()
 	s.handle(mux, "GET", "/healthz", "/healthz", http.HandlerFunc(s.healthz))
+	s.handle(mux, "GET", render.StaticPrefix+"{path...}", s.assetURL("css/site.css"), http.HandlerFunc(s.static))
+	s.handle(mux, "GET", "/favicon.ico", "/favicon.ico", s.rootAsset("favicon.ico"))
+	s.handle(mux, "GET", "/apple-touch-icon.png", "/apple-touch-icon.png", s.rootAsset("apple-touch-icon.png"))
+	for _, site := range s.locales {
+		pre := site.Locale.Prefix
+		s.handle(mux, "GET", pre+"/{$}", pre+"/", s.index(site))
+		if pre != "" {
+			s.handle(mux, "GET", pre, pre, http.RedirectHandler(pre+"/", http.StatusMovedPermanently))
+		}
+	}
 	mux.HandleFunc("/", s.notFound)
 
 	var h http.Handler = mux
@@ -113,11 +145,16 @@ func (s *Server) healthz(w http.ResponseWriter, _ *http.Request) {
 }
 
 // notFound answers every request no route matched. A known path with
-// the wrong method gets 405, anything else 404.
+// the wrong method gets 405; GET and HEAD get the 404 page, anything else
+// a short text 404.
 func (s *Server) notFound(w http.ResponseWriter, r *http.Request) {
 	if methods, ok := s.allow[r.URL.Path]; ok {
 		w.Header().Set("Allow", strings.Join(methods, ", "))
 		plainError(w, http.StatusMethodNotAllowed)
+		return
+	}
+	if r.Method == http.MethodGet || r.Method == http.MethodHead {
+		s.notFoundPage(w, r)
 		return
 	}
 	plainError(w, http.StatusNotFound)

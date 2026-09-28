@@ -1,0 +1,39 @@
+{{- /*
+  This Source Code Form is subject to the terms of the Mozilla Public
+  License, v. 2.0. If a copy of the MPL was not distributed with this
+  file, You can obtain one at https://mozilla.org/MPL/2.0/.
+*/ -}}
+{{define "demo" -}}
+{{- $s := .Site.Demo -}}
+<section class="section demo" id="alert" aria-labelledby="demo-title">
+  <div class="wrap grid">
+    <p class="section-label">{{$s.Label}}</p>
+    <div class="demo-text">
+      <h2 id="demo-title">{{$s.Title}}</h2>
+      <p>{{$s.Body}}</p>
+    </div>
+    <figure class="packet">
+      <figcaption class="packet-head">
+        <span class="packet-title">{{$s.CardTitle}}</span>
+        <span class="packet-note">{{$s.CardLabel}}</span>
+      </figcaption>
+      <table class="packet-table">
+        <tbody>
+          {{- range $s.Fields}}
+          <tr{{if .Kind}} class="is-{{.Kind}}"{{end}}>
+            <th scope="row">{{if .Kind}}<span class="tag tag-{{.Kind}}">{{.Name}}</span>{{else}}{{.Name}}{{end}}</th>
+            <td>{{.Value}}</td>
+          </tr>
+          {{- end}}
+        </tbody>
+      </table>
+      <svg class="packet-bars" viewBox="0 0 400 56" aria-hidden="true" focusable="false">
+        <text class="bar-label" x="0" y="11">{{$s.SceneLabel}}</text>
+        <rect class="bar bar-scene" x="0" y="17" width="400" height="8"/>
+        <text class="bar-label" x="0" y="43">{{$s.AlertLabel}}</text>
+        <rect class="bar bar-alert" x="0" y="49" width="3" height="8"/>
+      </svg>
+    </figure>
+  </div>
+</section>
+{{- end}}

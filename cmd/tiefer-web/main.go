@@ -22,6 +22,7 @@ import (
 
 	"github.com/tiefer-labs/web/internal/config"
 	"github.com/tiefer-labs/web/internal/server"
+	"github.com/tiefer-labs/web/web"
 )
 
 func main() {
@@ -51,7 +52,12 @@ func run() error {
 		log.Warn("placeholder or development defaults in use", "vars", strings.Join(d, ","))
 	}
 
-	srv, err := server.New(server.Options{Config: cfg, Logger: log})
+	srv, err := server.New(server.Options{
+		Config:    cfg,
+		Logger:    log,
+		Templates: web.Templates(),
+		Static:    web.Static(),
+	})
 	if err != nil {
 		return err
 	}
