@@ -5,9 +5,8 @@ import { buildMetadata } from "@/lib/seo";
 test("the home page uses the site title and description", async () => {
   expect(await buildMetadata({ locale: "en", path: "/" })).toMatchObject({
     title: { absolute: "Tiefer | Edge AI in orbit" },
+    description: expect.stringContaining("Earth observation satellites"),
     alternates: { canonical: "/" },
-    openGraph: { title: "Tiefer | Edge AI in orbit", url: "/", locale: "en" },
-    twitter: { card: "summary_large_image" },
   });
 });
 
@@ -17,6 +16,5 @@ test("other pages put their own title before the site name", async () => {
     title: { absolute: "Privacy notice | Tiefer" },
     description: "D",
     alternates: { canonical: "/privacy", languages: {} },
-    openGraph: { title: "Privacy notice | Tiefer", description: "D", url: "/privacy" },
   });
 });

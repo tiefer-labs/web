@@ -44,10 +44,11 @@ pnpm only, never npm or npx. Run local binaries as `pnpm <bin>`.
 ## Structure
 
 - `messages/en.json`: all copy, by section (`Hero`, `Problem`, ..., `Contact`, `Legal`, `NotFound`)
-- `src/app/[locale]/`: the localised routes. `layout.tsx` is the root layout, `page.tsx` the home page,
+- `src/app/[locale]/`: the localised routes. `layout.tsx` is the root layout (shared Open Graph fields),
+  `opengraph-image.png` the social image for every page (Next reuses it for Twitter), `page.tsx` the home page,
   `(legal)/` the three legal pages, `not-found.tsx` the 404 page
 - `src/app/global-not-found.tsx`: the 404 for URLs that match no route
-- `src/app/`: `robots.ts`, `sitemap.ts`, `manifest.ts`, icons and Open Graph images, `healthz/` (Azure and Docker probe),
+- `src/app/`: `robots.ts`, `sitemap.ts`, `manifest.ts`, icons, `healthz/` (Azure and Docker probe),
   `.well-known/security.txt/`
 - `src/components/ui/`: shared building blocks (`Section`, `SectionLabel`, `ButtonLink`/`buttonClass`, `SquareMark`,
   `JsonLd`)
@@ -59,6 +60,7 @@ pnpm only, never npm or npx. Run local binaries as `pnpm <bin>`.
 - `src/i18n/`: next-intl routing, request config and navigation helpers
 - `src/proxy.ts`: the Front Door check, then next-intl routing
 - `tests/`: mirrors `src/`; shared helpers in `tests/test-utils/` (import via `@test/*`)
+- `public/brand/`: logos and the mark (never edit them); `public/icon-*.png` for the manifest
 - `infra/`: Azure Bicep (App Service behind Front Door), `Dockerfile` for that deployment
 
 ## Conventions
@@ -68,6 +70,8 @@ pnpm only, never npm or npx. Run local binaries as `pnpm <bin>`.
   no arrays) iterated with `keysOf()` from `src/lib/messages.ts`; the order of keys is the order on the page.
 - **Tailwind tokens only.** Use the colours, type scale and spacing from [STYLES.md](STYLES.md). No inline styles, no new
   CSS files; `globals.css` only holds tokens, base styles and the few utilities Tailwind cannot express.
+- **Compose classes with `cn` from `@/lib/cn`** (the `cn` package, taught our type scale tokens), never with template
+  strings.
 - **Reuse the building blocks.** A new home page section is a `Section` with a `SectionLabel` and a heading whose id
   matches `labelledBy`.
 - **Every source file starts with** `// SPDX-License-Identifier: MPL-2.0` (`/* ... */` in CSS). A test checks this.

@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: MPL-2.0
+import { cn } from "@/lib/cn";
 
 const stars: [number, number, number][] = [
   [612, 64, 1],
@@ -45,25 +46,25 @@ export function HeroOrbit({ stored, alertTag }: { stored: string; alertTag: stri
       </g>
       <g strokeWidth="1.25">
         <path
-          className={`${line} opacity-45`}
+          className={cn(line, "opacity-45")}
           strokeDasharray="2 7"
           vectorEffect="non-scaling-stroke"
           d="M520 266C760 162 1120 156 1500 276"
         />
         <path
-          className={`${line} opacity-20`}
+          className={cn(line, "opacity-20")}
           strokeDasharray="2 7"
           vectorEffect="non-scaling-stroke"
           d="M600 392C860 274 1180 274 1500 378"
         />
         <path className="fill-on-ink-muted opacity-5" d="M-40 760C300 628 1140 628 1480 760V800H-40Z" />
         <path
-          className={`${line} opacity-45`}
+          className={cn(line, "opacity-45")}
           vectorEffect="non-scaling-stroke"
           d="M-40 760C300 628 1140 628 1480 760"
         />
         <path
-          className={`${line} opacity-15`}
+          className={cn(line, "opacity-15")}
           vectorEffect="non-scaling-stroke"
           d="M-40 744C300 612 1140 612 1480 744"
         />
@@ -74,7 +75,7 @@ export function HeroOrbit({ stored, alertTag }: { stored: string; alertTag: stri
           d="M1033 198L1116 682L1176 690Z"
         />
         <path
-          className={`${line} opacity-45`}
+          className={cn(line, "opacity-45")}
           strokeDasharray="4 5"
           vectorEffect="non-scaling-stroke"
           d="M1029 199L900 661"

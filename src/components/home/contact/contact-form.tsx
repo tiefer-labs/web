@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl";
 import { useActionState, useEffect, useRef, type ReactNode } from "react";
 import { buttonClass } from "@/components/ui/button";
 import { Link } from "@/i18n/navigation";
+import { cn } from "@/lib/cn";
 import { submitContact } from "@/lib/contact/actions";
 import { roles } from "@/lib/contact/roles";
 import { emptyValues, type ContactState } from "@/lib/contact/state";
@@ -108,7 +109,7 @@ export function ContactForm({ email, tokenField }: ContactFormProps) {
             {...describe("f-role", { error: error("role") })}
             name="role"
             defaultValue={values.role}
-            className={`${inputClass} appearance-none pr-10`}
+            className={cn(inputClass, "appearance-none pr-10")}
           >
             <option value="">{t("roleEmpty")}</option>
             {roles.map((role) => (
@@ -133,7 +134,7 @@ export function ContactForm({ email, tokenField }: ContactFormProps) {
             required
             maxLength={2000}
             defaultValue={values.message}
-            className={`${inputClass} min-h-36 resize-y`}
+            className={cn(inputClass, "min-h-36 resize-y")}
           />
         </Field>
         <div aria-hidden="true" className="absolute! -left-[10000px] size-px overflow-hidden">

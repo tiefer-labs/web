@@ -26,7 +26,13 @@ export async function SiteHeader({ dark = false }: { dark?: boolean }) {
     >
       <div className="wrap flex min-h-18 items-center justify-between gap-6">
         <Link href="/#top" className="block py-2" data-forced-colors="keep">
-          <Image src={dark ? "/brand/tiefer-logo-white.svg" : "/brand/tiefer-logo.svg"} alt={meta("siteName")} width={126} height={24} priority />
+          <Image
+            src={dark ? "/brand/tiefer-logo-white.svg" : "/brand/tiefer-logo.svg"}
+            alt={meta("siteName")}
+            width={126}
+            height={24}
+            priority
+          />
         </Link>
         <SiteNav
           dark={dark}

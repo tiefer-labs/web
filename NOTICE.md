@@ -47,4 +47,4 @@ repository:
 | -------------------------------------- | ----------------- | ---------------------------------------------------------------- |
 | `node` Docker image                    | build stage only  | MIT (Node.js); Debian packages under their own licences          |
 | `gcr.io/distroless/nodejs24-debian12`  | runtime image     | Apache 2.0; Node.js and Debian packages under their own licences |
-| GitHub Actions in `.github/workflows/` | CI and deployment | each under its own licence, pinned by commit                     |
+| GitHub Actions in `.github/workflows/` | CI and deployment | each under its own licence, referenced by version tag            |

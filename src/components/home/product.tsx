@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MPL-2.0
 import { getMessages, getTranslations } from "next-intl/server";
 import { Section, SectionLabel } from "@/components/ui/section";
+import { cn } from "@/lib/cn";
 import { keysOf } from "@/lib/messages";
 
 const cell = "py-[22px] text-left align-baseline font-normal max-sm:p-0";
@@ -22,13 +23,17 @@ export async function Product() {
         <tbody>
           {keysOf(messages.Product.stages).map((key) => (
             <tr key={key} className="border-t border-line-on-ink max-sm:grid max-sm:grid-cols-[3.5rem_1fr] max-sm:py-5">
-              <td className={`${cell} w-14 text-label tracking-[0.12em] text-on-ink-muted tabular-nums max-sm:w-auto`}>
+              <td
+                className={cn(cell, "w-14 text-label tracking-[0.12em] text-on-ink-muted tabular-nums max-sm:w-auto")}
+              >
                 {t(`stages.${key}.number`)}
               </td>
-              <th scope="row" className={`${cell} w-28 label-caps text-on-ink max-sm:w-auto`}>
+              <th scope="row" className={cn(cell, "w-28 label-caps text-on-ink max-sm:w-auto")}>
                 {t(`stages.${key}.name`)}
               </th>
-              <td className={`${cell} text-on-ink-muted max-sm:col-start-2 max-sm:mt-2`}>{t(`stages.${key}.text`)}</td>
+              <td className={cn(cell, "text-on-ink-muted max-sm:col-start-2 max-sm:mt-2")}>
+                {t(`stages.${key}.text`)}
+              </td>
             </tr>
           ))}
         </tbody>

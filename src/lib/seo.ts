@@ -14,7 +14,7 @@ type BuildMetadataArgs = {
   description?: string;
 };
 
-/** Title, description, canonical, hreflang and social tags for one page. */
+/** Title, description, canonical and hreflang for one page; Next derives the social tags from them. */
 export async function buildMetadata({ locale, path, title, description }: BuildMetadataArgs): Promise<Metadata> {
   const meta = await getTranslations({ locale, namespace: "Meta" });
   const fullTitle = title ? `${title} | ${meta("siteName")}` : meta("title");
