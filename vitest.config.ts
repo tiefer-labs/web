@@ -21,6 +21,12 @@ export default defineConfig({
     unstubEnvs: true,
     unstubGlobals: true,
     css: false,
+    coverage: {
+      provider: "v8",
+      include: ["src/**/*.{ts,tsx}"],
+      exclude: ["src/**/*.d.ts"],
+      reporter: ["text", "json-summary", "html"],
+    },
     // next-intl imports `next/navigation` without an extension, which only resolves through Vite.
     server: { deps: { inline: ["next-intl"] } },
     projects: [
