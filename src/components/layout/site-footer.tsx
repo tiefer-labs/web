@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: MPL-2.0
 import { getTranslations } from "next-intl/server";
 import Image from "next/image";
-import logo from "@/assets/brand/tiefer-logo.svg";
 import { Link } from "@/i18n/navigation";
 import { env } from "@/lib/env.server";
 import { ExternalFooterLink, FooterLink } from "./footer-link";
@@ -13,7 +12,7 @@ export async function SiteFooter() {
     <footer className="border-t border-line pt-12 pb-10 text-small">
       <div className="wrap grid gap-5 lg:grid-cols-12 lg:items-baseline lg:gap-x-(--gap)">
         <Link href="/" className="block lg:col-[1/3]" data-forced-colors="keep">
-          <Image src={logo} alt={meta("siteName")} width={84} height={16} />
+          <Image src="/brand/tiefer-logo.svg" alt={meta("siteName")} width={84} height={16} />
         </Link>
         <nav aria-label={ui("footerNav")} className="lg:col-[3/10]">
           <ul role="list" className="flex flex-wrap gap-x-6 gap-y-2">

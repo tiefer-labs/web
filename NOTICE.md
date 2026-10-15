@@ -15,10 +15,10 @@ founder decides otherwise. This is an open decision.
 ## The Tiefer name and logo
 
 The MPL does not grant trademark rights (section 2.3 of the licence). The
-Tiefer name, the logos and the four-wave mark in `src/assets/brand/`, the
+Tiefer name, the logos and the four-wave mark in `public/brand/`, the
 icons (`src/app/icon.svg`, `src/app/favicon.ico`, `src/app/apple-icon.png`,
 `public/icon-192.png`, `public/icon-512.png`) and the social image
-(`public/og-image.png`) are not covered
+(`src/app/[locale]/opengraph-image.png`) are not covered
 by the MPL. They are trademarks and brand assets of the company. You may not
 use them to suggest endorsement by Tiefer, or to brand a fork or a modified
 version of this website.

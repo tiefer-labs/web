@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: MPL-2.0
 import { getTranslations } from "next-intl/server";
 import Image from "next/image";
-import logoWhite from "@/assets/brand/tiefer-logo-white.svg";
-import logo from "@/assets/brand/tiefer-logo.svg";
 import { Link } from "@/i18n/navigation";
 import { cn } from "@/lib/cn";
 import { SiteNav } from "./site-nav";
@@ -28,7 +26,7 @@ export async function SiteHeader({ dark = false }: { dark?: boolean }) {
     >
       <div className="wrap flex min-h-18 items-center justify-between gap-6">
         <Link href="/#top" className="block py-2" data-forced-colors="keep">
-          <Image src={dark ? logoWhite : logo} alt={meta("siteName")} width={126} height={24} priority />
+          <Image src={dark ? "/brand/tiefer-logo-white.svg" : "/brand/tiefer-logo.svg"} alt={meta("siteName")} width={126} height={24} priority />
         </Link>
         <SiteNav
           dark={dark}

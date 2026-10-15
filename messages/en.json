@@ -2,8 +2,7 @@
   "Meta": {
     "siteName": "Tiefer",
     "title": "Tiefer | Edge AI in orbit",
-    "description": "Tiefer builds AI software that runs on Earth observation satellites: it filters useless pixels in orbit, detects events on board and sends kilobyte-sized alerts instead of gigabytes of raw imagery. Built in Baku.",
-    "ogImageAlt": "Tiefer. See deeper."
+    "description": "Tiefer builds AI software that runs on Earth observation satellites: it filters useless pixels in orbit, detects events on board and sends kilobyte-sized alerts instead of gigabytes of raw imagery. Built in Baku."
   },
   "UI": {
     "skipLink": "Skip to content",

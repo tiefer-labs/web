@@ -118,6 +118,6 @@ Every section uses `Section` and `SectionLabel` from `src/components/ui/section.
 
 - The name and logos are trademarks, not covered by the code licence (see [NOTICE.md](NOTICE.md)). Never edit,
   recolour or combine them with other marks.
-- Files are in `src/assets/brand/`: `tiefer-logo.svg` (ink) on light backgrounds, `tiefer-logo-white.svg` on ink;
+- Files are in `public/brand/`: `tiefer-logo.svg` (ink) on light backgrounds, `tiefer-logo-white.svg` on ink;
   the four-line mark `tiefer-mark-*.svg` for decoration. The header logo is 126 by 24 px, the footer logo 84 by 16 px.
 - The four lines of the mark stand for the four stages: Filter, Detect, Alert, Update.

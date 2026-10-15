@@ -6,19 +6,8 @@ import { defineConfig } from "vitest/config";
 
 const emptyModule = fileURLToPath(new URL("./tests/test-utils/empty-module.ts", import.meta.url));
 
-/** Next turns SVG imports into image data; the tests only need its shape. */
-const staticSvg = {
-  name: "static-svg",
-  enforce: "pre" as const,
-  load(id: string) {
-    if (!id.endsWith(".svg")) return null;
-    const name = id.split("/").pop();
-    return `export default { src: "/_next/static/media/${name}", width: 100, height: 20 };`;
-  },
-};
-
 export default defineConfig({
-  plugins: [staticSvg, react(), babel({ presets: [reactCompilerPreset()] })],
+  plugins: [react(), babel({ presets: [reactCompilerPreset()] })],
   resolve: {
     tsconfigPaths: true,
     // `server-only` throws outside the react-server condition; Next strips it at build time.

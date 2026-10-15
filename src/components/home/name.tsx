@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: MPL-2.0
 import { getTranslations } from "next-intl/server";
 import Image from "next/image";
-import markWhite from "@/assets/brand/tiefer-mark-white.svg";
 import { Section, SectionLabel } from "@/components/ui/section";
 
 export async function Name() {
@@ -17,7 +16,7 @@ export async function Name() {
       decoration={
         <>
           <Image
-            src={markWhite}
+            src="/brand/tiefer-mark-white.svg"
             alt=""
             width={690}
             height={690}

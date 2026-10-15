@@ -21,8 +21,6 @@ export async function buildMetadata({ locale, path, title, description }: BuildM
   const summary = description ?? meta("description");
   const canonical = getPathname({ href: path, locale });
 
-  const image = { url: "/og-image.png", width: 1200, height: 630, alt: meta("ogImageAlt") };
-
   const languages: Record<string, string> = {};
   if (routing.locales.length > 1) {
     for (const l of routing.locales) languages[l] = getPathname({ href: path, locale: l });
@@ -33,15 +31,5 @@ export async function buildMetadata({ locale, path, title, description }: BuildM
     title: { absolute: fullTitle },
     description: summary,
     alternates: { canonical, languages },
-    openGraph: {
-      type: "website",
-      siteName: meta("siteName"),
-      title: fullTitle,
-      description: summary,
-      url: canonical,
-      locale,
-      images: [image],
-    },
-    twitter: { card: "summary_large_image", title: fullTitle, description: summary, images: [image] },
   };
 }
