@@ -76,6 +76,9 @@ const nextConfig: NextConfig = {
   typedRoutes: true,
   experimental: {
     globalNotFound: true,
+    turbopackRustReactCompiler: true,
+    useTypeScriptCli: true,
+    agentUpgrade: "latest",
     serverActions: { bodySizeLimit: "16kb" },
   },
   turbopack: {
