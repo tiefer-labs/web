@@ -6,7 +6,7 @@ import { forbiddenCharacters } from "./test-utils/text-rules";
 
 const files = execFileSync("git", ["ls-files", "--cached", "--others", "--exclude-standard"], { encoding: "utf8" })
   .split("\n")
-  .filter((file) => file && !file.startsWith("old-vanilla/") && existsSync(file));
+  .filter((file) => file && existsSync(file));
 
 const BINARY = /\.(png|ico|jpe?g|webp|woff2?|ttf)$/;
 const SOURCE = /\.(tsx?|css)$/;

@@ -9,7 +9,7 @@
 
 name: Deploy
 
-# Manual only until the Next.js site replaces the Go site on Azure; then add back:
+# Manual only until the Next.js site is deployed to Azure for the first time; then add back:
 #   push:
 #     branches: [main]
 on:

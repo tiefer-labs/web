@@ -5,7 +5,6 @@ export default defineConfig({
   printWidth: 120,
   singleQuote: false,
   insertFinalNewline: true,
-  ignorePatterns: ["old-vanilla/**"],
   sortTailwindcss: {
     stylesheet: "./src/app/globals.css",
     functions: ["clsx", "cn"],

@@ -20,7 +20,7 @@ raw imagery. The research behind it lives in [tiefer-labs/lab](https://github.co
 not claimed").
 
 The site is one long home page, three legal pages and a 404 page, plus a contact form. It used to be a Go server;
-`old-vanilla/` keeps that version for reference until it is deleted. Never edit it.
+that version is in the git history before the Next.js migration.
 
 ## Commands
 
@@ -99,7 +99,7 @@ when `pnpm build` runs. Secrets (`CSRF_SECRET`, `SMTP_PASS`, Redis tokens) are o
 
 ## Contact form
 
-`src/lib/contact/handle.ts` runs the same steps as the old Go handler, in order: attempts limit (20 per hour per
+`src/lib/contact/handle.ts` runs these steps, in order: attempts limit (20 per hour per
 client), honeypot, signed token (at least 3 seconds and at most 2 hours old), validation, single-use token, send limits
 (5 per hour per client, 60 per hour in total), then SMTP. Bots get a fake success. The per-request token is the only
 dynamic part of the home page: a `<Suspense>` hole that calls `connection()`.

@@ -7,8 +7,6 @@ satellites, at **https://tiefer.space**. One page, three legal pages and a conta
 - No cookies, analytics or trackers. Fonts are served from our own origin.
 - All copy lives in [`messages/en.json`](messages/en.json), ready for more languages with next-intl.
 
-The previous Go version is kept in [`old-vanilla/`](old-vanilla) for reference and will be removed.
-
 ## Run it
 
 Node 24 and pnpm 10 or later.

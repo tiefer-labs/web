@@ -16,7 +16,7 @@ export type ContactDeps = {
   now?: number;
 };
 
-/** Same order as the Go handler: the cheap checks first, the token is only spent on a valid submission. */
+/** The cheap checks first; the token is only spent on a valid submission. */
 export async function handleContact(form: FormData, deps: ContactDeps): Promise<ContactState> {
   const { secret, store, clientKey, now = Date.now() } = deps;
   const answer = (status: ContactStatus, values = emptyValues, errors: FieldErrors = {}): ContactState => ({

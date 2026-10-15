@@ -10,7 +10,6 @@ export default defineConfig({
     typeAware: true,
     typeCheck: true,
   },
-  ignorePatterns: ["old-vanilla/**"],
   rules: {
     eqeqeq: "warn",
     "no-throw-literal": "warn",
