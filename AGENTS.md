@@ -35,7 +35,8 @@ pnpm only, never npm or npx. Run local binaries as `pnpm <bin>`.
 
 ## Stack
 
-- Next.js 16 App Router with React 19, React Compiler, Cache Components, typed routes, `output: "standalone"`
+- Next.js 16 App Router with React 19, React Compiler, Cache Components, typed routes; `output: "standalone"` only when
+  `NEXT_OUTPUT=standalone` (set by the Dockerfile)
 - TypeScript, Tailwind CSS v4 (design tokens in `src/app/globals.css`, documented in [STYLES.md](STYLES.md))
 - next-intl for every visible string, `next/font/google` for the Mozilla Headline and Mozilla Text fonts
 - zod for configuration and form validation, nodemailer for SMTP, optional Redis (Upstash or any Redis URL)

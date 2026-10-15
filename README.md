@@ -55,7 +55,8 @@ Import the repository, then set the variables from `.env.example` for each envir
 
 ### Azure
 
-The [`Dockerfile`](Dockerfile) builds a standalone Node 24 server on a distroless, non-root image that listens on port
+The [`Dockerfile`](Dockerfile) builds a standalone Node 24 server (it sets `NEXT_OUTPUT=standalone`; other builds use
+the default output) on a distroless, non-root image that listens on port
 8080 and answers `/healthz`, as the infrastructure in [`infra/`](infra) expects. Pages are prerendered in the image, so
 the settings they show are build arguments; secrets stay runtime settings from Key Vault.
 

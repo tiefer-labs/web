@@ -67,7 +67,8 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
-  output: "standalone",
+  // The Docker image sets NEXT_OUTPUT=standalone; local runs and Vercel use the default output.
+  output: process.env.NEXT_OUTPUT === "standalone" ? "standalone" : undefined,
   poweredByHeader: false,
   reactCompiler: true,
   cacheComponents: true,
