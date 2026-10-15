@@ -43,8 +43,8 @@ the Redis clients `@upstash/redis` (MIT) and `redis` (MIT).
 Downloaded when the site is built or deployed; not part of this
 repository:
 
-| Component                              | Used for          | Licence                                                          |
-| -------------------------------------- | ----------------- | ---------------------------------------------------------------- |
-| `node` Docker image                    | build stage only  | MIT (Node.js); Debian packages under their own licences          |
-| `gcr.io/distroless/nodejs24-debian12`  | runtime image     | Apache 2.0; Node.js and Debian packages under their own licences |
-| GitHub Actions in `.github/workflows/` | CI and deployment | each under its own licence, referenced by version tag            |
+| Component                                                              | Used for          | Licence                                                           |
+| ---------------------------------------------------------------------- | ----------------- | ----------------------------------------------------------------- |
+| `ghcr.io/pnpm/pnpm` Docker image and the Node.js runtime pnpm installs | build stage only  | MIT (pnpm, Node.js); base image packages under their own licences |
+| `gcr.io/distroless/nodejs24-debian12`                                  | runtime image     | Apache 2.0; Node.js and Debian packages under their own licences  |
+| GitHub Actions in `.github/workflows/`                                 | CI and deployment | each under its own licence, referenced by version tag             |
