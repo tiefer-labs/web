@@ -137,7 +137,7 @@ export function ContactForm({ email, tokenField }: ContactFormProps) {
             className={cn(inputClass, "min-h-36 resize-y")}
           />
         </Field>
-        <div aria-hidden="true" className="absolute! -left-[10000px] size-px overflow-hidden">
+        <div aria-hidden="true" className="absolute! left-[-10000px] size-px overflow-hidden">
           <label htmlFor="f-website">{t("honeypotLabel")}</label>
           <input id="f-website" name="website" type="text" tabIndex={-1} autoComplete="off" />
         </div>
@@ -149,7 +149,7 @@ export function ContactForm({ email, tokenField }: ContactFormProps) {
             value="yes"
             required
             defaultChecked={values.consent}
-            className="mt-[3px] size-[18px] accent-ink"
+            className="mt-0.75 size-4.5 accent-ink"
           />
           <label htmlFor="f-consent" className="text-small text-ink-80">
             {t.rich("consent", { link: privacyLink })}

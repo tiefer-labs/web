@@ -32,7 +32,7 @@ const tele = "fill-on-ink-muted font-text text-[11px] leading-none font-medium t
 export function HeroOrbit({ stored, alertTag }: { stored: string; alertTag: string }) {
   return (
     <svg
-      className="absolute inset-0 size-full max-lg:top-auto max-lg:h-[340px]"
+      className="absolute inset-0 size-full max-lg:top-auto max-lg:h-85"
       viewBox="0 0 1440 760"
       preserveAspectRatio="xMaxYMax slice"
       aria-hidden="true"

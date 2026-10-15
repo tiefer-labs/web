@@ -78,7 +78,7 @@ export async function LegalPage({ page }: { page: LegalPageKey }) {
         <h1 id="legal-title" className="text-h2 leading-[1.06] font-medium tracking-[-0.018em]">
           {t("title")}
         </h1>
-        <p className="mt-6 max-w-[36em] text-lead leading-[1.5]">{rich("intro")}</p>
+        <p className="mt-6 max-w-[36em] text-lead leading-normal">{rich("intro")}</p>
         {keys.length > TOC_AFTER && (
           <nav aria-labelledby="legal-toc-title" className="mt-10 border-t border-line pt-4">
             <h2 id="legal-toc-title" className="label-caps leading-[1.06] text-ink-60">
@@ -100,7 +100,7 @@ export async function LegalPage({ page }: { page: LegalPageKey }) {
               key={key}
               id={key}
               aria-labelledby={`${key}-title`}
-              className="mt-12 max-w-[44rem] border-t border-line pt-6"
+              className="mt-12 max-w-176 border-t border-line pt-6"
             >
               <h2 id={`${key}-title`} className="text-h3 leading-[1.2] tracking-[-0.005em]">
                 {t(`sections.${key}.title`)}
