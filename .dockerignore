@@ -1,0 +1,10 @@
+# Only what the build needs goes into the build context.
+*
+!package.json
+!pnpm-lock.yaml
+!pnpm-workspace.yaml
+!next.config.ts
+!tsconfig.json
+!messages/
+!public/
+!src/

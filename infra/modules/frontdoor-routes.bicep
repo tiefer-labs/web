@@ -191,7 +191,7 @@ resource assets 'Microsoft.Cdn/profiles/afdEndpoints/routes@2024-09-01' = {
       'Https'
     ]
     patternsToMatch: [
-      '/static/*'
+      '/_next/static/*'
     ]
     forwardingProtocol: 'HttpsOnly'
     httpsRedirect: 'Enabled'
