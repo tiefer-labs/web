@@ -1,0 +1,31 @@
+{{- /*
+  This Source Code Form is subject to the terms of the Mozilla Public
+  License, v. 2.0. If a copy of the MPL was not distributed with this
+  file, You can obtain one at https://mozilla.org/MPL/2.0/.
+*/ -}}
+{{define "header" -}}
+{{- $ui := .Site.UI -}}
+<header class="site-header{{if .OnDark}} on-dark{{end}}" id="top">
+  <div class="wrap header-bar">
+    <a class="logo" href="{{.Anchor "#top"}}">
+      {{- if .OnDark}}
+      <img src="{{asset "brand/tiefer-logo-white.svg"}}" alt="{{.Site.Meta.SiteName}}" width="126" height="24">
+      {{- else}}
+      <img src="{{asset "brand/tiefer-logo.svg"}}" alt="{{.Site.Meta.SiteName}}" width="126" height="24">
+      {{- end}}
+    </a>
+    <nav class="site-nav" aria-label="{{$ui.NavLabel}}">
+      <button class="menu-toggle" type="button" aria-expanded="false" aria-controls="nav-list" data-open="{{$ui.MenuOpen}}" data-close="{{$ui.MenuClose}}">
+        <span class="menu-label">{{$ui.MenuOpen}}</span>
+        <svg class="menu-icon" viewBox="0 0 20 12" width="20" height="12" aria-hidden="true" focusable="false"><path d="M0 1h20M0 6h20M0 11h20"/></svg>
+      </button>
+      <ul class="nav-list" id="nav-list" role="list">
+        {{- range .Site.Nav}}
+        <li><a href="{{$.Anchor .Href}}">{{.Label}}</a></li>
+        {{- end}}
+        <li class="nav-cta"><a class="button button-outline" href="{{.Anchor .Site.CTA.Href}}">{{.Site.CTA.Label}}</a></li>
+      </ul>
+    </nav>
+  </div>
+</header>
+{{- end}}

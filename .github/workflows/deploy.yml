@@ -1,0 +1,75 @@
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at https://mozilla.org/MPL/2.0/.
+
+# Builds the image, pushes it to Azure Container Registry and points the
+# web app at it. Azure login uses OpenID Connect with the deploy identity
+# from infra/: no password or key is stored in GitHub. The identity only
+# trusts runs in the "production" environment (see infra/README.md).
+
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+jobs:
+  ci:
+    uses: ./.github/workflows/ci.yml
+
+  deploy:
+    needs: ci
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    environment: production
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      # Identifiers, not secrets: set them as environment variables of the
+      # GitHub "production" environment.
+      AZURE_CLIENT_ID: ${{ vars.AZURE_CLIENT_ID }}
+      AZURE_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
+      AZURE_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+      RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
+      WEBAPP: ${{ vars.AZURE_WEBAPP_NAME }}
+      REGISTRY: ${{ vars.AZURE_REGISTRY_LOGIN_SERVER }}
+      SITE_URL: https://tiefer.space
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: azure/login@a641126d1b8aa4d1fa005f4f92df94a3a4c4c906 # v3.1.0
+        with:
+          client-id: ${{ env.AZURE_CLIENT_ID }}
+          tenant-id: ${{ env.AZURE_TENANT_ID }}
+          subscription-id: ${{ env.AZURE_SUBSCRIPTION_ID }}
+      - name: Build and push the image
+        run: |
+          image="$REGISTRY/tiefer-web:$(git rev-parse HEAD)"
+          echo "IMAGE=$image" >> "$GITHUB_ENV"
+          az acr login --name "${REGISTRY%%.*}"
+          docker build --pull -t "$image" .
+          docker push "$image"
+      - name: Point the web app at the new image
+        run: |
+          az webapp config set --resource-group "$RESOURCE_GROUP" --name "$WEBAPP" \
+            --linux-fx-version "DOCKER|$IMAGE" --output none
+      - name: Smoke test through Front Door
+        run: |
+          for i in $(seq 1 30); do
+            if curl -fsS --max-time 10 "$SITE_URL/healthz"; then break; fi
+            sleep 10
+          done
+          curl -fsSI --max-time 10 "$SITE_URL/" | tee headers.txt
+          grep -qi '^content-security-policy:' headers.txt
+          grep -qi '^strict-transport-security:' headers.txt

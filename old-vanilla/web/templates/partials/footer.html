@@ -1,0 +1,28 @@
+{{- /*
+  This Source Code Form is subject to the terms of the Mozilla Public
+  License, v. 2.0. If a copy of the MPL was not distributed with this
+  file, You can obtain one at https://mozilla.org/MPL/2.0/.
+*/ -}}
+{{define "footer" -}}
+{{- $f := .Site.Footer -}}
+<footer class="site-footer">
+  <div class="wrap footer-grid">
+    <a class="footer-logo" href="{{.Href "/"}}">
+      <img src="{{asset "brand/tiefer-logo.svg"}}" alt="{{.Site.Meta.SiteName}}" width="84" height="16">
+    </a>
+    <nav class="footer-nav" aria-label="{{.Site.UI.FooterNav}}">
+      <ul role="list">
+        <li><a href="{{.Href "/legal"}}"{{if eq .Name "legal"}} aria-current="page"{{end}}>{{$f.LegalNotice}}</a></li>
+        <li><a href="{{.Href "/privacy"}}"{{if eq .Name "privacy"}} aria-current="page"{{end}}>{{$f.Privacy}}</a></li>
+        <li><a href="{{.Href "/acceptable-use"}}"{{if eq .Name "acceptable-use"}} aria-current="page"{{end}}>{{$f.AcceptableUse}}</a></li>
+        <li><a href="{{.Cfg.LinkedInURL}}" rel="noopener noreferrer">{{$f.LinkedIn}}</a></li>
+        {{- if .Cfg.RepoURL}}
+        <li><a href="{{.Cfg.RepoURL}}" rel="noopener noreferrer">{{$f.SourceCode}}</a></li>
+        {{- end}}
+      </ul>
+    </nav>
+    <p class="footer-copy">{{$f.Copyright}}</p>
+    <p class="footer-tagline">{{$f.Tagline}}</p>
+  </div>
+</footer>
+{{- end}}

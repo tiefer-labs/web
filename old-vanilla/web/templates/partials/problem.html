@@ -1,0 +1,23 @@
+{{- /*
+  This Source Code Form is subject to the terms of the Mozilla Public
+  License, v. 2.0. If a copy of the MPL was not distributed with this
+  file, You can obtain one at https://mozilla.org/MPL/2.0/.
+*/ -}}
+{{define "problem" -}}
+{{- $s := .Site.Problem -}}
+<section class="section problem" id="problem" aria-labelledby="problem-title">
+  <div class="wrap grid">
+    <p class="section-label">{{$s.Label}}</p>
+    <h2 class="problem-title" id="problem-title">{{$s.Title}}</h2>
+    <p class="statement">{{$s.Intro}}</p>
+    <ol class="problem-items numbered">
+      {{- range $s.Items}}
+      <li>
+        <h3>{{.Title}}</h3>
+        <p>{{.Text}}</p>
+      </li>
+      {{- end}}
+    </ol>
+  </div>
+</section>
+{{- end}}

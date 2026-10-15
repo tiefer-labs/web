@@ -1,0 +1,58 @@
+{{- /*
+  This Source Code Form is subject to the terms of the Mozilla Public
+  License, v. 2.0. If a copy of the MPL was not distributed with this
+  file, You can obtain one at https://mozilla.org/MPL/2.0/.
+*/ -}}
+{{define "parts" -}}
+{{- range . -}}
+{{- if .Href}}<a href="{{.Href}}">{{.Text}}</a>{{else if .Mark}}<mark class="placeholder">{{.Text}}</mark>{{else}}{{.Text}}{{end -}}
+{{- end -}}
+{{- end}}
+{{define "legal-body" -}}
+{{- $l := .Legal -}}
+<article class="section legal" aria-labelledby="legal-title">
+  <div class="wrap grid">
+    <p class="section-label">{{.Site.UI.LegalLabel}}</p>
+    <div class="legal-body">
+      {{- if not .Cfg.LegalReviewed}}
+      <p class="legal-note" role="note">{{.Site.Legal.ReviewNote}}</p>
+      {{- end}}
+      <h1 id="legal-title">{{$l.Title}}</h1>
+      <p class="legal-intro">{{template "parts" $l.Intro}}</p>
+      {{- if gt (len $l.Sections) 4}}
+      <nav class="legal-toc" aria-labelledby="legal-toc-title">
+        <h2 id="legal-toc-title">{{.Site.Legal.Contents}}</h2>
+        <ol>
+          {{- range $l.Sections}}
+          <li><a href="#{{.ID}}">{{.Title}}</a></li>
+          {{- end}}
+        </ol>
+      </nav>
+      {{- end}}
+      {{- range $l.Sections}}
+      <section class="legal-section" id="{{.ID}}" aria-labelledby="{{.ID}}-title">
+        <h2 id="{{.ID}}-title">{{.Title}}</h2>
+        {{- with .Facts}}
+        <dl class="facts">
+          {{- range .}}
+          <div><dt>{{.Label}}</dt><dd>{{template "parts" .Value}}</dd></div>
+          {{- end}}
+        </dl>
+        {{- end}}
+        {{- range .Paras}}
+        <p>{{template "parts" .}}</p>
+        {{- end}}
+        {{- with .List}}
+        <ul>
+          {{- range .}}
+          <li>{{template "parts" .}}</li>
+          {{- end}}
+        </ul>
+        {{- end}}
+      </section>
+      {{- end}}
+      <p class="legal-updated">{{template "parts" $l.Updated}}</p>
+    </div>
+  </div>
+</article>
+{{- end}}

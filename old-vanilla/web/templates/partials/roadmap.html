@@ -1,0 +1,26 @@
+{{- /*
+  This Source Code Form is subject to the terms of the Mozilla Public
+  License, v. 2.0. If a copy of the MPL was not distributed with this
+  file, You can obtain one at https://mozilla.org/MPL/2.0/.
+*/ -}}
+{{define "roadmap" -}}
+{{- $s := .Site.Roadmap -}}
+<section class="section roadmap" id="roadmap" aria-labelledby="roadmap-title">
+  <div class="wrap grid">
+    <p class="section-label">{{$s.Label}}</p>
+    <h2 class="roadmap-title" id="roadmap-title">{{$s.Title}}</h2>
+    <ol class="track" role="list">
+      {{- range $s.Items}}
+      <li{{if .Now}} class="is-now" aria-current="step"{{end}}>
+        <svg class="track-node" viewBox="0 0 12 12" width="12" height="12" aria-hidden="true" focusable="false"><rect x="1" y="1" width="10" height="10"/></svg>
+        {{- if .Now}}
+        <p class="track-now">{{$s.NowLabel}}</p>
+        {{- end}}
+        <h3>{{.Title}}</h3>
+        <p>{{.Text}}</p>
+      </li>
+      {{- end}}
+    </ol>
+  </div>
+</section>
+{{- end}}
