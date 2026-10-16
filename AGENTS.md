@@ -96,7 +96,9 @@ mechanical ones, in messages, rendered pages and every text file in the reposito
 
 ## Configuration
 
-Settings come from environment variables only (`.env.local` locally, never committed). Pages are prerendered at build
+Settings come from environment variables only (`.env.local` locally, never committed). [CONFIGURATION.md](CONFIGURATION.md)
+says what to set for each case and lists the values only the company can give: never invent `LEGAL_*` details,
+addresses or the email provider; leave the placeholder and ask. Pages are prerendered at build
 time, so the values they show (`SITE_URL`, `CONTACT_EMAIL`, `LEGAL_*`, whether `SMTP_HOST` is set) must be present
 when `pnpm build` runs. Secrets (`CSRF_SECRET`, `SMTP_PASS`, Redis tokens) are only read by the running server.
 

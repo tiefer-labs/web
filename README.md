@@ -19,18 +19,9 @@ pnpm check          # TypeScript, Oxfmt, Oxlint and Vitest
 pnpm build && pnpm start
 ```
 
-Configuration comes only from environment variables; every one is listed, with a comment, in
-[`.env.example`](.env.example). Copy it to `.env.local` for local work. Without `SMTP_HOST` the contact form is replaced
-by an "Email us" button.
-
-To try the contact form locally, run a mail catcher and point the site at it:
-
-```sh
-docker run -d -p 1025:1025 -p 8025:8025 -e MP_SMTP_TLS_CERT=sans:localhost -e MP_SMTP_TLS_KEY=sans:localhost axllent/mailpit
-```
-
-with `SMTP_HOST=localhost`, `SMTP_PORT=1025`, `SMTP_SKIP_VERIFY=true`, `CONTACT_TO` and `CONTACT_FROM` in
-`.env.local`. Messages appear at http://localhost:8025.
+Settings come only from environment variables. [`CONFIGURATION.md`](CONFIGURATION.md) says what to set for each
+case: running locally, trying the contact form with a local mail catcher, and production on Vercel or Azure. Without
+`SMTP_HOST` the contact form is replaced by an "Email us" button.
 
 ## Edit the copy
 
@@ -49,9 +40,7 @@ order of the keys is the order on the page.
 
 ### Vercel
 
-Import the repository, then set the variables from `.env.example` for each environment. Set `ENV=production` and
-`SITE_URL=https://tiefer.space` only for production, so previews are not indexed. Add Upstash Redis
-(`UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN`) so the contact form limits hold across serverless instances.
+Import the repository, then set the production variables listed in [`CONFIGURATION.md`](CONFIGURATION.md#3-production-on-vercel).
 
 ### Azure
 
