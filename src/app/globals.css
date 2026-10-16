@@ -87,22 +87,13 @@
     scroll-behavior: smooth;
     hanging-punctuation: first last;
   }
-  html::-webkit-scrollbar {
-    width: 0.5rem;
-    background: transparent;
-  }
-  html::-webkit-scrollbar-thumb {
-    background: var(--color-ink-60);
-    border-radius: 2px;
-  }
-  html::-webkit-scrollbar-thumb:hover {
-    background: var(--color-ink);
-  }
-  /* Chromium ignores the pseudo-elements above once scrollbar-color is set, so only Firefox gets it. */
-  @supports not selector(::-webkit-scrollbar) {
+  /* PageScrollbar draws the scrollbar over the content instead; touch screens keep their native overlay one. */
+  @media (pointer: fine) {
     html {
-      scrollbar-width: thin;
-      scrollbar-color: var(--color-ink-60) transparent;
+      scrollbar-width: none;
+    }
+    html::-webkit-scrollbar {
+      display: none;
     }
   }
   body {

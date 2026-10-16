@@ -2,6 +2,7 @@
 import type { Metadata, Viewport } from "next";
 import { NextIntlClientProvider } from "next-intl";
 import { getLocale, getMessages, getTranslations } from "next-intl/server";
+import { PageScrollbar } from "@/components/layout/page-scrollbar";
 import { SiteFooter } from "@/components/layout/site-footer";
 import { SkipLink } from "@/components/layout/skip-link";
 import { locales } from "@/i18n/routing";
@@ -39,6 +40,7 @@ export default async function LocaleLayout({ children }: LayoutProps<"/[locale]"
           <SkipLink />
           {children}
           <SiteFooter />
+          <PageScrollbar />
         </NextIntlClientProvider>
       </body>
     </html>

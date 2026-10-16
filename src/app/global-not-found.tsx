@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MPL-2.0
 import type { Metadata, Viewport } from "next";
 import { NextIntlClientProvider } from "next-intl";
+import { PageScrollbar } from "@/components/layout/page-scrollbar";
 import { SiteFooter } from "@/components/layout/site-footer";
 import { SiteHeader } from "@/components/layout/site-header";
 import { SkipLink } from "@/components/layout/skip-link";
@@ -31,6 +32,7 @@ export default function GlobalNotFound() {
             <NotFoundContent />
           </main>
           <SiteFooter />
+          <PageScrollbar />
         </NextIntlClientProvider>
       </body>
     </html>

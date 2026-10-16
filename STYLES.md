@@ -101,8 +101,9 @@ Every section uses `Section` and `SectionLabel` from `src/components/ui/section.
 - **Form fields** (`Field` in `src/components/home/contact/field.tsx`): label above in `text-small` weight 500,
   1px `ink-60` border, 2px radius, ink border on hover; invalid fields get a 2px ink border and a message whose
   "Error:" prefix is only read by screen readers. Status messages sit in a box with a 2px ink left border.
-- **Scrollbar**: the page scrollbar is 8px, an `ink-60` thumb with a 2px radius on a transparent track, `ink` on hover;
-  Firefox gets the thin variant in the same colours.
+- **Scrollbar**: with a mouse, `PageScrollbar` (`src/components/layout/`) replaces the native one and floats over the
+  content, so dark sections reach the window edge: a 6px `ink-60` thumb with a 2px radius, 8px on hover or drag. Touch
+  screens keep their native overlay scrollbar.
 - **Line art**: inline SVG, `vector-effect: non-scaling-stroke`, `--stroke` width, `on-ink-muted` on dark and `ink`
   at low opacity on light. Always `aria-hidden`.
 
