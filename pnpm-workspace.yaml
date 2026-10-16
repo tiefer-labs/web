@@ -3,7 +3,6 @@ engineStrict: true
 minimumReleaseAge: 1440
 minimumReleaseAgeExcludePrune: true
 trustPolicy: "no-downgrade"
-trustPolicyExcludePrune: true
 allowBuilds:
   "@parcel/watcher": true
   "@swc/core": true
