@@ -1,20 +1,37 @@
-# Build output
-/bin/
-/dist/
-/tiefer-web
+# dependencies
+/node_modules
+/.pnp
+.pnp.*
 
-# Local configuration: never commit secrets
-.env
-.env.*
+# testing
+/coverage
+
+# next.js
+/.next/
+/out/
+
+# production
+/build
+
+# misc
+.DS_Store
+*.pem
+
+# debug
+npm-debug.log*
+.pnpm-debug.log*
+
+# env files
+.env*
 !.env.example
 
-# Fuzzing and test output
-testdata/fuzz/*/corpus-tmp/
-*.test
-*.out
+# vercel
+.vercel
 
-# Editors and OS
-.DS_Store
-.idea/
-.vscode/
-*.swp
+# typescript
+*.tsbuildinfo
+next-env.d.ts
+
+# agents
+.agents
+.claude

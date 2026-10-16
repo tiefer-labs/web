@@ -9,9 +9,10 @@
 
 name: Deploy
 
+# Manual only until the Next.js site is deployed to Azure for the first time; then add back:
+#   push:
+#     branches: [main]
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
 
 permissions:
@@ -45,10 +46,10 @@ jobs:
       REGISTRY: ${{ vars.AZURE_REGISTRY_LOGIN_SERVER }}
       SITE_URL: https://tiefer.space
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/checkout@v7
         with:
           persist-credentials: false
-      - uses: azure/login@a641126d1b8aa4d1fa005f4f92df94a3a4c4c906 # v3.1.0
+      - uses: azure/login@v3
         with:
           client-id: ${{ env.AZURE_CLIENT_ID }}
           tenant-id: ${{ env.AZURE_TENANT_ID }}
@@ -58,7 +59,8 @@ jobs:
           image="$REGISTRY/tiefer-web:$(git rev-parse HEAD)"
           echo "IMAGE=$image" >> "$GITHUB_ENV"
           az acr login --name "${REGISTRY%%.*}"
-          docker build --pull -t "$image" .
+          # Pages are prerendered in the image, so their public settings are build arguments.
+          docker build --pull -t "$image"             --build-arg SITE_URL="$SITE_URL"             --build-arg CONTACT_EMAIL="${{ vars.CONTACT_EMAIL }}"             --build-arg LINKEDIN_URL="${{ vars.LINKEDIN_URL }}"             --build-arg REPO_URL="${{ vars.REPO_URL }}"             --build-arg SMTP_HOST="${{ vars.SMTP_HOST }}"             --build-arg CONTACT_TO="${{ vars.CONTACT_TO }}"             --build-arg CONTACT_FROM="${{ vars.CONTACT_FROM }}"             --build-arg LEGAL_NAME="${{ vars.LEGAL_NAME }}"             --build-arg LEGAL_FORM="${{ vars.LEGAL_FORM }}"             --build-arg LEGAL_ADDRESS="${{ vars.LEGAL_ADDRESS }}"             --build-arg LEGAL_TAX_ID="${{ vars.LEGAL_TAX_ID }}"             --build-arg LEGAL_REGISTRATION="${{ vars.LEGAL_REGISTRATION }}"             --build-arg LEGAL_DIRECTOR="${{ vars.LEGAL_DIRECTOR }}"             --build-arg LEGAL_HOSTING_PROVIDER="${{ vars.LEGAL_HOSTING_PROVIDER }}"             --build-arg LEGAL_HOSTING_COUNTRY="${{ vars.LEGAL_HOSTING_COUNTRY }}"             --build-arg LEGAL_SMTP_PROVIDER="${{ vars.LEGAL_SMTP_PROVIDER }}"             --build-arg LEGAL_SMTP_COUNTRY="${{ vars.LEGAL_SMTP_COUNTRY }}"             --build-arg LEGAL_REVIEWED="${{ vars.LEGAL_REVIEWED }}"             --build-arg LOG_RETENTION_DAYS="${{ vars.LOG_RETENTION_DAYS }}"             --build-arg HSTS_PRELOAD="${{ vars.HSTS_PRELOAD }}"             .
           docker push "$image"
       - name: Point the web app at the new image
         run: |

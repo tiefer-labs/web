@@ -1,0 +1,532 @@
+{
+  "Meta": {
+    "siteName": "Tiefer",
+    "title": "Tiefer | Edge AI in orbit",
+    "description": "Tiefer builds AI software that runs on Earth observation satellites: it filters useless pixels in orbit, detects events on board and sends kilobyte-sized alerts instead of gigabytes of raw imagery. Built in Baku."
+  },
+  "UI": {
+    "skipLink": "Skip to content",
+    "navLabel": "Main",
+    "menuOpen": "Menu",
+    "menuClose": "Close",
+    "footerNav": "Legal and links",
+    "legalLabel": "Legal"
+  },
+  "Nav": {
+    "how": "How it works",
+    "useCases": "Use cases",
+    "principles": "Principles",
+    "roadmap": "Roadmap",
+    "contact": "Contact",
+    "cta": "Talk to us"
+  },
+  "Hero": {
+    "alertTag": "ALERT 48 KB",
+    "stored": "KEPT ON BOARD",
+    "sent": "SENT TO THE GROUND",
+    "sentSize": "{size} KB",
+    "ais": "AIS",
+    "events": {
+      "wildfire": {
+        "scanning": "SCANNING SOUTHERN EUROPE",
+        "detected": "WILDFIRE DETECTED ON BOARD",
+        "alerted": "ALERT SENT TO BRUSSELS",
+        "event": "WILDFIRE",
+        "responder": "EU EMERGENCY RESPONSE"
+      },
+      "oilSpill": {
+        "scanning": "SCANNING CENTRAL EUROPE",
+        "detected": "OIL SPILL DETECTED ON BOARD",
+        "alerted": "ALERT SENT TO LISBON",
+        "event": "OIL SPILL",
+        "responder": "EU MARITIME SAFETY"
+      },
+      "vessels": {
+        "scanning": "SCANNING THE MEDITERRANEAN",
+        "detected": "SHIP WITHOUT AIS DETECTED",
+        "alerted": "ALERT SENT TO WARSAW",
+        "event": "NO AIS",
+        "responder": "EU BORDER AGENCY"
+      }
+    },
+    "eyebrow": "Edge AI in orbit",
+    "title": "See deeper.",
+    "lead": "AI software for Earth observation satellites. It finds events in orbit and sends kilobytes to the ground, not gigabytes.",
+    "primary": "Talk to us",
+    "secondary": "See how it works"
+  },
+  "Problem": {
+    "label": "01 / PROBLEM",
+    "title": "Satellites see more than they can send.",
+    "stat": "2/3",
+    "statText": "of Earth's surface is under cloud at any moment, on average.",
+    "gridLabel": "Frames as a satellite captures them",
+    "items": {
+      "delay": {
+        "title": "Hours of delay",
+        "text": "Images wait for a ground station, then for processing."
+      },
+      "downlink": {
+        "title": "Wasted downlink",
+        "text": "Cloudy frames use the same bandwidth as useful ones."
+      },
+      "passive": {
+        "title": "Passive cameras",
+        "text": "They capture everything and understand nothing."
+      }
+    }
+  },
+  "How": {
+    "label": "02 / HOW IT WORKS",
+    "title": "Four stages, on board the satellite.",
+    "stages": {
+      "filter": {
+        "number": "01",
+        "name": "Filter",
+        "text": "Cloudy and empty frames stay on board."
+      },
+      "detect": {
+        "number": "02",
+        "name": "Detect",
+        "text": "Fires, oil spills, ships and floods."
+      },
+      "alert": {
+        "number": "03",
+        "name": "Alert",
+        "text": "A small packet, through the first available link."
+      },
+      "update": {
+        "number": "04",
+        "name": "Update",
+        "text": "New models reach orbit as signed updates."
+      }
+    },
+    "kept": "KEPT ON BOARD",
+    "packet": "48 KB",
+    "signed": "SIGNED",
+    "hardware": "Software for the computers satellites already fly:",
+    "chips": {
+      "gpu": "GPU",
+      "vpu": "VPU",
+      "fpga": "FPGA"
+    },
+    "groundTitle": "On the ground too",
+    "ground": {
+      "lab": {
+        "title": "Tiefer Lab",
+        "text": "Models are tested in a virtual orbit before they fly."
+      },
+      "ground": {
+        "title": "Tiefer Ground",
+        "text": "The same models run at a ground station today."
+      }
+    }
+  },
+  "Demo": {
+    "label": "03 / ALERT PACKET",
+    "title": "An alert, not an archive.",
+    "body": "The satellite sends what an operator needs to act. The full scene stays on board.",
+    "cardLabel": "Illustrative example. Not real data.",
+    "cardTitle": "Alert packet",
+    "fields": {
+      "event": {
+        "name": "Event",
+        "value": "Wildfire"
+      },
+      "location": {
+        "name": "Location",
+        "value": "Sector 12"
+      },
+      "confidence": {
+        "name": "Confidence",
+        "value": "High"
+      },
+      "packetSize": {
+        "name": "Packet size",
+        "value": "48 KB"
+      },
+      "observed": {
+        "name": "Observed",
+        "value": "Active fire front, about 1.2 km long."
+      },
+      "inferred": {
+        "name": "Inferred",
+        "value": "Likely spread to the north-east."
+      }
+    },
+    "sceneLabel": "Full scene",
+    "sceneNote": "Kept on board",
+    "alertLabel": "Alert"
+  },
+  "UseCases": {
+    "label": "04 / USE CASES",
+    "title": "Built for events where hours matter",
+    "cases": {
+      "wildfires": {
+        "title": "Wildfires",
+        "text": "Alert emergency services while the fire is small."
+      },
+      "oilSpills": {
+        "title": "Oil spills",
+        "text": "Flag slicks near platforms and shipping lanes."
+      },
+      "maritime": {
+        "title": "Dark ships",
+        "text": "Find vessels that are not broadcasting AIS."
+      },
+      "floods": {
+        "title": "Floods",
+        "text": "Track rising water and reservoir levels."
+      }
+    },
+    "note": "Starting with operators in Azerbaijan and the wider region."
+  },
+  "Principles": {
+    "label": "05 / PRINCIPLES",
+    "title": "How we build flight software",
+    "items": {
+      "p1": {
+        "number": "P1",
+        "statement": "Nothing is deleted blindly."
+      },
+      "p2": {
+        "number": "P2",
+        "statement": "Observed is not inferred."
+      },
+      "p3": {
+        "number": "P3",
+        "statement": "No invented pixels."
+      },
+      "p4": {
+        "number": "P4",
+        "statement": "Signed updates only."
+      },
+      "p5": {
+        "number": "P5",
+        "statement": "Measured, not claimed."
+      },
+      "p6": {
+        "number": "P6",
+        "statement": "People are not targets."
+      }
+    }
+  },
+  "Roadmap": {
+    "label": "06 / ROADMAP",
+    "title": "Ground first. Then orbit.",
+    "nowLabel": "Now",
+    "items": {
+      "benchmark": {
+        "title": "Benchmark",
+        "text": "Measured on flight-like hardware"
+      },
+      "groundPilot": {
+        "title": "Ground pilot",
+        "text": "At an operator's ground station"
+      },
+      "firstFlight": {
+        "title": "First flight",
+        "text": "Our models running in orbit"
+      },
+      "nationalSatellites": {
+        "title": "National satellites",
+        "text": "On board operator satellites"
+      },
+      "region": {
+        "title": "Region",
+        "text": "More operators, more events"
+      }
+    }
+  },
+  "Name": {
+    "label": "07 / NAME",
+    "line": "Tiefer is German for deeper.",
+    "body": "We are putting the analyst in orbit."
+  },
+  "Contact": {
+    "label": "08 / CONTACT",
+    "title": "We are early, and we are listening.",
+    "body": "Tell us which events you need to catch first.",
+    "formLabel": "Contact form",
+    "nameLabel": "Name",
+    "emailLabel": "Work email",
+    "orgLabel": "Organisation",
+    "roleLabel": "Your role",
+    "roleEmpty": "Choose one",
+    "messageLabel": "What would you want your satellite to detect first?",
+    "messageHint": "Up to 2,000 characters.",
+    "optional": "optional",
+    "roles": {
+      "operator": "Satellite operator",
+      "agency": "Space agency",
+      "manufacturer": "Manufacturer or integrator",
+      "hosted-compute": "Hosted compute platform",
+      "investor": "Investor",
+      "other": "Other"
+    },
+    "consent": "I agree that Tiefer may use these details to reply to my message. See the <link>privacy notice</link>.",
+    "honeypotLabel": "Leave this field empty",
+    "submit": "Send message",
+    "sending": "Sending",
+    "status": {
+      "sent": "Thank you. We will reply within two working days.",
+      "invalid": "Please check the fields marked below.",
+      "expired": "This form has expired. Please send it again.",
+      "limited": "Too many messages from this connection. Please try again later or email us.",
+      "error": "Something went wrong. Please email us at <email>{address}</email>."
+    },
+    "emailUs": "Email us",
+    "copyEmail": "Copy email address",
+    "copied": "Copied",
+    "selected": "Address selected",
+    "preferEmail": "Prefer email?",
+    "linkedIn": "Follow Tiefer on LinkedIn",
+    "errorPrefix": "Error:",
+    "errors": {
+      "nameMissing": "Please enter your name.",
+      "nameTooLong": "Please use at most 100 characters.",
+      "emailMissing": "Please enter your work email.",
+      "emailInvalid": "Please enter a valid email address, for example name@company.com.",
+      "orgTooLong": "Please use at most 150 characters.",
+      "roleInvalid": "Please choose a role from the list.",
+      "messageMissing": "Please tell us what you would want to detect first.",
+      "messageTooLong": "Please use at most 2,000 characters.",
+      "consentMissing": "Please confirm that we may use these details to reply."
+    }
+  },
+  "Footer": {
+    "copyright": "© 2026 Tiefer",
+    "legalNotice": "Legal notice",
+    "privacy": "Privacy",
+    "acceptableUse": "Acceptable use",
+    "linkedIn": "LinkedIn",
+    "sourceCode": "Source code",
+    "tagline": "See deeper. Built in Baku."
+  },
+  "Legal": {
+    "reviewNote": "Placeholder text. To be reviewed before launch.",
+    "contents": "On this page",
+    "notice": {
+      "title": "Legal notice",
+      "description": "Company information for Tiefer, a space technology company in Baku, Azerbaijan.",
+      "intro": "Information about the company that operates this website.",
+      "sections": {
+        "company": {
+          "title": "Company",
+          "facts": {
+            "legalName": {
+              "label": "Legal name",
+              "value": "{legal_name}"
+            },
+            "legalForm": {
+              "label": "Legal form",
+              "value": "{legal_form}"
+            },
+            "registeredAddress": {
+              "label": "Registered address",
+              "value": "{address}"
+            },
+            "taxId": {
+              "label": "Tax identification number (VÖEN)",
+              "value": "{tax_id}"
+            },
+            "stateRegistration": {
+              "label": "State registration",
+              "value": "{registration}"
+            },
+            "managingDirector": {
+              "label": "Managing director",
+              "value": "{director}"
+            },
+            "email": {
+              "label": "Email",
+              "value": "<email>{contact_email}</email>"
+            },
+            "website": {
+              "label": "Website",
+              "value": "<site>{site_url}</site>"
+            }
+          }
+        },
+        "responsibility-for-content": {
+          "title": "Responsibility for content",
+          "paras": {
+            "p1": "{legal_name} is responsible for the content of this website. [CONTENT_RESPONSIBILITY: confirm with counsel whether a named person must be stated here.]"
+          }
+        },
+        "source-code-name-and-logo": {
+          "title": "Source code, name and logo",
+          "paras": {
+            "p1": "The source code of this website is published under the Mozilla Public License 2.0. The Tiefer name and logo are not covered by that licence and may not be used to suggest endorsement or to brand a fork.",
+            "p2": "The fonts Mozilla Headline and Mozilla Text are used under the SIL Open Font License 1.1."
+          }
+        },
+        "links-to-other-websites": {
+          "title": "Links to other websites",
+          "paras": {
+            "p1": "This website links to LinkedIn and to its source code repository. Those websites are run by other companies under their own terms and privacy policies."
+          }
+        }
+      },
+      "updated": "Last updated: [LAST_UPDATED]"
+    },
+    "privacy": {
+      "title": "Privacy notice",
+      "description": "How the Tiefer website handles personal data: no cookies, no analytics, no requests to other servers from your browser.",
+      "intro": "This notice explains what personal data this website processes, why, and what rights you have. It covers this website and its contact form, and is structured to address the Law of the Republic of Azerbaijan on Personal Data of 11 May 2010 and, for visitors in the European Union, the General Data Protection Regulation (GDPR).",
+      "sections": {
+        "who-is-responsible": {
+          "title": "Who is responsible",
+          "facts": {
+            "controller": {
+              "label": "Controller",
+              "value": "{legal_name}"
+            },
+            "address": {
+              "label": "Address",
+              "value": "{address}"
+            },
+            "email": {
+              "label": "Email",
+              "value": "<email>{contact_email}</email>"
+            },
+            "euRepresentative": {
+              "label": "EU representative",
+              "value": "[EU_REPRESENTATIVE: name and address, or confirm that none is required]"
+            }
+          }
+        },
+        "what-this-website-does-not-do": {
+          "title": "What this website does not do",
+          "list": {
+            "l1": "It does not set cookies and stores nothing in your browser.",
+            "l2": "It does not use analytics, tracking pixels or advertising.",
+            "l3": "Your browser loads nothing from other servers. The pages are built on our server, and the fonts, the stylesheet and the script come from the same server.",
+            "l4": "It does not embed social media. The LinkedIn link is a plain link: LinkedIn receives data only if you follow it."
+          }
+        },
+        "hosting-and-protection-from-attacks": {
+          "title": "Hosting and protection from attacks",
+          "paras": {
+            "p1": "The website runs on Microsoft Azure: Azure Front Door and its web application firewall receive every request and pass it to Azure App Service, which runs the website. To deliver the pages and to protect the website from attacks, these services process the IP address of every visitor together with technical data of the request, such as the time and the page requested.",
+            "p2": "The web application firewall keeps logs of the requests it inspects, including IP addresses, for {log_retention_days} days, and then deletes them. Legal basis: [LEGAL_BASIS_HOSTING].",
+            "p3": "Hosting provider: {hosting_provider} ({hosting_country})."
+          }
+        },
+        "our-own-server-logs": {
+          "title": "Our own server logs",
+          "paras": {
+            "p1": "For each request, our server records the time, the page requested, the response status, the response size and how long the response took. It does not record IP addresses, and it never records what you write in the contact form.",
+            "p2": "To protect the contact form from abuse, the server keeps the IP address of each sender (for IPv6, only its network part) in memory for up to one hour, to limit the number of messages per connection. It is never written to disk or to a log, and it is gone when the server restarts."
+          }
+        },
+        "the-contact-form": {
+          "title": "The contact form",
+          "paras": {
+            "p1": "If you use the contact form, we receive your name, your work email address, your organisation and role if you give them, your message, and your confirmation that we may reply.",
+            "p2": "We use these details to reply to you and to discuss working together.",
+            "p3": "The website does not store your message in a database. It sends it by email, through our email provider {smtp_provider} ({smtp_country}), to our mailbox, and keeps no copy on the web server.",
+            "p4": "If you email us directly, we receive your email address and what you write."
+          }
+        },
+        "legal-basis": {
+          "title": "Legal basis",
+          "paras": {
+            "p1": "[LEGAL_BASIS: to be determined with counsel, under the Law of the Republic of Azerbaijan on Personal Data and under Article 6 GDPR.]"
+          },
+          "list": {
+            "l1": "Delivering the website and protecting it from attacks: [LEGAL_BASIS_HOSTING].",
+            "l2": "Replying to your message: [LEGAL_BASIS_CONTACT]."
+          }
+        },
+        "who-receives-your-data": {
+          "title": "Who receives your data",
+          "paras": {
+            "p1": "Our hosting provider {hosting_provider} and our email provider {smtp_provider} process data on our behalf. We do not sell personal data and do not share it with advertisers. [RECIPIENTS: confirm the list of recipients and the processing agreements.]"
+          }
+        },
+        "international-transfers": {
+          "title": "International transfers",
+          "paras": {
+            "p1": "Tiefer is based in Azerbaijan. Your data may be processed in {hosting_country} (hosting) and {smtp_country} (email). [INTERNATIONAL_TRANSFERS: describe the transfer safeguards under the GDPR and the cross-border transfer rules under Azerbaijani law.]"
+          }
+        },
+        "how-long-we-keep-it": {
+          "title": "How long we keep it",
+          "list": {
+            "l1": "Web application firewall logs: {log_retention_days} days.",
+            "l2": "Our own server logs: [APP_LOG_RETENTION].",
+            "l3": "Contact messages: [RETENTION_PERIOD].",
+            "l4": "The in-memory record for the contact form limit: up to one hour."
+          }
+        },
+        "your-rights": {
+          "title": "Your rights",
+          "paras": {
+            "p1": "You can ask for access to your personal data, for its correction or deletion, and for its processing to be restricted. You can object to processing and ask for your data in a portable format. Where processing is based on consent, you can withdraw it at any time; this does not affect processing that happened before.",
+            "p2": "To use these rights, write to <email>{contact_email}</email>. [DATA_SUBJECT_RIGHTS: confirm the rights and response times under Azerbaijani law and the GDPR.]"
+          }
+        },
+        "how-to-complain": {
+          "title": "How to complain",
+          "paras": {
+            "p1": "You can complain to a data protection supervisory authority, in particular in the EU member state where you live or work. In Azerbaijan: [SUPERVISORY_AUTHORITY_AZ]."
+          }
+        }
+      },
+      "updated": "Last updated: [LAST_UPDATED]"
+    },
+    "acceptableUse": {
+      "title": "Acceptable use policy",
+      "description": "How Tiefer may and may not be used.",
+      "intro": "Tiefer detects events in satellite imagery to support human decisions. This policy sets out what it may not be used for. It applies to every pilot, account and deployment. [AUP_SCOPE: confirm how this policy becomes part of customer contracts.]",
+      "sections": {
+        "what-we-commit-to": {
+          "title": "What we commit to",
+          "list": {
+            "l1": "Every alert labels what was observed separately from what was inferred, with a confidence value.",
+            "l2": "Generated imagery is never sent as evidence.",
+            "l3": "Every model in orbit is signed, versioned and can be rolled back.",
+            "l4": "Alerts support human decisions; they do not replace them."
+          }
+        },
+        "what-is-not-allowed": {
+          "title": "What is not allowed",
+          "list": {
+            "l1": "Tracking, identifying or profiling individual people.",
+            "l2": "Any use that violates human rights.",
+            "l3": "Any use that breaches applicable sanctions or export control rules. [SANCTIONS_REGIMES: list the sanctions and export control regimes Tiefer applies.]",
+            "l4": "Selecting targets for attack or planning violence.",
+            "l5": "Presenting inferred findings as observed facts.",
+            "l6": "Using satellite imagery against the licence terms of its provider."
+          }
+        },
+        "customer-screening": {
+          "title": "Customer screening",
+          "paras": {
+            "p1": "We screen every customer before granting access, including against sanctions lists, and we may ask how Tiefer will be used. We may decline any request. [SCREENING_PROCESS: describe the screening steps.]"
+          }
+        },
+        "suspension": {
+          "title": "Suspension",
+          "paras": {
+            "p1": "We may suspend or end access if we believe this policy has been broken. [ENFORCEMENT_TERMS: align with customer contracts.]"
+          }
+        },
+        "reporting-misuse": {
+          "title": "Reporting misuse",
+          "paras": {
+            "p1": "If you believe Tiefer is being misused, write to <email>{contact_email}</email>."
+          }
+        }
+      },
+      "updated": "Last updated: [LAST_UPDATED]"
+    }
+  },
+  "NotFound": {
+    "code": "404 / NOT FOUND",
+    "title": "This page does not exist.",
+    "body": "The link may be old, or the address may contain a typo.",
+    "home": "Back to the start page"
+  }
+}

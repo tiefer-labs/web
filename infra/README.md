@@ -6,15 +6,15 @@ Azure, DNS or GitHub settings is done by a person with the right access.
 
 ## What gets created
 
-| Resource | Name (prefix `tiefer-web`) | Purpose |
-|---|---|---|
-| Front Door profile, Premium | `tiefer-web-fd` | TLS, `www` and HTTP redirects, edge cache for `/static/*` |
-| WAF policy | `tieferwebwaf` | Prevention mode: allowed methods, rate limits, Microsoft default rule set 2.1, bot manager 1.1 |
-| App Service plan (Linux, B1) and web app | `tiefer-web-plan`, `tiefer-web-<suffix>` | Runs the container; only reachable from this Front Door profile |
-| Container Registry (Basic) | `tieferweb<suffix>` | Site images; no admin user |
-| Key Vault | `tiefer-web-kv-<suffix>` | `csrf-secret` and `smtp-pass`; RBAC only, purge protection |
-| Log Analytics workspace | `tiefer-web-logs` | WAF log and the application log, kept `logRetentionDays` (30) days |
-| Managed identities | `tiefer-web-app-id`, `tiefer-web-deploy-id` | The app pulls images and reads secrets; GitHub deploys with OpenID Connect |
+| Resource                                 | Name (prefix `tiefer-web`)                  | Purpose                                                                                        |
+| ---------------------------------------- | ------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| Front Door profile, Premium              | `tiefer-web-fd`                             | TLS, `www` and HTTP redirects, edge cache for `/_next/static/*`                                |
+| WAF policy                               | `tieferwebwaf`                              | Prevention mode: allowed methods, rate limits, Microsoft default rule set 2.1, bot manager 1.1 |
+| App Service plan (Linux, B1) and web app | `tiefer-web-plan`, `tiefer-web-<suffix>`    | Runs the container; only reachable from this Front Door profile                                |
+| Container Registry (Basic)               | `tieferweb<suffix>`                         | Site images; no admin user                                                                     |
+| Key Vault                                | `tiefer-web-kv-<suffix>`                    | `csrf-secret` and `smtp-pass`; RBAC only, purge protection                                     |
+| Log Analytics workspace                  | `tiefer-web-logs`                           | WAF log and the application log, kept `logRetentionDays` (30) days                             |
+| Managed identities                       | `tiefer-web-app-id`, `tiefer-web-deploy-id` | The app pulls images and reads secrets; GitHub deploys with OpenID Connect                     |
 
 `<suffix>` is derived from the resource group, so names are stable.
 
@@ -113,15 +113,15 @@ az webapp config set --resource-group tiefer-web-rg --name <appName> \
 
 ## 5. DNS for tiefer.space
 
-| Name | Type | Value |
-|---|---|---|
-| `_dnsauth.tiefer.space` | TXT | `apexValidationToken` |
-| `_dnsauth.www.tiefer.space` | TXT | `wwwValidationToken` |
-| `tiefer.space` | ALIAS, ANAME or flattened CNAME | `frontDoorEndpoint` |
-| `www.tiefer.space` | CNAME | `frontDoorEndpoint` |
-| `tiefer.space` | CAA | `0 issue "digicert.com"` (Front Door managed certificates) |
-| `tiefer.space` | CAA | `0 issuewild ";"` |
-| `tiefer.space` | CAA | `0 iodef "mailto:hello@tiefer.space"` |
+| Name                        | Type                            | Value                                                      |
+| --------------------------- | ------------------------------- | ---------------------------------------------------------- |
+| `_dnsauth.tiefer.space`     | TXT                             | `apexValidationToken`                                      |
+| `_dnsauth.www.tiefer.space` | TXT                             | `wwwValidationToken`                                       |
+| `tiefer.space`              | ALIAS, ANAME or flattened CNAME | `frontDoorEndpoint`                                        |
+| `www.tiefer.space`          | CNAME                           | `frontDoorEndpoint`                                        |
+| `tiefer.space`              | CAA                             | `0 issue "digicert.com"` (Front Door managed certificates) |
+| `tiefer.space`              | CAA                             | `0 issuewild ";"`                                          |
+| `tiefer.space`              | CAA                             | `0 iodef "mailto:hello@tiefer.space"`                      |
 
 If the registrar cannot point the bare domain at a host name (no ALIAS
 or flattening), move the zone to Azure DNS, which can. Turn on DNSSEC and
@@ -141,12 +141,12 @@ again, so the site answers only on tiefer.space.
 The contact form sends from `CONTACT_FROM` through the SMTP provider.
 Set up, with the provider's values:
 
-| Name | Type | Value |
-|---|---|---|
-| `tiefer.space` | TXT | `v=spf1 include:<provider> -all` |
-| `<selector>._domainkey.tiefer.space` | TXT or CNAME | DKIM key from the provider |
-| `_dmarc.tiefer.space` | TXT | `v=DMARC1; p=none; rua=mailto:<reports>` for two weeks, then `p=reject` |
-| `_smtp._tls.tiefer.space` | TXT | `v=TLSRPTv1; rua=mailto:<reports>` |
+| Name                                 | Type         | Value                                                                   |
+| ------------------------------------ | ------------ | ----------------------------------------------------------------------- |
+| `tiefer.space`                       | TXT          | `v=spf1 include:<provider> -all`                                        |
+| `<selector>._domainkey.tiefer.space` | TXT or CNAME | DKIM key from the provider                                              |
+| `_dmarc.tiefer.space`                | TXT          | `v=DMARC1; p=none; rua=mailto:<reports>` for two weeks, then `p=reject` |
+| `_smtp._tls.tiefer.space`            | TXT          | `v=TLSRPTv1; rua=mailto:<reports>`                                      |
 
 ## 7. HSTS preload (decision)
 
@@ -177,8 +177,8 @@ Then run SSL Labs, the Mozilla HTTP Observatory and internet.nl once.
 - **Secret rotation**: set a new `csrf-secret` version; open forms become
   invalid, nothing else. Restart the web app to load it. Rotate
   `smtp-pass` at the provider first.
-- **Updates**: Dependabot proposes updates to Go tools, actions and base
-  images; CI runs govulncheck weekly.
-- **Scaling out**: used form tokens are remembered per instance (see
-  `docs/SECURITY-DECISIONS.md`); keep one instance or move that state
-  before adding more.
+- **Updates**: Dependabot proposes updates to npm packages, actions and
+  base images.
+- **Scaling out**: contact form rate limits and used form tokens are kept
+  in memory per instance; keep one instance, or set `REDIS_URL` (or the
+  Upstash variables) before adding more.

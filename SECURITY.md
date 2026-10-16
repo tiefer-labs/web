@@ -17,5 +17,4 @@ The website at https://tiefer.space and the code in this repository.
 
 ## How the site is protected
 
-See the "Security" section of `README.md` and
-`docs/SECURITY-DECISIONS.md` for the accepted risks and trade-offs.
+See the "Security" section of `README.md` for the protections and the accepted trade-offs.

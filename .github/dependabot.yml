@@ -4,12 +4,12 @@
 
 version: 2
 updates:
-  - package-ecosystem: gomod
-    directories: ["/", "/tools"]
+  - package-ecosystem: npm
+    directory: /
     schedule:
       interval: weekly
     groups:
-      tools:
+      dependencies:
         patterns: ["*"]
   - package-ecosystem: github-actions
     directory: /
