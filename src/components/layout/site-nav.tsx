@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MPL-2.0
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { type MouseEvent, useEffect, useRef, useState } from "react";
 import { buttonClass } from "@/components/ui/button";
 import { Link } from "@/i18n/navigation";
 import { cn } from "@/lib/cn";
@@ -32,6 +32,16 @@ export function SiteNav({ dark, label, openLabel, closeLabel, items, cta }: NavP
   }, [open]);
 
   const close = () => setOpen(false);
+
+  // The router ignores a click on the hash the page is already at, so links to a section on this page scroll there.
+  const follow = (href: string) => (event: MouseEvent<HTMLAnchorElement>) => {
+    close();
+    const target = document.getElementById(href.split("#")[1] ?? "");
+    if (!target || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+    event.preventDefault();
+    target.scrollIntoView();
+    if (window.location.hash !== `#${target.id}`) window.history.pushState(null, "", `#${target.id}`);
+  };
 
   return (
     <nav aria-label={label}>
@@ -64,7 +74,7 @@ export function SiteNav({ dark, label, openLabel, closeLabel, items, cta }: NavP
           <li key={item.href} className="max-lg:border-t">
             <Link
               href={item.href}
-              onClick={close}
+              onClick={follow(item.href)}
               className="no-underline hover:underline hover:decoration-1 max-lg:block max-lg:py-3.5"
             >
               {item.label}
@@ -74,7 +84,7 @@ export function SiteNav({ dark, label, openLabel, closeLabel, items, cta }: NavP
         <li className="max-lg:pt-4">
           <Link
             href={cta.href}
-            onClick={close}
+            onClick={follow(cta.href)}
             className={buttonClass({ variant: "outline", tone: dark ? "dark" : "light", size: "sm" })}
           >
             {cta.label}
