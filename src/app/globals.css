@@ -48,17 +48,6 @@
   --text-tag: 0.6875rem;
 
   --breakpoint-xs: 30rem;
-
-  --animate-satellite-pass: satellite-pass 2.4s cubic-bezier(0.25, 0.6, 0.3, 1) 0.3s both;
-
-  @keyframes satellite-pass {
-    from {
-      transform: translate(-60px, -2px);
-    }
-    to {
-      transform: none;
-    }
-  }
 }
 
 @layer base {

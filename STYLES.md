@@ -4,7 +4,7 @@ The design system of the Tiefer website. Tokens are defined once in `src/app/glo
 utilities; never hardcode a colour, font or size that has a token here.
 
 The look is calm and technical: white paper, one deep ink blue, thin lines, uppercase labels, generous space. Dark
-sections in ink blue break the page into chapters. Motion is limited to one satellite gliding into place.
+sections in ink blue break the page into chapters. Motion is limited to the hero, where one satellite pass plays on a slow loop.
 
 ## Colour
 
@@ -112,7 +112,10 @@ Every section uses `Section` and `SectionLabel` from `src/components/ui/section.
 - Focus ring: 2px solid ink, 3px offset; white inside `data-tone="dark"`.
 - A skip link leads to `main#main`. Every section is labelled by its heading; each page has one `h1` and no skipped
   heading levels (tested).
-- Motion: only `animate-satellite-pass`, behind `motion-safe:`. `prefers-reduced-motion: reduce` turns off all
+- Motion: only the hero illustration (`HeroOrbit`), a 14 second pass on repeat: frames kept on board, an event
+  locked, an alert sent to the ground station. `heroScene(p)` in `hero-scene.ts` gives every position for a point of the
+  pass; the page loads at the start of the pass and the client only advances `p`. It pauses off screen.
+  `prefers-reduced-motion: reduce` shows the still frame `POSTER`, with every stage at once, and also turns off all
   transitions, animations and smooth scrolling.
 - `forced-colors`: dark sections follow the system colours; logos keep theirs (`data-forced-colors="keep"`).
 - Print: `data-print="hide"` removes the header, line art and the contact panel; dark sections print black on white.
