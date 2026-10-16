@@ -4,7 +4,8 @@ The design system of the Tiefer website. Tokens are defined once in `src/app/glo
 utilities; never hardcode a colour, font or size that has a token here.
 
 The look is calm and technical: white paper, one deep ink blue, thin lines, uppercase labels, generous space. Dark
-sections in ink blue break the page into chapters. Motion is limited to the hero, where one satellite pass plays on a slow loop.
+sections in ink blue break the page into chapters. Every section leads with a picture and a few words; small loops
+show what the product does.
 
 ## Colour
 
@@ -93,9 +94,8 @@ Every section uses `Section` and `SectionLabel` from `src/components/ui/section.
   `primary` is filled ink, `outline` is a bordered ghost; `tone="dark"` inverts both for ink backgrounds;
   `size="sm"` is the header call to action. Text links are plain underlined links with weight 500.
 - **Links**: underlined, 1px thick, 0.2em offset; 2px on hover.
-- **Lists and timelines**: hairline-separated rows (`border-t border-line`). Numbered steps use `counter-steps`
-  ("01", "02"). Timeline nodes are `SquareMark` squares on a 1px rail; a filled square marks the last step or the
-  current milestone.
+- **Lists and timelines**: hairline-separated rows (`border-t border-line`). Timeline nodes are `SquareMark` squares
+  on a 1px rail; a filled square with a pulsing outline marks the current milestone.
 - **Evidence tags**: uppercase `text-tag` in a 1px box, `text-ink` for observed and `text-inferred` for inferred, on a
   `bg-tint` row. Observed and inferred are always labelled separately.
 - **Cards**: only the alert packet: paper, 1px `line` border, a very soft ink shadow.
@@ -113,7 +113,10 @@ Every section uses `Section` and `SectionLabel` from `src/components/ui/section.
 - Focus ring: 2px solid ink, 3px offset; white inside `data-tone="dark"`.
 - A skip link leads to `main#main`. Every section is labelled by its heading; each page has one `h1` and no skipped
   heading levels (tested).
-- Motion: only the hero illustration, three 16 second passes over Europe on repeat, each on its own orbit: a wildfire
+- Section loops: small CSS animations (`animate-cloud-pass`, `animate-frame-drop`, `animate-lock-on`,
+  `animate-packet-out`, `animate-update-in`, `animate-flicker`, `animate-spread`, `animate-signal`, `animate-tide`,
+  `animate-travel`, `animate-beacon`, in `globals.css`). Each one also reads as a still picture.
+- The hero illustration: three 16 second passes over Europe on repeat, each on its own orbit: a wildfire
   in Greece, an oil spill in the Black Sea, and two ships without AIS, in the Mediterranean and the Black Sea, each with its own alert. Each alert goes to the EU body
   that acts on it, far from the event: emergency response in Brussels, maritime safety in Lisbon, the border agency in
   Warsaw. Each satellite images frames, keeps them on

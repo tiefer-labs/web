@@ -13,10 +13,10 @@
     "legalLabel": "Legal"
   },
   "Nav": {
-    "product": "Product",
     "how": "How it works",
     "useCases": "Use cases",
     "principles": "Principles",
+    "roadmap": "Roadmap",
     "contact": "Contact",
     "cta": "Talk to us"
   },
@@ -51,100 +51,81 @@
     },
     "eyebrow": "Edge AI in orbit",
     "title": "See deeper.",
-    "lead": "Tiefer builds AI software that runs on Earth observation satellites. It filters out useless pixels in orbit, detects events on board, and sends kilobyte-sized alerts to the ground instead of gigabytes of raw imagery.",
+    "lead": "AI software for Earth observation satellites. It finds events in orbit and sends kilobytes to the ground, not gigabytes.",
     "primary": "Talk to us",
     "secondary": "See how it works"
   },
   "Problem": {
     "label": "01 / PROBLEM",
     "title": "Satellites see more than they can send.",
-    "intro": "An Earth observation satellite stores what it captures and sends it down only when it passes over a ground station. By the time the image is processed, a fire has spread or a spill has drifted. And about two thirds of Earth's surface is under cloud at any moment, so much of what is sent is never useful.",
+    "stat": "2/3",
+    "statText": "of Earth's surface is under cloud at any moment, on average.",
+    "gridLabel": "Frames as a satellite captures them",
     "items": {
       "delay": {
         "title": "Hours of delay",
-        "text": "Images wait on board for the next ground contact, then wait again for processing."
+        "text": "Images wait for a ground station, then for processing."
       },
       "downlink": {
         "title": "Wasted downlink",
-        "text": "Cloudy and empty frames use the same scarce bandwidth as the ones that matter."
+        "text": "Cloudy frames use the same bandwidth as useful ones."
       },
       "passive": {
         "title": "Passive cameras",
-        "text": "The satellite captures everything and understands nothing until humans look."
+        "text": "They capture everything and understand nothing."
       }
     }
   },
-  "Product": {
-    "label": "02 / PRODUCT",
-    "title": "Four stages. One onboard system.",
-    "body": "The four lines in our logo are the four stages Tiefer runs on the satellite. Each can be tested on its own. Together they turn a camera into an analyst.",
+  "How": {
+    "label": "02 / HOW IT WORKS",
+    "title": "Four stages, on board the satellite.",
     "stages": {
       "filter": {
         "number": "01",
-        "name": "FILTER",
-        "text": "Checks every frame for cloud and quality as it is captured. Useless frames are compressed and kept, not sent."
+        "name": "Filter",
+        "text": "Cloudy and empty frames stay on board."
       },
       "detect": {
         "number": "02",
-        "name": "DETECT",
-        "text": "Runs computer vision models for the events that matter: fires, oil spills, vessels, floods."
+        "name": "Detect",
+        "text": "Fires, oil spills, ships and floods."
       },
       "alert": {
         "number": "03",
-        "name": "ALERT",
-        "text": "Sends a small packet with location, event type, confidence and an image chip through the first available link."
+        "name": "Alert",
+        "text": "A small packet, through the first available link."
       },
       "update": {
         "number": "04",
-        "name": "UPDATE",
-        "text": "New or better models reach orbit as small, signed updates. No new satellite needed."
+        "name": "Update",
+        "text": "New models reach orbit as signed updates."
       }
     },
-    "note": "Tiefer is software. It runs on the onboard compute operators already fly: GPU, VPU or FPGA."
-  },
-  "How": {
-    "label": "03 / HOW IT WORKS",
-    "title": "From capture to alert, on board",
-    "steps": {
-      "capture": {
-        "title": "Capture",
-        "text": "The sensor takes a frame."
-      },
-      "filter": {
-        "title": "Filter",
-        "text": "Cloudy or empty? Compress and keep on board."
-      },
-      "detect": {
-        "title": "Detect",
-        "text": "Useful frame? Run the event models."
-      },
-      "alert": {
-        "title": "Alert",
-        "text": "Event found? Build a small alert packet."
-      },
-      "downlink": {
-        "title": "Downlink",
-        "text": "Send it through the first available channel to the operator."
-      }
+    "kept": "KEPT ON BOARD",
+    "packet": "48 KB",
+    "signed": "SIGNED",
+    "hardware": "Software for the computers satellites already fly:",
+    "chips": {
+      "gpu": "GPU",
+      "vpu": "VPU",
+      "fpga": "FPGA"
     },
-    "branch": "KEPT ON BOARD",
-    "note": "How fast an alert reaches the ground depends on the communication link: the next ground station pass, a relay, or a wider ground network. Tiefer makes the alert small enough to use whichever comes first.",
     "groundTitle": "On the ground too",
     "ground": {
       "lab": {
         "title": "Tiefer Lab",
-        "text": "Train, quantise and test models in a virtual orbit simulator and on flight-like hardware before anything flies."
+        "text": "Models are tested in a virtual orbit before they fly."
       },
       "ground": {
         "title": "Tiefer Ground",
-        "text": "Run the same models at the ground station today. When your satellites carry Tiefer, the same code moves to orbit."
+        "text": "The same models run at a ground station today."
       }
     }
   },
   "Demo": {
-    "label": "04 / ALERT PACKET",
+    "label": "03 / ALERT PACKET",
     "title": "An alert, not an archive.",
-    "body": "When Tiefer finds an event, the satellite does not send the whole scene. It sends what an operator needs to act, and keeps the rest on board until someone asks for it. Every packet says what was observed and what was inferred.",
+    "body": "The satellite sends what an operator needs to act. The full scene stays on board.",
     "cardLabel": "Illustrative example. Not real data.",
     "cardTitle": "Alert packet",
     "fields": {
@@ -156,10 +137,6 @@
         "name": "Location",
         "value": "Sector 12"
       },
-      "detected": {
-        "name": "Detected",
-        "value": "On board, seconds after capture"
-      },
       "confidence": {
         "name": "Confidence",
         "value": "High"
@@ -168,125 +145,108 @@
         "name": "Packet size",
         "value": "48 KB"
       },
-      "fullScene": {
-        "name": "Full scene",
-        "value": "Kept on board. Downlink on request."
-      },
-      "cloudInFrame": {
-        "name": "Cloud in frame",
-        "value": "12%"
-      },
       "observed": {
         "name": "Observed",
         "value": "Active fire front, about 1.2 km long."
       },
       "inferred": {
         "name": "Inferred",
-        "value": "Likely spread to the north-east. Confidence: medium."
+        "value": "Likely spread to the north-east."
       }
     },
     "sceneLabel": "Full scene",
+    "sceneNote": "Kept on board",
     "alertLabel": "Alert"
   },
   "UseCases": {
-    "label": "05 / USE CASES",
+    "label": "04 / USE CASES",
     "title": "Built for events where hours matter",
     "cases": {
       "wildfires": {
-        "label": "EVENT 01",
         "title": "Wildfires",
-        "text": "Spot active fires in forests and grasslands and alert emergency services while the fire is still small."
+        "text": "Alert emergency services while the fire is small."
       },
       "oilSpills": {
-        "label": "EVENT 02",
         "title": "Oil spills",
-        "text": "Flag slicks around offshore platforms and shipping lanes for rapid response."
+        "text": "Flag slicks near platforms and shipping lanes."
       },
       "maritime": {
-        "label": "EVENT 03",
-        "title": "Maritime awareness",
-        "text": "Detect vessels at sea; match them with AIS on the ground to find ships that are not broadcasting."
+        "title": "Dark ships",
+        "text": "Find vessels that are not broadcasting AIS."
       },
       "floods": {
-        "label": "EVENT 04",
-        "title": "Floods and reservoirs",
-        "text": "Track rising water and reservoir levels during flood season."
+        "title": "Floods",
+        "text": "Track rising water and reservoir levels."
       }
     },
-    "note": "We start with operators in Azerbaijan and the wider region, and work in English, Azerbaijani, Turkish and Russian."
+    "note": "Starting with operators in Azerbaijan and the wider region."
   },
   "Principles": {
-    "label": "06 / PRINCIPLES",
+    "label": "05 / PRINCIPLES",
     "title": "How we build flight software",
     "items": {
       "p1": {
         "number": "P1",
-        "statement": "Nothing is deleted blindly.",
-        "text": "Filtered frames are compressed and kept. The operator sets the rules."
+        "statement": "Nothing is deleted blindly."
       },
       "p2": {
         "number": "P2",
-        "statement": "Observed is not inferred.",
-        "text": "Every alert labels the two separately, with a confidence value."
+        "statement": "Observed is not inferred."
       },
       "p3": {
         "number": "P3",
-        "statement": "No invented pixels.",
-        "text": "Generated imagery is never sent as evidence."
+        "statement": "No invented pixels."
       },
       "p4": {
         "number": "P4",
-        "statement": "Signed updates only.",
-        "text": "Every model in orbit is signed, versioned and can be rolled back."
+        "statement": "Signed updates only."
       },
       "p5": {
         "number": "P5",
-        "statement": "Measured, not claimed.",
-        "text": "We publish accuracy, latency and power figures with the method behind them."
+        "statement": "Measured, not claimed."
       },
       "p6": {
         "number": "P6",
-        "statement": "People are not targets.",
-        "text": "Tiefer is not used to track individuals. Customers are screened."
+        "statement": "People are not targets."
       }
     }
   },
   "Roadmap": {
-    "label": "07 / ROADMAP",
+    "label": "06 / ROADMAP",
     "title": "Ground first. Then orbit.",
     "nowLabel": "Now",
     "items": {
       "benchmark": {
         "title": "Benchmark",
-        "text": "Cloud filter and three event models, measured on flight-like hardware in a virtual orbit."
+        "text": "Measured on flight-like hardware"
       },
       "groundPilot": {
         "title": "Ground pilot",
-        "text": "Tiefer Ground at an operator's ground segment."
+        "text": "At an operator's ground station"
       },
       "firstFlight": {
         "title": "First flight",
-        "text": "Tiefer models running in orbit on a hosted compute platform."
+        "text": "Our models running in orbit"
       },
       "nationalSatellites": {
         "title": "National satellites",
-        "text": "Tiefer on board operator satellites, agreed with the manufacturer."
+        "text": "On board operator satellites"
       },
       "region": {
         "title": "Region",
-        "text": "More operators, more events, radar data on board."
+        "text": "More operators, more events"
       }
     }
   },
   "Name": {
-    "label": "08 / NAME",
+    "label": "07 / NAME",
     "line": "Tiefer is German for deeper.",
-    "body": "A camera records the surface. An analyst looks deeper. We are putting the analyst in orbit."
+    "body": "We are putting the analyst in orbit."
   },
   "Contact": {
-    "label": "09 / CONTACT",
+    "label": "08 / CONTACT",
     "title": "We are early, and we are listening.",
-    "body": "We are looking for our first partners: satellite operators, space agencies, integrators and hosted-compute platforms. Tell us which events you need to catch first.",
+    "body": "Tell us which events you need to catch first.",
     "formLabel": "Contact form",
     "nameLabel": "Name",
     "emailLabel": "Work email",

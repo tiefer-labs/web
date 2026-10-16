@@ -42,7 +42,7 @@ describe("home page", () => {
   test("shows every piece of home page copy", async () => {
     const { container } = await renderServer(<HomePage />);
     const text = container.textContent.replace(/\s+/g, " ");
-    const home = ["Hero", "Problem", "Product", "How", "Demo", "UseCases", "Principles", "Roadmap", "Name"] as const;
+    const home = ["Hero", "Problem", "How", "Demo", "UseCases", "Principles", "Roadmap", "Name"] as const;
     const missing = home
       .flatMap((section) => messageStrings(messages[section]))
       // A {placeholder} is filled in on the page, so only the text around it is checked.

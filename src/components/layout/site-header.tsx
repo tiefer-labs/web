@@ -6,10 +6,10 @@ import { cn } from "@/lib/cn";
 import { SiteNav } from "./site-nav";
 
 const sections = [
-  ["product", "/#product"],
   ["how", "/#how"],
   ["useCases", "/#use-cases"],
   ["principles", "/#principles"],
+  ["roadmap", "/#roadmap"],
   ["contact", "/#contact"],
 ] as const;
 

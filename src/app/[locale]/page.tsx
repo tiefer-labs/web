@@ -8,7 +8,6 @@ import { How } from "@/components/home/how";
 import { Name } from "@/components/home/name";
 import { Principles } from "@/components/home/principles";
 import { Problem } from "@/components/home/problem";
-import { Product } from "@/components/home/product";
 import { Roadmap } from "@/components/home/roadmap";
 import { UseCases } from "@/components/home/use-cases";
 import { SiteHeader } from "@/components/layout/site-header";
@@ -30,7 +29,6 @@ export default async function HomePage() {
       <main id="main" tabIndex={-1}>
         <Hero />
         <Problem />
-        <Product />
         <How />
         <Demo />
         <UseCases />

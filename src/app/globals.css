@@ -49,6 +49,148 @@
   --text-tag: 0.6875rem;
 
   --breakpoint-xs: 30rem;
+
+  /* Section illustrations: each loop also reads as a still image, which reduced motion shows. */
+  --animate-cloud-pass: cloud-pass 12s ease-in-out infinite;
+  --animate-frame-drop: frame-drop 3s ease-in infinite;
+  --animate-lock-on: lock-on 3s ease-out infinite;
+  --animate-packet-out: packet-out 3s ease-in-out infinite;
+  --animate-update-in: update-in 3s ease-out infinite;
+  --animate-flicker: flicker 0.9s ease-in-out infinite alternate;
+  --animate-spread: spread 4s ease-in-out infinite alternate;
+  --animate-signal: signal 2.4s ease-out infinite;
+  --animate-tide: tide 4s ease-in-out infinite alternate;
+  --animate-travel: travel 6s linear infinite;
+  --animate-beacon: beacon 2s ease-out infinite;
+
+  @keyframes cloud-pass {
+    0%,
+    55% {
+      opacity: 0.9;
+      transform: none;
+    }
+    65%,
+    90% {
+      opacity: 0;
+      transform: translateX(14px);
+    }
+    100% {
+      opacity: 0.9;
+      transform: none;
+    }
+  }
+  @keyframes frame-drop {
+    0%,
+    25% {
+      opacity: 1;
+      transform: none;
+    }
+    75%,
+    100% {
+      opacity: 0;
+      transform: translateY(36px);
+    }
+  }
+  @keyframes lock-on {
+    0% {
+      opacity: 0;
+      transform: scale(1.8);
+    }
+    30%,
+    85% {
+      opacity: 1;
+      transform: none;
+    }
+    100% {
+      opacity: 0;
+      transform: none;
+    }
+  }
+  @keyframes packet-out {
+    0%,
+    15% {
+      opacity: 0;
+      transform: none;
+    }
+    25% {
+      opacity: 1;
+    }
+    85% {
+      opacity: 1;
+      transform: translate(64px, -44px);
+    }
+    100% {
+      opacity: 0;
+      transform: translate(64px, -44px);
+    }
+  }
+  @keyframes update-in {
+    0% {
+      opacity: 0;
+      transform: translateY(-30px);
+    }
+    40%,
+    90% {
+      opacity: 1;
+      transform: none;
+    }
+    100% {
+      opacity: 0;
+      transform: none;
+    }
+  }
+  @keyframes flicker {
+    from {
+      transform: scale(0.92, 0.86);
+    }
+    to {
+      transform: scale(1.04, 1.08);
+    }
+  }
+  @keyframes spread {
+    from {
+      transform: scale(0.82);
+    }
+    to {
+      transform: scale(1.12);
+    }
+  }
+  @keyframes signal {
+    from {
+      opacity: 0.9;
+      transform: scale(0.3);
+    }
+    to {
+      opacity: 0;
+      transform: scale(1.6);
+    }
+  }
+  @keyframes tide {
+    from {
+      transform: translateY(10px);
+    }
+    to {
+      transform: translateY(-6px);
+    }
+  }
+  @keyframes travel {
+    from {
+      left: 0%;
+    }
+    to {
+      left: 100%;
+    }
+  }
+  @keyframes beacon {
+    from {
+      opacity: 0.8;
+      transform: scale(1);
+    }
+    to {
+      opacity: 0;
+      transform: scale(2.6);
+    }
+  }
 }
 
 @layer base {
@@ -171,23 +313,6 @@
   letter-spacing: 0.12em;
   text-transform: uppercase;
   font-variant-numeric: tabular-nums;
-}
-
-/* Numbered lists: "01", "02"... before each item. */
-@utility counter-steps {
-  counter-reset: n;
-  & > li {
-    counter-increment: n;
-  }
-  & > li::before {
-    content: counter(n, decimal-leading-zero);
-    display: block;
-    color: var(--color-ink-60);
-    font-size: var(--text-label);
-    font-weight: 500;
-    letter-spacing: 0.12em;
-    font-variant-numeric: tabular-nums;
-  }
 }
 
 @utility select-arrow {
