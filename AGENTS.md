@@ -67,8 +67,8 @@ pnpm only, never npm or npx. Run local binaries as `pnpm <bin>`.
 
 ## Conventions
 
-- **Server Components first.** Only the mobile nav, the footer links, the page scrollbar, the hero illustration and the
-  contact form are Client Components.
+- **Server Components first.** Only the mobile nav, the footer links, the page scrollbar, the hero illustration, the
+  copy-email button and the contact form are Client Components.
 - **No hardcoded copy.** Every visible string is a message in `messages/en.json`. Lists are keyed objects (next-intl has
   no arrays) iterated with `keysOf()` from `src/lib/messages.ts`; the order of keys is the order on the page.
 - **Tailwind tokens only.** Use the colours, type scale and spacing from [STYLES.md](STYLES.md). No inline styles, no new

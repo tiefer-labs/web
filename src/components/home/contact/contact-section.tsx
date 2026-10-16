@@ -2,11 +2,11 @@
 import { getTranslations } from "next-intl/server";
 import { connection } from "next/server";
 import { Suspense } from "react";
-import { ButtonLink } from "@/components/ui/button";
 import { Section, SectionLabel } from "@/components/ui/section";
 import { freshToken } from "@/lib/contact/issue-token";
 import { contactEnabled, env } from "@/lib/env.server";
 import { ContactForm } from "./contact-form";
+import { CopyEmail } from "./copy-email";
 
 /** The only per-request part of the page: a fresh signed token for the form. */
 async function TokenField() {
@@ -63,19 +63,35 @@ export async function ContactSection() {
             }
           />
         ) : (
-          <p className="mt-1">
-            <ButtonLink href={`mailto:${email}`}>{t("emailUs")}</ButtonLink>
-          </p>
+          <div>
+            <p className="label-caps text-ink-60">{t("emailUs")}</p>
+            <a
+              id="contact-address"
+              href={`mailto:${email}`}
+              className="mt-3 block font-headline text-h2 leading-[1.1] font-medium tracking-[-0.018em] break-all text-ink no-underline"
+            >
+              {email}
+            </a>
+            <p className="mt-6">
+              <CopyEmail
+                email={email}
+                addressId="contact-address"
+                labels={{ copy: t("copyEmail"), copied: t("copied"), selected: t("selected") }}
+              />
+            </p>
+          </div>
         )}
         <dl className="mt-10 grid gap-2 border-t border-line pt-6 text-small">
-          <div className="flex flex-wrap gap-x-2 gap-y-1">
-            <dt className="text-ink-60">{t("preferEmail")}</dt>
-            <dd>
-              <a href={`mailto:${email}`} className="font-medium text-ink">
-                {email}
-              </a>
-            </dd>
-          </div>
+          {contactEnabled && (
+            <div className="flex flex-wrap gap-x-2 gap-y-1">
+              <dt className="text-ink-60">{t("preferEmail")}</dt>
+              <dd>
+                <a href={`mailto:${email}`} className="font-medium text-ink">
+                  {email}
+                </a>
+              </dd>
+            </div>
+          )}
           <div className="flex flex-wrap gap-x-2 gap-y-1">
             <dt className="sr-only">{footer("linkedIn")}</dt>
             <dd>

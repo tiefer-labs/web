@@ -69,10 +69,14 @@ describe("home page", () => {
     });
   });
 
-  test("offers email instead of the form when SMTP is not configured", async () => {
+  test("shows the address with a copy button instead of the form when SMTP is not configured", async () => {
     await renderServer(<HomePage />);
     expect(screen.queryByRole("form")).not.toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Email us" })).toHaveAttribute("href", "mailto:hello@tiefer.space");
+    expect(screen.getByRole("link", { name: "hello@tiefer.space" })).toHaveAttribute(
+      "href",
+      "mailto:hello@tiefer.space",
+    );
+    expect(screen.getByRole("button", { name: "Copy email address" })).toBeInTheDocument();
   });
 });
 

@@ -276,6 +276,9 @@
       "error": "Something went wrong. Please email us at <email>{address}</email>."
     },
     "emailUs": "Email us",
+    "copyEmail": "Copy email address",
+    "copied": "Copied",
+    "selected": "Address selected",
     "preferEmail": "Prefer email?",
     "linkedIn": "Follow Tiefer on LinkedIn",
     "errorPrefix": "Error:",
