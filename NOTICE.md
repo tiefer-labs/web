@@ -38,6 +38,10 @@ is distributed under its own licence. The main runtime dependencies are
 Next.js, React and React DOM, next-intl, zod and nodemailer (all MIT), and
 the Redis clients `@upstash/redis` (MIT) and `redis` (MIT).
 
+The hero map in `src/components/home/globe-data.ts` is generated from
+[Natural Earth](https://www.naturalearthdata.com/) land data (public domain),
+read through `world-atlas` (ISC) and `d3-geo` (ISC).
+
 ## Build and deployment components
 
 Downloaded when the site is built or deployed; not part of this

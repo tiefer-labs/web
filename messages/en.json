@@ -21,9 +21,15 @@
     "cta": "Talk to us"
   },
   "Hero": {
-    "position": "BAKU 40.41 N 49.87 E",
     "alertTag": "ALERT 48 KB",
     "stored": "KEPT ON BOARD",
+    "scanning": "SCANNING EUROPE",
+    "detected": "WILDFIRE DETECTED ON BOARD",
+    "alerted": "EMERGENCY SERVICES ALERTED",
+    "fire": "WILDFIRE",
+    "responder": "EMERGENCY SERVICES",
+    "sent": "SENT TO THE GROUND",
+    "alertSize": "48 KB",
     "eyebrow": "Edge AI in orbit",
     "title": "See deeper.",
     "lead": "Tiefer builds AI software that runs on Earth observation satellites. It filters out useless pixels in orbit, detects events on board, and sends kilobyte-sized alerts to the ground instead of gigabytes of raw imagery.",

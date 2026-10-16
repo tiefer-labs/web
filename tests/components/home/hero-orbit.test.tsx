@@ -1,9 +1,11 @@
 // SPDX-License-Identifier: MPL-2.0
 import { act } from "@testing-library/react";
 import { afterEach, expect, test, vi } from "vitest";
-import { HeroOrbit } from "@/components/home/hero-orbit";
-import { heroScene, POSTER } from "@/components/home/hero-scene";
+import { HeroOrbit, type HeroOrbitLabels } from "@/components/home/hero-orbit";
+import messages from "../../../messages/en.json";
 import { renderClient } from "../../test-utils/render";
+
+const labels: HeroOrbitLabels = messages.Hero;
 
 function preferReducedMotion(reduce: boolean) {
   vi.stubGlobal("matchMedia", (query: string) => ({
@@ -18,30 +20,24 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-const satellite = (container: HTMLElement) =>
-  container.querySelector('g[opacity] > g[transform^="translate"]')?.getAttribute("transform");
-
-test("stays on the still frame for visitors who prefer reduced motion", () => {
+test("visitors who prefer reduced motion see the still frame: the alert on its way down", () => {
   preferReducedMotion(true);
   const frame = vi.spyOn(window, "requestAnimationFrame");
-  const { container } = renderClient(<HeroOrbit stored="KEPT ON BOARD" alertTag="ALERT 48 KB" />);
+  const { container } = renderClient(<HeroOrbit labels={labels} />);
   expect(frame).not.toHaveBeenCalled();
-  const { sat } = heroScene(POSTER);
-  expect(satellite(container)).toBe(`translate(${sat.x} ${sat.y}) rotate(${sat.angle})`);
   expect(container.querySelector("svg")).toHaveAttribute("aria-hidden", "true");
-  expect(container).toHaveTextContent("ALERT 48 KB");
+  expect(container).toHaveTextContent(labels.detected);
+  expect(container).toHaveTextContent(labels.alertTag);
 });
 
-test("starts at the beginning of the pass and moves the satellite frame by frame", () => {
+test("starts at the beginning of the pass and plays it frame by frame", () => {
   preferReducedMotion(false);
   const callbacks: FrameRequestCallback[] = [];
   vi.spyOn(window, "requestAnimationFrame").mockImplementation((callback) => callbacks.push(callback));
-  const { container } = renderClient(<HeroOrbit stored="KEPT ON BOARD" alertTag="ALERT 48 KB" />);
-  const start = satellite(container);
-  const { sat } = heroScene(0);
-  expect(start).toBe(`translate(${sat.x} ${sat.y}) rotate(${sat.angle})`);
+  const { container } = renderClient(<HeroOrbit labels={labels} />);
+  expect(container).toHaveTextContent(labels.scanning);
 
   act(() => callbacks.shift()?.(0));
-  act(() => callbacks.shift()?.(1000));
-  expect(satellite(container)).not.toBe(start);
+  act(() => callbacks.shift()?.(13_500));
+  expect(container).toHaveTextContent(labels.alerted);
 });

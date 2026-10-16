@@ -35,6 +35,7 @@
   --color-on-ink-muted: #b9b4d1;
   --color-inferred: #9a6400;
   --color-line-on-ink: rgb(185 180 209 / 0.24);
+  --color-signal: #ff6b3d;
 
   --text-h1: clamp(2.75rem, 1.82rem + 3.81vw, 4.5rem);
   --text-h2: clamp(1.875rem, 1.46rem + 1.71vw, 3rem);

@@ -61,6 +61,7 @@ pnpm only, never npm or npx. Run local binaries as `pnpm <bin>`.
 - `src/i18n/`: next-intl routing, request config and navigation helpers
 - `src/proxy.ts`: the Front Door check, then next-intl routing
 - `tests/`: mirrors `src/`; shared helpers in `tests/test-utils/` (import via `@test/*`)
+- `scripts/globe-data.ts`: regenerates the hero map data after the globe view in `src/components/home/globe.ts` changes
 - `public/brand/`: logos and the mark (never edit them); `public/icon-*.png` for the manifest
 - `infra/`: Azure Bicep (App Service behind Front Door), `Dockerfile` for that deployment
 

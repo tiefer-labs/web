@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MPL-2.0
 import { getTranslations } from "next-intl/server";
 import { ButtonLink } from "@/components/ui/button";
+import { HeroGlobe } from "./hero-globe";
 import { HeroOrbit } from "./hero-orbit";
 
 export async function Hero() {
@@ -12,13 +13,20 @@ export async function Hero() {
       data-tone="dark"
       className="relative flex min-h-[clamp(660px,92vh,860px)] items-end overflow-hidden bg-ink pt-32 pb-26 text-on-ink-muted max-lg:min-h-0 max-lg:items-start max-lg:pt-30 max-lg:pb-[300px]"
     >
-      <HeroOrbit stored={t("stored")} alertTag={t("alertTag")} />
-      <p
-        aria-hidden="true"
-        className="absolute top-28 right-[max(var(--pad),calc((100%-var(--max))/2))] hidden label-caps text-on-ink-muted lg:block"
-      >
-        {t("position")}
-      </p>
+      <HeroGlobe />
+      <HeroOrbit
+        labels={{
+          scanning: t("scanning"),
+          detected: t("detected"),
+          alerted: t("alerted"),
+          fire: t("fire"),
+          responder: t("responder"),
+          stored: t("stored"),
+          sent: t("sent"),
+          alertSize: t("alertSize"),
+          alertTag: t("alertTag"),
+        }}
+      />
       <div className="relative wrap grid-12">
         <div className="max-w-[36rem] lg:col-[1/7]">
           <p className="mb-6 label-caps text-on-ink-muted">{t("eyebrow")}</p>
