@@ -1,13 +1,8 @@
 // SPDX-License-Identifier: MPL-2.0
 import { GLOBE, heroSvgClass } from "./globe";
 import { COASTLINE, GRATICULE, LAND_DOTS } from "./globe-data";
-import { orbitPoint } from "./hero-scene";
 
-const orbit = Array.from({ length: 81 }, (_, i) => orbitPoint(i - 30))
-  .map(({ x, y }, i) => `${i ? "L" : "M"}${x} ${y}`)
-  .join("");
-
-/** The still part of the hero: Europe as a dot map on the curve of the Earth, and the satellite's orbit. */
+/** The still part of the hero: Europe as a dot map on the curve of the Earth. */
 export function HeroGlobe() {
   const halo = GLOBE.radius + 70;
   return (
@@ -58,13 +53,6 @@ export function HeroGlobe() {
           strokeWidth="2.6"
           strokeLinecap="round"
           d={LAND_DOTS}
-        />
-        <path
-          className="fill-none stroke-on-ink-muted opacity-40"
-          strokeWidth="1.25"
-          strokeDasharray="2 7"
-          vectorEffect="non-scaling-stroke"
-          d={orbit}
         />
       </g>
     </svg>

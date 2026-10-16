@@ -2,10 +2,13 @@
 import { act } from "@testing-library/react";
 import { afterEach, expect, test, vi } from "vitest";
 import { HeroOrbit, type HeroOrbitLabels } from "@/components/home/hero-orbit";
+import { PASS } from "@/components/home/hero-scene";
 import messages from "../../../messages/en.json";
 import { renderClient } from "../../test-utils/render";
 
-const labels: HeroOrbitLabels = messages.Hero;
+const { sentSize: _, ...hero } = messages.Hero;
+const labels: HeroOrbitLabels = { ...hero, sentSizes: ["48 KB", "96 KB"] };
+const { wildfire, oilSpill } = labels.events;
 
 function preferReducedMotion(reduce: boolean) {
   vi.stubGlobal("matchMedia", (query: string) => ({
@@ -15,29 +18,36 @@ function preferReducedMotion(reduce: boolean) {
   }));
 }
 
+/** The status line that is showing: the others stay in the page, faded out. */
+const status = (container: HTMLElement) =>
+  [...container.querySelectorAll("text")].find(
+    (text) => text.getAttribute("opacity") === "1" && text.classList.contains("text-[12px]"),
+  )?.textContent;
+
 afterEach(() => {
   vi.unstubAllGlobals();
   vi.restoreAllMocks();
 });
 
-test("visitors who prefer reduced motion see the still frame: the alert on its way down", () => {
+test("visitors who prefer reduced motion see the still frame: the wildfire alert on its way down", () => {
   preferReducedMotion(true);
   const frame = vi.spyOn(window, "requestAnimationFrame");
   const { container } = renderClient(<HeroOrbit labels={labels} />);
   expect(frame).not.toHaveBeenCalled();
   expect(container.querySelector("svg")).toHaveAttribute("aria-hidden", "true");
-  expect(container).toHaveTextContent(labels.detected);
-  expect(container).toHaveTextContent(labels.alertTag);
+  expect(status(container)).toBe(wildfire.detected);
 });
 
-test("starts at the beginning of the pass and plays it frame by frame", () => {
+test("starts with the wildfire pass and moves on to the oil spill", () => {
   preferReducedMotion(false);
   const callbacks: FrameRequestCallback[] = [];
   vi.spyOn(window, "requestAnimationFrame").mockImplementation((callback) => callbacks.push(callback));
   const { container } = renderClient(<HeroOrbit labels={labels} />);
-  expect(container).toHaveTextContent(labels.scanning);
+  expect(status(container)).toBe(wildfire.scanning);
 
   act(() => callbacks.shift()?.(0));
-  act(() => callbacks.shift()?.(13_500));
-  expect(container).toHaveTextContent(labels.alerted);
+  act(() => callbacks.shift()?.(PASS * 0.85));
+  expect(status(container)).toBe(wildfire.alerted);
+  act(() => callbacks.shift()?.(PASS * 1.3));
+  expect(status(container)).toBe(oilSpill.scanning);
 });

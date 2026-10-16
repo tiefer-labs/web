@@ -45,7 +45,8 @@ describe("home page", () => {
     const home = ["Hero", "Problem", "Product", "How", "Demo", "UseCases", "Principles", "Roadmap", "Name"] as const;
     const missing = home
       .flatMap((section) => messageStrings(messages[section]))
-      .filter(([, copy]) => !text.includes(copy));
+      // A {placeholder} is filled in on the page, so only the text around it is checked.
+      .filter(([, copy]) => !copy.split(/\{\w+\}/).every((part) => text.includes(part.trim())));
     expect(missing).toEqual([]);
   });
 

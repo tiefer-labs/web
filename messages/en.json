@@ -23,13 +23,32 @@
   "Hero": {
     "alertTag": "ALERT 48 KB",
     "stored": "KEPT ON BOARD",
-    "scanning": "SCANNING EUROPE",
-    "detected": "WILDFIRE DETECTED ON BOARD",
-    "alerted": "EMERGENCY SERVICES ALERTED",
-    "fire": "WILDFIRE",
-    "responder": "EMERGENCY SERVICES",
     "sent": "SENT TO THE GROUND",
-    "alertSize": "48 KB",
+    "sentSize": "{size} KB",
+    "ais": "AIS",
+    "events": {
+      "wildfire": {
+        "scanning": "SCANNING SOUTHERN EUROPE",
+        "detected": "WILDFIRE DETECTED ON BOARD",
+        "alerted": "ALERT SENT TO BRUSSELS",
+        "event": "WILDFIRE",
+        "responder": "EU EMERGENCY RESPONSE"
+      },
+      "oilSpill": {
+        "scanning": "SCANNING CENTRAL EUROPE",
+        "detected": "OIL SPILL DETECTED ON BOARD",
+        "alerted": "ALERT SENT TO LISBON",
+        "event": "OIL SPILL",
+        "responder": "EU MARITIME SAFETY"
+      },
+      "vessels": {
+        "scanning": "SCANNING THE MEDITERRANEAN",
+        "detected": "SHIP WITHOUT AIS DETECTED",
+        "alerted": "ALERT SENT TO WARSAW",
+        "event": "NO AIS",
+        "responder": "EU BORDER AGENCY"
+      }
+    },
     "eyebrow": "Edge AI in orbit",
     "title": "See deeper.",
     "lead": "Tiefer builds AI software that runs on Earth observation satellites. It filters out useless pixels in orbit, detects events on board, and sends kilobyte-sized alerts to the ground instead of gigabytes of raw imagery.",

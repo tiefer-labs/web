@@ -2,10 +2,18 @@
 import { getTranslations } from "next-intl/server";
 import { ButtonLink } from "@/components/ui/button";
 import { HeroGlobe } from "./hero-globe";
-import { HeroOrbit } from "./hero-orbit";
+import { type EventLabels, HeroOrbit } from "./hero-orbit";
+import type { EventId } from "./hero-scene";
 
 export async function Hero() {
   const t = await getTranslations("Hero");
+  const eventLabels = (event: EventId): EventLabels => ({
+    scanning: t(`events.${event}.scanning`),
+    detected: t(`events.${event}.detected`),
+    alerted: t(`events.${event}.alerted`),
+    event: t(`events.${event}.event`),
+    responder: t(`events.${event}.responder`),
+  });
 
   return (
     <section
@@ -16,15 +24,16 @@ export async function Hero() {
       <HeroGlobe />
       <HeroOrbit
         labels={{
-          scanning: t("scanning"),
-          detected: t("detected"),
-          alerted: t("alerted"),
-          fire: t("fire"),
-          responder: t("responder"),
           stored: t("stored"),
           sent: t("sent"),
-          alertSize: t("alertSize"),
+          sentSizes: [t("sentSize", { size: 48 }), t("sentSize", { size: 96 })],
           alertTag: t("alertTag"),
+          ais: t("ais"),
+          events: {
+            wildfire: eventLabels("wildfire"),
+            oilSpill: eventLabels("oilSpill"),
+            vessels: eventLabels("vessels"),
+          },
         }}
       />
       <div className="relative wrap grid-12">

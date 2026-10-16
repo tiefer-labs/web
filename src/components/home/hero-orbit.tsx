@@ -4,16 +4,18 @@
 import { useRef } from "react";
 import { cn } from "@/lib/cn";
 import { heroSvgClass } from "./globe";
-import { heroScene, type Stage } from "./hero-scene";
+import { type EventId, heroScene, ORBITS, type Stage } from "./hero-scene";
 import { usePassProgress } from "./use-pass-progress";
 
-export type HeroOrbitLabels = Record<Stage, string> & {
-  fire: string;
-  responder: string;
+export type EventLabels = Record<Stage, string> & { event: string; responder: string };
+export type HeroOrbitLabels = {
   stored: string;
   sent: string;
-  alertSize: string;
+  /** What has gone to the ground after one alert, two alerts, and so on. */
+  sentSizes: string[];
   alertTag: string;
+  ais: string;
+  events: Record<EventId, EventLabels>;
 };
 
 const tele = "font-text text-[11px] leading-none font-medium tracking-[0.14em]";
@@ -23,6 +25,10 @@ const FLAME =
   "M0 -24C4 -17 10 -13 10 -6C10 0 5.5 3 0 3C-5.5 3 -10 0 -10 -6C-10 -10 -7 -13 -5.5 -16.5C-3.5 -13.5 -2 -12 0 -12C0 -16 -1 -20 0 -24Z";
 const CORE =
   "M0 -12C2 -9 4.5 -7 4.5 -3.5C4.5 -0.5 2.5 1 0 1C-2.5 1 -4.5 -0.5 -4.5 -3.5C-4.5 -6 -2.5 -8 -1.5 -9.5C-1 -8 -0.5 -7.5 0 -7.5Z";
+const SLICK = "M-24 -3C-21 -12 -6 -15 5 -12C15 -9 27 -11 30 -3C33 5 22 11 9 10C-1 9 -9 15 -18 11C-26 8 -27 2 -24 -3Z";
+const SHEEN = "M-12 -3C-8 -8 2 -8 8 -6C14 -4 18 -1 14 3C9 6 0 4 -6 5C-12 5 -15 1 -12 -3Z";
+// Pointing up: the bow is at the top.
+const HULL = "M0 -8L3.5 -3V7H-3.5V-3Z";
 const CLOUD: [number, number, number][] = [
   [-24, 4, 13],
   [-6, -6, 18],
@@ -32,15 +38,27 @@ const CLOUD: [number, number, number][] = [
 ];
 const BAR = 250;
 const STAGES: Stage[] = ["scanning", "detected", "alerted"];
+const EVENTS: EventId[] = ["wildfire", "oilSpill", "vessels"];
+const RESPONDER_LABEL: Record<"left" | "below", { x: number; y: number; anchor: "start" | "end" }> = {
+  left: { x: -12, y: 4, anchor: "end" },
+  below: { x: -6, y: 20, anchor: "start" },
+};
+/** Where each event's name sits: left of its marker, or below the silent ship, clear of the other ships' tags. */
+const EVENT_LABEL: Record<EventId, { x: number; y: number; anchor: "end" | "middle" }> = {
+  wildfire: { x: -20, y: -4, anchor: "end" },
+  oilSpill: { x: -40, y: -4, anchor: "end" },
+  vessels: { x: 0, y: 30, anchor: "middle" },
+};
 
 /**
- * One pass over Europe, on repeat: the satellite images the land under it and keeps every frame on board, finds a
- * wildfire in Greece and sends only a 48 KB alert down to the emergency services.
+ * Three passes over Europe, on repeat. Each time the satellite images the ground and keeps every frame on board, finds
+ * one event (a wildfire, an oil spill, a ship without AIS) and sends only a 48 KB alert down to the people who act on it.
  */
 export function HeroOrbit({ labels }: { labels: HeroOrbitLabels }) {
   const svg = useRef<SVGSVGElement>(null);
   const s = heroScene(usePassProgress(svg));
   const alarm = s.stage !== "scanning";
+  const side = s.responder.side;
 
   return (
     <svg
@@ -52,9 +70,22 @@ export function HeroOrbit({ labels }: { labels: HeroOrbitLabels }) {
       focusable="false"
       data-print="hide"
     >
+      {ORBITS.map((d, index) => (
+        <path
+          // oxlint-disable-next-line react/no-array-index-key
+          key={index}
+          className="fill-none stroke-on-ink-muted"
+          strokeWidth="1.25"
+          strokeDasharray="2 7"
+          vectorEffect="non-scaling-stroke"
+          opacity={s.orbits[index]}
+          d={d}
+        />
+      ))}
+
       {s.frames.map(({ lon, points, opacity }) => (
         <polygon
-          key={lon}
+          key={`${s.event}-${lon}`}
           className="fill-on-ink stroke-on-ink"
           fillOpacity="0.06"
           vectorEffect="non-scaling-stroke"
@@ -76,24 +107,86 @@ export function HeroOrbit({ labels }: { labels: HeroOrbitLabels }) {
         </g>
       ))}
 
-      <g transform={`translate(${s.fire.x} ${s.fire.y})`}>
+      <g opacity={s.fire.opacity} transform={`translate(${s.fire.x} ${s.fire.y})`}>
         <circle className="fill-signal" r="15" opacity={s.fire.glow * 0.5} />
         <g transform={`scale(${s.fire.flame * 0.9})`}>
           <path className="fill-signal" d={FLAME} />
           <path className="fill-on-ink opacity-90" d={CORE} />
         </g>
-        <path
-          className="fill-none stroke-on-ink"
-          strokeWidth="1.5"
-          vectorEffect="non-scaling-stroke"
-          opacity={s.fire.reticle.opacity}
-          transform={`translate(0 -8) scale(${s.fire.reticle.scale})`}
-          d={RETICLE}
-        />
-        <text className={cn(tele, "fill-signal")} x="-20" y="-4" textAnchor="end" opacity={s.fire.detected}>
-          {labels.fire}
-        </text>
       </g>
+
+      <g opacity={s.spill.opacity}>
+        <g transform={`translate(${s.spill.x} ${s.spill.y}) scale(${s.spill.scale})`}>
+          <path className="fill-signal stroke-signal" fillOpacity="0.25" vectorEffect="non-scaling-stroke" d={SLICK} />
+          <path className="fill-signal opacity-50" d={SHEEN} />
+        </g>
+        {/* The offshore platform the slick spreads from. */}
+        <g
+          className="fill-none stroke-on-ink"
+          strokeWidth="1.25"
+          transform={`translate(${s.spill.rig.x} ${s.spill.rig.y})`}
+        >
+          <rect vectorEffect="non-scaling-stroke" x="-5" y="-9" width="10" height="5" />
+          <path vectorEffect="non-scaling-stroke" d="M-4 -4L-6 4M4 -4L6 4M0 -9V-14" />
+        </g>
+      </g>
+
+      {s.ships.map((ship, index) => (
+        // oxlint-disable-next-line react/no-array-index-key
+        <g key={index} opacity={ship.opacity} transform={`translate(${ship.x} ${ship.y})`}>
+          {!ship.dark && (
+            <circle
+              className="fill-none stroke-on-ink-muted"
+              vectorEffect="non-scaling-stroke"
+              r={ship.signal.r}
+              opacity={ship.signal.opacity}
+            />
+          )}
+          <path
+            className={ship.dark ? "fill-on-ink-muted" : "fill-on-ink"}
+            transform={`rotate(${ship.heading})`}
+            d={HULL}
+          />
+          <rect
+            className="fill-none stroke-on-ink-muted"
+            vectorEffect="non-scaling-stroke"
+            opacity={ship.matched}
+            x="-11"
+            y="-11"
+            width="22"
+            height="22"
+          />
+          <text className={cn(tele, "fill-on-ink-muted")} y="-16" textAnchor="middle" opacity={ship.matched}>
+            {labels.ais}
+          </text>
+        </g>
+      ))}
+
+      {s.targets.map((target, index) => (
+        // oxlint-disable-next-line react/no-array-index-key
+        <g key={index} transform={`translate(${target.x} ${target.y})`}>
+          <path
+            className="fill-none stroke-on-ink"
+            strokeWidth="1.5"
+            vectorEffect="non-scaling-stroke"
+            opacity={target.reticle.opacity}
+            transform={`translate(0 ${s.event === "wildfire" ? -8 : 0}) scale(${target.reticle.scale})`}
+            d={RETICLE}
+          />
+          {EVENTS.map((event) => (
+            <text
+              key={event}
+              className={cn(tele, "fill-signal")}
+              x={EVENT_LABEL[event].x}
+              y={EVENT_LABEL[event].y}
+              textAnchor={EVENT_LABEL[event].anchor}
+              opacity={event === s.event ? target.detected : 0}
+            >
+              {labels.events[event].event}
+            </text>
+          ))}
+        </g>
+      ))}
 
       <polygon
         className="fill-on-ink-muted stroke-on-ink-muted"
@@ -135,7 +228,7 @@ export function HeroOrbit({ labels }: { labels: HeroOrbitLabels }) {
         {labels.alertTag}
       </text>
 
-      <g transform={`translate(${s.responder.x} ${s.responder.y})`}>
+      <g opacity={s.responder.marker} transform={`translate(${s.responder.x} ${s.responder.y})`}>
         {s.responder.pings.map(({ r, opacity }, index) => (
           <circle
             // oxlint-disable-next-line react/no-array-index-key
@@ -149,16 +242,19 @@ export function HeroOrbit({ labels }: { labels: HeroOrbitLabels }) {
         ))}
         <rect className="fill-on-ink-muted" x="-5" y="-5" width="10" height="10" />
         <rect className="fill-signal" x="-5" y="-5" width="10" height="10" opacity={s.responder.lit} />
-        {/* Left of the marker: the alert line arrives from the east. */}
-        <text
-          className={cn(tele, "fill-on-ink")}
-          x="-12"
-          y="4"
-          textAnchor="end"
-          opacity={s.responder.named * (0.7 + 0.3 * s.responder.lit)}
-        >
-          {labels.responder}
-        </text>
+        {/* Away from the alert line, on the side it does not arrive from. */}
+        {EVENTS.map((event) => (
+          <text
+            key={event}
+            className={cn(tele, "fill-on-ink")}
+            x={RESPONDER_LABEL[side].x}
+            y={RESPONDER_LABEL[side].y}
+            textAnchor={RESPONDER_LABEL[side].anchor}
+            opacity={event === s.event ? s.responder.named * (0.7 + 0.3 * s.responder.lit) : 0}
+          >
+            {labels.events[event].responder}
+          </text>
+        ))}
       </g>
 
       <g opacity={s.sat.opacity} transform={`translate(${s.sat.x} ${s.sat.y}) rotate(${s.sat.angle})`}>
@@ -195,16 +291,18 @@ export function HeroOrbit({ labels }: { labels: HeroOrbitLabels }) {
           height="124"
         />
         <rect className={alarm ? "fill-signal" : "fill-on-ink"} y="-9" width="9" height="9" />
-        {STAGES.map((stage) => (
-          <text
-            key={stage}
-            className="fill-on-ink text-[12px] transition-opacity duration-300"
-            x="18"
-            opacity={stage === s.stage ? 1 : 0}
-          >
-            {labels[stage]}
-          </text>
-        ))}
+        {EVENTS.flatMap((event) =>
+          STAGES.map((stage) => (
+            <text
+              key={`${event}-${stage}`}
+              className="fill-on-ink text-[12px] transition-opacity duration-300"
+              x="18"
+              opacity={event === s.event && stage === s.stage ? 1 : 0}
+            >
+              {labels.events[event][stage]}
+            </text>
+          )),
+        )}
         <text className="fill-on-ink-muted" y="30">
           {labels.stored}
         </text>
@@ -226,10 +324,19 @@ export function HeroOrbit({ labels }: { labels: HeroOrbitLabels }) {
           width={BAR}
           height="6"
         />
-        <rect className="fill-signal" y="74" width={s.store.sent ? 2 : 0} height="6" />
-        <text className="fill-signal" x={BAR} y="66" textAnchor="end" opacity={s.store.sent ? 1 : 0}>
-          {labels.alertSize}
-        </text>
+        <rect className="fill-signal" y="74" width={2 * s.store.sent} height="6" />
+        {labels.sentSizes.map((size, index) => (
+          <text
+            key={size}
+            className="fill-signal"
+            x={BAR}
+            y="66"
+            textAnchor="end"
+            opacity={s.store.sent === index + 1 ? 1 : 0}
+          >
+            {size}
+          </text>
+        ))}
       </g>
     </svg>
   );
