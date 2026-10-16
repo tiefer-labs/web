@@ -1,10 +1,12 @@
 // SPDX-License-Identifier: MPL-2.0
-import { fireEvent, screen } from "@testing-library/react";
+import { fireEvent } from "@testing-library/react";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import { PageScrollbar } from "@/components/layout/page-scrollbar";
-import { renderClient } from "../../test-utils/render";
+import { renderClient, renderServer } from "../../test-utils/render";
 
 const root = document.documentElement;
+const track = () => document.getElementById("page-scrollbar");
+const thumb = () => document.getElementById("page-scrollbar-thumb");
 
 beforeEach(() => {
   vi.spyOn(root, "clientHeight", "get").mockReturnValue(800);
@@ -14,31 +16,40 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.restoreAllMocks();
+  document.body.replaceChildren();
 });
 
-test("sizes the thumb to the visible share of the page and follows scrolling", () => {
-  const { container } = renderClient(<PageScrollbar />);
-  const thumb = screen.getByTestId("page-scrollbar-thumb");
-  expect(container.firstElementChild).toHaveAttribute("aria-hidden", "true");
-  expect(thumb.style.height).toBe("200px");
+test("the inline script paints the thumb before hydration", async () => {
+  const { container } = await renderServer(<PageScrollbar />);
+  root.scrollTop = 1200;
+  // oxlint-disable-next-line typescript/no-implied-eval
+  new Function(container.querySelector("script")?.textContent ?? "")();
+  expect(track()).toHaveAttribute("aria-hidden", "true");
+  expect(track()).not.toHaveAttribute("data-empty");
+  expect(thumb()?.style.height).toBe("200px");
+  expect(thumb()?.style.transform).toBe("translateY(300px)");
+});
 
+test("follows scrolling once hydrated", () => {
+  renderClient(<PageScrollbar />);
   root.scrollTop = 1200;
   fireEvent.scroll(window);
-  expect(thumb.style.transform).toBe("translateY(300px)");
+  expect(thumb()?.style.transform).toBe("translateY(300px)");
 });
 
 test("hides itself when the page does not scroll", () => {
   vi.spyOn(root, "scrollHeight", "get").mockReturnValue(800);
-  const { container } = renderClient(<PageScrollbar />);
-  expect(container.firstElementChild).toHaveAttribute("data-empty");
+  renderClient(<PageScrollbar />);
+  expect(track()).toHaveAttribute("data-empty");
 });
 
 test("dragging the thumb scrolls the page in proportion", () => {
   const scrollTo = vi.spyOn(window, "scrollTo").mockImplementation(() => {});
   renderClient(<PageScrollbar />);
-  const thumb = screen.getByTestId("page-scrollbar-thumb");
+  const element = thumb();
+  if (!element) throw new Error("no thumb");
 
-  fireEvent.pointerDown(thumb, { button: 0, clientY: 100 });
+  fireEvent.pointerDown(element, { button: 0, clientY: 100 });
   fireEvent.pointerMove(window, { clientY: 160 });
   fireEvent.pointerUp(window);
 
